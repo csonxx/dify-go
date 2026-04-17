@@ -1,0 +1,6217 @@
+[
+  {
+    "file": "web/audio.py",
+    "group": "web",
+    "prefix": "/api",
+    "path": "/audio-to-text",
+    "full_path": "/api/audio-to-text",
+    "class": "AudioApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "web/completion.py",
+    "group": "web",
+    "prefix": "/api",
+    "path": "/chat-messages",
+    "full_path": "/api/chat-messages",
+    "class": "ChatApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "web/completion.py",
+    "group": "web",
+    "prefix": "/api",
+    "path": "/chat-messages/\u003cstring:task_id\u003e/stop",
+    "full_path": "/api/chat-messages/\u003cstring:task_id\u003e/stop",
+    "class": "ChatStopApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "web/completion.py",
+    "group": "web",
+    "prefix": "/api",
+    "path": "/completion-messages",
+    "full_path": "/api/completion-messages",
+    "class": "CompletionApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "web/completion.py",
+    "group": "web",
+    "prefix": "/api",
+    "path": "/completion-messages/\u003cstring:task_id\u003e/stop",
+    "full_path": "/api/completion-messages/\u003cstring:task_id\u003e/stop",
+    "class": "CompletionStopApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "web/conversation.py",
+    "group": "web",
+    "prefix": "/api",
+    "path": "/conversations",
+    "full_path": "/api/conversations",
+    "class": "ConversationListApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "web/conversation.py",
+    "group": "web",
+    "prefix": "/api",
+    "path": "/conversations/\u003cuuid:c_id\u003e",
+    "full_path": "/api/conversations/\u003cuuid:c_id\u003e",
+    "class": "ConversationApi",
+    "methods": [
+      "DELETE"
+    ]
+  },
+  {
+    "file": "web/conversation.py",
+    "group": "web",
+    "prefix": "/api",
+    "path": "/conversations/\u003cuuid:c_id\u003e/name",
+    "full_path": "/api/conversations/\u003cuuid:c_id\u003e/name",
+    "class": "ConversationRenameApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "web/conversation.py",
+    "group": "web",
+    "prefix": "/api",
+    "path": "/conversations/\u003cuuid:c_id\u003e/pin",
+    "full_path": "/api/conversations/\u003cuuid:c_id\u003e/pin",
+    "class": "ConversationPinApi",
+    "methods": [
+      "PATCH"
+    ]
+  },
+  {
+    "file": "web/conversation.py",
+    "group": "web",
+    "prefix": "/api",
+    "path": "/conversations/\u003cuuid:c_id\u003e/unpin",
+    "full_path": "/api/conversations/\u003cuuid:c_id\u003e/unpin",
+    "class": "ConversationUnPinApi",
+    "methods": [
+      "PATCH"
+    ]
+  },
+  {
+    "file": "web/login.py",
+    "group": "web",
+    "prefix": "/api",
+    "path": "/email-code-login",
+    "full_path": "/api/email-code-login",
+    "class": "EmailCodeLoginSendEmailApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "web/login.py",
+    "group": "web",
+    "prefix": "/api",
+    "path": "/email-code-login/validity",
+    "full_path": "/api/email-code-login/validity",
+    "class": "EmailCodeLoginApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "web/files.py",
+    "group": "web",
+    "prefix": "/api",
+    "path": "/files/upload",
+    "full_path": "/api/files/upload",
+    "class": "FileApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "web/forgot_password.py",
+    "group": "web",
+    "prefix": "/api",
+    "path": "/forgot-password",
+    "full_path": "/api/forgot-password",
+    "class": "ForgotPasswordSendEmailApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "web/forgot_password.py",
+    "group": "web",
+    "prefix": "/api",
+    "path": "/forgot-password/resets",
+    "full_path": "/api/forgot-password/resets",
+    "class": "ForgotPasswordResetApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "web/forgot_password.py",
+    "group": "web",
+    "prefix": "/api",
+    "path": "/forgot-password/validity",
+    "full_path": "/api/forgot-password/validity",
+    "class": "ForgotPasswordCheckApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "web/human_input_form.py",
+    "group": "web",
+    "prefix": "/api",
+    "path": "/form/human_input/\u003cstring:form_token\u003e",
+    "full_path": "/api/form/human_input/\u003cstring:form_token\u003e",
+    "class": "HumanInputFormApi",
+    "methods": [
+      "GET",
+      "POST"
+    ]
+  },
+  {
+    "file": "web/login.py",
+    "group": "web",
+    "prefix": "/api",
+    "path": "/login",
+    "full_path": "/api/login",
+    "class": "LoginApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "web/login.py",
+    "group": "web",
+    "prefix": "/api",
+    "path": "/login/status",
+    "full_path": "/api/login/status",
+    "class": "LoginStatusApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "web/login.py",
+    "group": "web",
+    "prefix": "/api",
+    "path": "/logout",
+    "full_path": "/api/logout",
+    "class": "LogoutApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "web/message.py",
+    "group": "web",
+    "prefix": "/api",
+    "path": "/messages",
+    "full_path": "/api/messages",
+    "class": "MessageListApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "web/message.py",
+    "group": "web",
+    "prefix": "/api",
+    "path": "/messages/\u003cuuid:message_id\u003e/feedbacks",
+    "full_path": "/api/messages/\u003cuuid:message_id\u003e/feedbacks",
+    "class": "MessageFeedbackApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "web/message.py",
+    "group": "web",
+    "prefix": "/api",
+    "path": "/messages/\u003cuuid:message_id\u003e/more-like-this",
+    "full_path": "/api/messages/\u003cuuid:message_id\u003e/more-like-this",
+    "class": "MessageMoreLikeThisApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "web/message.py",
+    "group": "web",
+    "prefix": "/api",
+    "path": "/messages/\u003cuuid:message_id\u003e/suggested-questions",
+    "full_path": "/api/messages/\u003cuuid:message_id\u003e/suggested-questions",
+    "class": "MessageSuggestedQuestionApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "web/app.py",
+    "group": "web",
+    "prefix": "/api",
+    "path": "/meta",
+    "full_path": "/api/meta",
+    "class": "AppMeta",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "web/app.py",
+    "group": "web",
+    "prefix": "/api",
+    "path": "/parameters",
+    "full_path": "/api/parameters",
+    "class": "AppParameterApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "web/passport.py",
+    "group": "web",
+    "prefix": "/api",
+    "path": "/passport",
+    "full_path": "/api/passport",
+    "class": "PassportResource",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "web/remote_files.py",
+    "group": "web",
+    "prefix": "/api",
+    "path": "/remote-files/\u003cpath:url\u003e",
+    "full_path": "/api/remote-files/\u003cpath:url\u003e",
+    "class": "RemoteFileInfoApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "web/remote_files.py",
+    "group": "web",
+    "prefix": "/api",
+    "path": "/remote-files/upload",
+    "full_path": "/api/remote-files/upload",
+    "class": "RemoteFileUploadApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "web/saved_message.py",
+    "group": "web",
+    "prefix": "/api",
+    "path": "/saved-messages",
+    "full_path": "/api/saved-messages",
+    "class": "SavedMessageListApi",
+    "methods": [
+      "GET",
+      "POST"
+    ]
+  },
+  {
+    "file": "web/saved_message.py",
+    "group": "web",
+    "prefix": "/api",
+    "path": "/saved-messages/\u003cuuid:message_id\u003e",
+    "full_path": "/api/saved-messages/\u003cuuid:message_id\u003e",
+    "class": "SavedMessageApi",
+    "methods": [
+      "DELETE"
+    ]
+  },
+  {
+    "file": "web/site.py",
+    "group": "web",
+    "prefix": "/api",
+    "path": "/site",
+    "full_path": "/api/site",
+    "class": "AppSiteApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "web/feature.py",
+    "group": "web",
+    "prefix": "/api",
+    "path": "/system-features",
+    "full_path": "/api/system-features",
+    "class": "SystemFeatureApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "web/audio.py",
+    "group": "web",
+    "prefix": "/api",
+    "path": "/text-to-audio",
+    "full_path": "/api/text-to-audio",
+    "class": "TextApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "web/app.py",
+    "group": "web",
+    "prefix": "/api",
+    "path": "/webapp/access-mode",
+    "full_path": "/api/webapp/access-mode",
+    "class": "AppAccessMode",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "web/app.py",
+    "group": "web",
+    "prefix": "/api",
+    "path": "/webapp/permission",
+    "full_path": "/api/webapp/permission",
+    "class": "AppWebAuthPermission",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "web/workflow.py",
+    "group": "web",
+    "prefix": "/api",
+    "path": "/workflows/run",
+    "full_path": "/api/workflows/run",
+    "class": "WorkflowRunApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "web/workflow.py",
+    "group": "web",
+    "prefix": "/api",
+    "path": "/workflows/tasks/\u003cstring:task_id\u003e/stop",
+    "full_path": "/api/workflows/tasks/\u003cstring:task_id\u003e/stop",
+    "class": "WorkflowTaskStopApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/workspace/account.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/account/avatar",
+    "full_path": "/console/api/account/avatar",
+    "class": "AccountAvatarApi",
+    "methods": [
+      "GET",
+      "POST"
+    ]
+  },
+  {
+    "file": "console/workspace/account.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/account/change-email",
+    "full_path": "/console/api/account/change-email",
+    "class": "ChangeEmailSendEmailApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/workspace/account.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/account/change-email/check-email-unique",
+    "full_path": "/console/api/account/change-email/check-email-unique",
+    "class": "CheckEmailUnique",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/workspace/account.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/account/change-email/reset",
+    "full_path": "/console/api/account/change-email/reset",
+    "class": "ChangeEmailResetApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/workspace/account.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/account/change-email/validity",
+    "full_path": "/console/api/account/change-email/validity",
+    "class": "ChangeEmailCheckApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/workspace/account.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/account/delete",
+    "full_path": "/console/api/account/delete",
+    "class": "AccountDeleteApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/workspace/account.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/account/delete/feedback",
+    "full_path": "/console/api/account/delete/feedback",
+    "class": "AccountDeleteUpdateFeedbackApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/workspace/account.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/account/delete/verify",
+    "full_path": "/console/api/account/delete/verify",
+    "class": "AccountDeleteVerifyApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/workspace/account.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/account/education",
+    "full_path": "/console/api/account/education",
+    "class": "EducationApi",
+    "methods": [
+      "POST",
+      "GET"
+    ]
+  },
+  {
+    "file": "console/workspace/account.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/account/education/autocomplete",
+    "full_path": "/console/api/account/education/autocomplete",
+    "class": "EducationAutoCompleteApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/workspace/account.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/account/education/verify",
+    "full_path": "/console/api/account/education/verify",
+    "class": "EducationVerifyApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/workspace/account.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/account/init",
+    "full_path": "/console/api/account/init",
+    "class": "AccountInitApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/workspace/account.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/account/integrates",
+    "full_path": "/console/api/account/integrates",
+    "class": "AccountIntegrateApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/workspace/account.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/account/interface-language",
+    "full_path": "/console/api/account/interface-language",
+    "class": "AccountInterfaceLanguageApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/workspace/account.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/account/interface-theme",
+    "full_path": "/console/api/account/interface-theme",
+    "class": "AccountInterfaceThemeApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/workspace/account.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/account/name",
+    "full_path": "/console/api/account/name",
+    "class": "AccountNameApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/workspace/account.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/account/password",
+    "full_path": "/console/api/account/password",
+    "class": "AccountPasswordApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/workspace/account.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/account/profile",
+    "full_path": "/console/api/account/profile",
+    "class": "AccountProfileApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/workspace/account.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/account/timezone",
+    "full_path": "/console/api/account/timezone",
+    "class": "AccountTimezoneApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/auth/activate.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/activate",
+    "full_path": "/console/api/activate",
+    "class": "ActivateApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/auth/activate.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/activate/check",
+    "full_path": "/console/api/activate/check",
+    "class": "ActivateCheckApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/admin.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/admin/batch_add_notification_accounts",
+    "full_path": "/console/api/admin/batch_add_notification_accounts",
+    "class": "BatchAddNotificationAccountsApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/admin.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/admin/delete-explore-banner/\u003cuuid:banner_id\u003e",
+    "full_path": "/console/api/admin/delete-explore-banner/\u003cuuid:banner_id\u003e",
+    "class": "DeleteExploreBannerApi",
+    "methods": [
+      "DELETE"
+    ]
+  },
+  {
+    "file": "console/admin.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/admin/insert-explore-apps",
+    "full_path": "/console/api/admin/insert-explore-apps",
+    "class": "InsertExploreAppListApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/admin.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/admin/insert-explore-apps/\u003cuuid:app_id\u003e",
+    "full_path": "/console/api/admin/insert-explore-apps/\u003cuuid:app_id\u003e",
+    "class": "InsertExploreAppApi",
+    "methods": [
+      "DELETE"
+    ]
+  },
+  {
+    "file": "console/admin.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/admin/insert-explore-banner",
+    "full_path": "/console/api/admin/insert-explore-banner",
+    "class": "InsertExploreBannerApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/admin.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/admin/upsert_notification",
+    "full_path": "/console/api/admin/upsert_notification",
+    "class": "UpsertNotificationApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/workspace/workspace.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/all-workspaces",
+    "full_path": "/console/api/all-workspaces",
+    "class": "WorkspaceListApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/extension.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/api-based-extension",
+    "full_path": "/console/api/api-based-extension",
+    "class": "APIBasedExtensionAPI",
+    "methods": [
+      "GET",
+      "POST"
+    ]
+  },
+  {
+    "file": "console/extension.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/api-based-extension/\u003cuuid:id\u003e",
+    "full_path": "/console/api/api-based-extension/\u003cuuid:id\u003e",
+    "class": "APIBasedExtensionDetailAPI",
+    "methods": [
+      "GET",
+      "POST",
+      "DELETE"
+    ]
+  },
+  {
+    "file": "console/auth/data_source_bearer_auth.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/api-key-auth/data-source",
+    "full_path": "/console/api/api-key-auth/data-source",
+    "class": "ApiKeyAuthDataSource",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/auth/data_source_bearer_auth.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/api-key-auth/data-source/\u003cuuid:binding_id\u003e",
+    "full_path": "/console/api/api-key-auth/data-source/\u003cuuid:binding_id\u003e",
+    "class": "ApiKeyAuthDataSourceBindingDelete",
+    "methods": [
+      "DELETE"
+    ]
+  },
+  {
+    "file": "console/auth/data_source_bearer_auth.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/api-key-auth/data-source/binding",
+    "full_path": "/console/api/api-key-auth/data-source/binding",
+    "class": "ApiKeyAuthDataSourceBinding",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/app/advanced_prompt_template.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/app/prompt-templates",
+    "full_path": "/console/api/app/prompt-templates",
+    "class": "AdvancedPromptTemplateList",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/app/app.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps",
+    "full_path": "/console/api/apps",
+    "class": "AppListApi",
+    "methods": [
+      "GET",
+      "POST"
+    ]
+  },
+  {
+    "file": "console/app/app.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e",
+    "class": "AppApi",
+    "methods": [
+      "GET",
+      "PUT",
+      "DELETE"
+    ]
+  },
+  {
+    "file": "console/app/workflow_run.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/advanced-chat/workflow-runs",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/advanced-chat/workflow-runs",
+    "class": "AdvancedChatAppWorkflowRunListApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/app/workflow_run.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/advanced-chat/workflow-runs/count",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/advanced-chat/workflow-runs/count",
+    "class": "AdvancedChatAppWorkflowRunCountApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/app/workflow.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/advanced-chat/workflows/draft/human-input/nodes/\u003cstring:node_id\u003e/form/preview",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/advanced-chat/workflows/draft/human-input/nodes/\u003cstring:node_id\u003e/form/preview",
+    "class": "AdvancedChatDraftHumanInputFormPreviewApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/app/workflow.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/advanced-chat/workflows/draft/human-input/nodes/\u003cstring:node_id\u003e/form/run",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/advanced-chat/workflows/draft/human-input/nodes/\u003cstring:node_id\u003e/form/run",
+    "class": "AdvancedChatDraftHumanInputFormRunApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/app/workflow.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/advanced-chat/workflows/draft/iteration/nodes/\u003cstring:node_id\u003e/run",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/advanced-chat/workflows/draft/iteration/nodes/\u003cstring:node_id\u003e/run",
+    "class": "AdvancedChatDraftRunIterationNodeApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/app/workflow.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/advanced-chat/workflows/draft/loop/nodes/\u003cstring:node_id\u003e/run",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/advanced-chat/workflows/draft/loop/nodes/\u003cstring:node_id\u003e/run",
+    "class": "AdvancedChatDraftRunLoopNodeApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/app/workflow.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/advanced-chat/workflows/draft/run",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/advanced-chat/workflows/draft/run",
+    "class": "AdvancedChatDraftWorkflowRunApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/app/agent.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/agent/logs",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/agent/logs",
+    "class": "AgentLogApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/app/annotation.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/annotation-reply/\u003cstring:action\u003e",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/annotation-reply/\u003cstring:action\u003e",
+    "class": "AnnotationReplyActionApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/app/annotation.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/annotation-reply/\u003cstring:action\u003e/status/\u003cuuid:job_id\u003e",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/annotation-reply/\u003cstring:action\u003e/status/\u003cuuid:job_id\u003e",
+    "class": "AnnotationReplyActionStatusApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/app/annotation.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/annotation-setting",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/annotation-setting",
+    "class": "AppAnnotationSettingDetailApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/app/annotation.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/annotation-settings/\u003cuuid:annotation_setting_id\u003e",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/annotation-settings/\u003cuuid:annotation_setting_id\u003e",
+    "class": "AppAnnotationSettingUpdateApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/app/annotation.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/annotations",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/annotations",
+    "class": "AnnotationApi",
+    "methods": [
+      "GET",
+      "POST",
+      "DELETE"
+    ]
+  },
+  {
+    "file": "console/app/annotation.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/annotations/\u003cuuid:annotation_id\u003e",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/annotations/\u003cuuid:annotation_id\u003e",
+    "class": "AnnotationUpdateDeleteApi",
+    "methods": [
+      "POST",
+      "DELETE"
+    ]
+  },
+  {
+    "file": "console/app/annotation.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/annotations/\u003cuuid:annotation_id\u003e/hit-histories",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/annotations/\u003cuuid:annotation_id\u003e/hit-histories",
+    "class": "AnnotationHitHistoryListApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/app/annotation.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/annotations/batch-import",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/annotations/batch-import",
+    "class": "AnnotationBatchImportApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/app/annotation.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/annotations/batch-import-status/\u003cuuid:job_id\u003e",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/annotations/batch-import-status/\u003cuuid:job_id\u003e",
+    "class": "AnnotationBatchImportStatusApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/app/message.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/annotations/count",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/annotations/count",
+    "class": "MessageAnnotationCountApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/app/annotation.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/annotations/export",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/annotations/export",
+    "class": "AnnotationExportApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/app/app.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/api-enable",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/api-enable",
+    "class": "AppApiStatus",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/app/audio.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/audio-to-text",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/audio-to-text",
+    "class": "ChatMessageAudioApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/app/conversation.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/chat-conversations",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/chat-conversations",
+    "class": "ChatConversationApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/app/conversation.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/chat-conversations/\u003cuuid:conversation_id\u003e",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/chat-conversations/\u003cuuid:conversation_id\u003e",
+    "class": "ChatConversationDetailApi",
+    "methods": [
+      "GET",
+      "DELETE"
+    ]
+  },
+  {
+    "file": "console/app/completion.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/chat-messages",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/chat-messages",
+    "class": "ChatMessageApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/app/message.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/chat-messages",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/chat-messages",
+    "class": "ChatMessageListApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/app/completion.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/chat-messages/\u003cstring:task_id\u003e/stop",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/chat-messages/\u003cstring:task_id\u003e/stop",
+    "class": "ChatMessageStopApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/app/message.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/chat-messages/\u003cuuid:message_id\u003e/suggested-questions",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/chat-messages/\u003cuuid:message_id\u003e/suggested-questions",
+    "class": "MessageSuggestedQuestionApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/app/conversation.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/completion-conversations",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/completion-conversations",
+    "class": "CompletionConversationApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/app/conversation.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/completion-conversations/\u003cuuid:conversation_id\u003e",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/completion-conversations/\u003cuuid:conversation_id\u003e",
+    "class": "CompletionConversationDetailApi",
+    "methods": [
+      "GET",
+      "DELETE"
+    ]
+  },
+  {
+    "file": "console/app/completion.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/completion-messages",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/completion-messages",
+    "class": "CompletionMessageApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/app/completion.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/completion-messages/\u003cstring:task_id\u003e/stop",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/completion-messages/\u003cstring:task_id\u003e/stop",
+    "class": "CompletionMessageStopApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/app/conversation_variables.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/conversation-variables",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/conversation-variables",
+    "class": "ConversationVariablesApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/app/workflow.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/convert-to-workflow",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/convert-to-workflow",
+    "class": "ConvertToWorkflowApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/app/app.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/copy",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/copy",
+    "class": "AppCopyApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/app/app.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/export",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/export",
+    "class": "AppExportApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/app/message.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/feedbacks",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/feedbacks",
+    "class": "MessageFeedbackApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/app/message.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/feedbacks/export",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/feedbacks/export",
+    "class": "MessageFeedbackExportApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/app/app.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/icon",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/icon",
+    "class": "AppIconApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/app/message.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/messages/\u003cuuid:message_id\u003e",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/messages/\u003cuuid:message_id\u003e",
+    "class": "MessageApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/app/model_config.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/model-config",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/model-config",
+    "class": "ModelConfigResource",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/app/app.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/name",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/name",
+    "class": "AppNameApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/app/mcp_server.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/server",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/server",
+    "class": "AppMCPServerController",
+    "methods": [
+      "GET",
+      "POST",
+      "PUT"
+    ]
+  },
+  {
+    "file": "console/app/site.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/site",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/site",
+    "class": "AppSite",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/app/app.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/site-enable",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/site-enable",
+    "class": "AppSiteStatus",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/app/site.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/site/access-token-reset",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/site/access-token-reset",
+    "class": "AppSiteAccessTokenReset",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/app/statistic.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/statistics/average-response-time",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/statistics/average-response-time",
+    "class": "AverageResponseTimeStatistic",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/app/statistic.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/statistics/average-session-interactions",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/statistics/average-session-interactions",
+    "class": "AverageSessionInteractionStatistic",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/app/statistic.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/statistics/daily-conversations",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/statistics/daily-conversations",
+    "class": "DailyConversationStatistic",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/app/statistic.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/statistics/daily-end-users",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/statistics/daily-end-users",
+    "class": "DailyTerminalsStatistic",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/app/statistic.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/statistics/daily-messages",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/statistics/daily-messages",
+    "class": "DailyMessageStatistic",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/app/statistic.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/statistics/token-costs",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/statistics/token-costs",
+    "class": "DailyTokenCostStatistic",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/app/statistic.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/statistics/tokens-per-second",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/statistics/tokens-per-second",
+    "class": "TokensPerSecondStatistic",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/app/statistic.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/statistics/user-satisfaction-rate",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/statistics/user-satisfaction-rate",
+    "class": "UserSatisfactionRateStatistic",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/app/audio.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/text-to-audio",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/text-to-audio",
+    "class": "ChatMessageTextApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/app/audio.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/text-to-audio/voices",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/text-to-audio/voices",
+    "class": "TextModesApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/app/app.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/trace",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/trace",
+    "class": "AppTraceApi",
+    "methods": [
+      "GET",
+      "POST"
+    ]
+  },
+  {
+    "file": "console/app/ops_trace.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/trace-config",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/trace-config",
+    "class": "TraceAppConfigApi",
+    "methods": [
+      "GET",
+      "POST",
+      "PATCH",
+      "DELETE"
+    ]
+  },
+  {
+    "file": "console/app/workflow_trigger.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/trigger-enable",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/trigger-enable",
+    "class": "AppTriggerEnableApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/app/workflow_trigger.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/triggers",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/triggers",
+    "class": "AppTriggersApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/app/workflow_app_log.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/workflow-app-logs",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/workflow-app-logs",
+    "class": "WorkflowAppLogApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/app/workflow_app_log.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/workflow-archived-logs",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/workflow-archived-logs",
+    "class": "WorkflowArchivedLogApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/app/workflow_run.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/workflow-runs",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/workflow-runs",
+    "class": "WorkflowRunListApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/app/workflow_run.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/workflow-runs/\u003cuuid:run_id\u003e",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/workflow-runs/\u003cuuid:run_id\u003e",
+    "class": "WorkflowRunDetailApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/app/workflow_run.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/workflow-runs/\u003cuuid:run_id\u003e/export",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/workflow-runs/\u003cuuid:run_id\u003e/export",
+    "class": "WorkflowRunExportApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/app/workflow_run.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/workflow-runs/\u003cuuid:run_id\u003e/node-executions",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/workflow-runs/\u003cuuid:run_id\u003e/node-executions",
+    "class": "WorkflowRunNodeExecutionListApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/app/workflow_run.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/workflow-runs/count",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/workflow-runs/count",
+    "class": "WorkflowRunCountApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/app/workflow.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/workflow-runs/tasks/\u003cstring:task_id\u003e/stop",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/workflow-runs/tasks/\u003cstring:task_id\u003e/stop",
+    "class": "WorkflowTaskStopApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/app/workflow_comment.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/workflow/comments",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/workflow/comments",
+    "class": "WorkflowCommentListApi",
+    "methods": [
+      "GET",
+      "POST"
+    ]
+  },
+  {
+    "file": "console/app/workflow_comment.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/workflow/comments/\u003cstring:comment_id\u003e",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/workflow/comments/\u003cstring:comment_id\u003e",
+    "class": "WorkflowCommentDetailApi",
+    "methods": [
+      "GET",
+      "PUT",
+      "DELETE"
+    ]
+  },
+  {
+    "file": "console/app/workflow_comment.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/workflow/comments/\u003cstring:comment_id\u003e/replies",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/workflow/comments/\u003cstring:comment_id\u003e/replies",
+    "class": "WorkflowCommentReplyApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/app/workflow_comment.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/workflow/comments/\u003cstring:comment_id\u003e/replies/\u003cstring:reply_id\u003e",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/workflow/comments/\u003cstring:comment_id\u003e/replies/\u003cstring:reply_id\u003e",
+    "class": "WorkflowCommentReplyDetailApi",
+    "methods": [
+      "PUT",
+      "DELETE"
+    ]
+  },
+  {
+    "file": "console/app/workflow_comment.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/workflow/comments/\u003cstring:comment_id\u003e/resolve",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/workflow/comments/\u003cstring:comment_id\u003e/resolve",
+    "class": "WorkflowCommentResolveApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/app/workflow_comment.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/workflow/comments/mention-users",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/workflow/comments/mention-users",
+    "class": "WorkflowCommentMentionUsersApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/app/workflow_statistic.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/workflow/statistics/average-app-interactions",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/workflow/statistics/average-app-interactions",
+    "class": "WorkflowAverageAppInteractionStatistic",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/app/workflow_statistic.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/workflow/statistics/daily-conversations",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/workflow/statistics/daily-conversations",
+    "class": "WorkflowDailyRunsStatistic",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/app/workflow_statistic.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/workflow/statistics/daily-terminals",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/workflow/statistics/daily-terminals",
+    "class": "WorkflowDailyTerminalsStatistic",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/app/workflow_statistic.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/workflow/statistics/token-costs",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/workflow/statistics/token-costs",
+    "class": "WorkflowDailyTokenCostStatistic",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/app/workflow.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/workflows",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/workflows",
+    "class": "PublishedAllWorkflowApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/app/workflow.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/workflows/\u003cstring:workflow_id\u003e",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/workflows/\u003cstring:workflow_id\u003e",
+    "class": "WorkflowByIdApi",
+    "methods": [
+      "PATCH",
+      "DELETE"
+    ]
+  },
+  {
+    "file": "console/app/workflow.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/workflows/\u003cstring:workflow_id\u003e/restore",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/workflows/\u003cstring:workflow_id\u003e/restore",
+    "class": "DraftWorkflowRestoreApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/app/workflow.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/workflows/default-workflow-block-configs",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/workflows/default-workflow-block-configs",
+    "class": "DefaultBlockConfigsApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/app/workflow.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/workflows/default-workflow-block-configs/\u003cstring:block_type\u003e",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/workflows/default-workflow-block-configs/\u003cstring:block_type\u003e",
+    "class": "DefaultBlockConfigApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/app/workflow.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/workflows/draft",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/workflows/draft",
+    "class": "DraftWorkflowApi",
+    "methods": [
+      "GET",
+      "POST"
+    ]
+  },
+  {
+    "file": "console/app/workflow_draft_variable.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/workflows/draft/conversation-variables",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/workflows/draft/conversation-variables",
+    "class": "ConversationVariableCollectionApi",
+    "methods": [
+      "GET",
+      "POST"
+    ]
+  },
+  {
+    "file": "console/app/workflow_draft_variable.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/workflows/draft/environment-variables",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/workflows/draft/environment-variables",
+    "class": "EnvironmentVariableCollectionApi",
+    "methods": [
+      "GET",
+      "POST"
+    ]
+  },
+  {
+    "file": "console/app/workflow.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/workflows/draft/features",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/workflows/draft/features",
+    "class": "WorkflowFeaturesApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/app/workflow.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/workflows/draft/human-input/nodes/\u003cstring:node_id\u003e/delivery-test",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/workflows/draft/human-input/nodes/\u003cstring:node_id\u003e/delivery-test",
+    "class": "WorkflowDraftHumanInputDeliveryTestApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/app/workflow.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/workflows/draft/human-input/nodes/\u003cstring:node_id\u003e/form/preview",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/workflows/draft/human-input/nodes/\u003cstring:node_id\u003e/form/preview",
+    "class": "WorkflowDraftHumanInputFormPreviewApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/app/workflow.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/workflows/draft/human-input/nodes/\u003cstring:node_id\u003e/form/run",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/workflows/draft/human-input/nodes/\u003cstring:node_id\u003e/form/run",
+    "class": "WorkflowDraftHumanInputFormRunApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/app/workflow.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/workflows/draft/iteration/nodes/\u003cstring:node_id\u003e/run",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/workflows/draft/iteration/nodes/\u003cstring:node_id\u003e/run",
+    "class": "WorkflowDraftRunIterationNodeApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/app/workflow.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/workflows/draft/loop/nodes/\u003cstring:node_id\u003e/run",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/workflows/draft/loop/nodes/\u003cstring:node_id\u003e/run",
+    "class": "WorkflowDraftRunLoopNodeApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/app/workflow.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/workflows/draft/nodes/\u003cstring:node_id\u003e/last-run",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/workflows/draft/nodes/\u003cstring:node_id\u003e/last-run",
+    "class": "DraftWorkflowNodeLastRunApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/app/workflow.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/workflows/draft/nodes/\u003cstring:node_id\u003e/run",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/workflows/draft/nodes/\u003cstring:node_id\u003e/run",
+    "class": "DraftWorkflowNodeRunApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/app/workflow.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/workflows/draft/nodes/\u003cstring:node_id\u003e/trigger/run",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/workflows/draft/nodes/\u003cstring:node_id\u003e/trigger/run",
+    "class": "DraftWorkflowTriggerNodeApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/app/workflow_draft_variable.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/workflows/draft/nodes/\u003cstring:node_id\u003e/variables",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/workflows/draft/nodes/\u003cstring:node_id\u003e/variables",
+    "class": "NodeVariableCollectionApi",
+    "methods": [
+      "GET",
+      "DELETE"
+    ]
+  },
+  {
+    "file": "console/app/workflow.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/workflows/draft/run",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/workflows/draft/run",
+    "class": "DraftWorkflowRunApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/app/workflow_draft_variable.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/workflows/draft/system-variables",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/workflows/draft/system-variables",
+    "class": "SystemVariableCollectionApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/app/workflow.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/workflows/draft/trigger/run",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/workflows/draft/trigger/run",
+    "class": "DraftWorkflowTriggerRunApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/app/workflow.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/workflows/draft/trigger/run-all",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/workflows/draft/trigger/run-all",
+    "class": "DraftWorkflowTriggerRunAllApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/app/workflow_draft_variable.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/workflows/draft/variables",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/workflows/draft/variables",
+    "class": "WorkflowVariableCollectionApi",
+    "methods": [
+      "GET",
+      "DELETE"
+    ]
+  },
+  {
+    "file": "console/app/workflow_draft_variable.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/workflows/draft/variables/\u003cuuid:variable_id\u003e",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/workflows/draft/variables/\u003cuuid:variable_id\u003e",
+    "class": "VariableApi",
+    "methods": [
+      "GET",
+      "PATCH",
+      "DELETE"
+    ]
+  },
+  {
+    "file": "console/app/workflow_draft_variable.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/workflows/draft/variables/\u003cuuid:variable_id\u003e/reset",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/workflows/draft/variables/\u003cuuid:variable_id\u003e/reset",
+    "class": "VariableResetApi",
+    "methods": [
+      "PUT"
+    ]
+  },
+  {
+    "file": "console/app/workflow.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/workflows/publish",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/workflows/publish",
+    "class": "PublishedWorkflowApi",
+    "methods": [
+      "GET",
+      "POST"
+    ]
+  },
+  {
+    "file": "console/app/workflow_trigger.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:app_id\u003e/workflows/triggers/webhook",
+    "full_path": "/console/api/apps/\u003cuuid:app_id\u003e/workflows/triggers/webhook",
+    "class": "WebhookTriggerApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/apikey.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:resource_id\u003e/api-keys",
+    "full_path": "/console/api/apps/\u003cuuid:resource_id\u003e/api-keys",
+    "class": "AppApiKeyListResource",
+    "methods": [
+      "GET",
+      "POST"
+    ]
+  },
+  {
+    "file": "console/apikey.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:resource_id\u003e/api-keys/\u003cuuid:api_key_id\u003e",
+    "full_path": "/console/api/apps/\u003cuuid:resource_id\u003e/api-keys/\u003cuuid:api_key_id\u003e",
+    "class": "AppApiKeyResource",
+    "methods": [
+      "DELETE"
+    ]
+  },
+  {
+    "file": "console/app/mcp_server.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/\u003cuuid:server_id\u003e/server/refresh",
+    "full_path": "/console/api/apps/\u003cuuid:server_id\u003e/server/refresh",
+    "class": "AppMCPServerRefreshController",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/app/app_import.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/imports",
+    "full_path": "/console/api/apps/imports",
+    "class": "AppImportApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/app/app_import.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/imports/\u003cstring:app_id\u003e/check-dependencies",
+    "full_path": "/console/api/apps/imports/\u003cstring:app_id\u003e/check-dependencies",
+    "class": "AppImportCheckDependenciesApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/app/app_import.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/imports/\u003cstring:import_id\u003e/confirm",
+    "full_path": "/console/api/apps/imports/\u003cstring:import_id\u003e/confirm",
+    "class": "AppImportConfirmApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/app/workflow.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/apps/workflows/online-users",
+    "full_path": "/console/api/apps/workflows/online-users",
+    "class": "WorkflowOnlineUsersApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/datasets/rag_pipeline/datasource_auth.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/auth/plugin/datasource/\u003cpath:provider_id\u003e",
+    "full_path": "/console/api/auth/plugin/datasource/\u003cpath:provider_id\u003e",
+    "class": "DatasourceAuth",
+    "methods": [
+      "POST",
+      "GET"
+    ]
+  },
+  {
+    "file": "console/datasets/rag_pipeline/datasource_auth.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/auth/plugin/datasource/\u003cpath:provider_id\u003e/custom-client",
+    "full_path": "/console/api/auth/plugin/datasource/\u003cpath:provider_id\u003e/custom-client",
+    "class": "DatasourceAuthOauthCustomClient",
+    "methods": [
+      "POST",
+      "DELETE"
+    ]
+  },
+  {
+    "file": "console/datasets/rag_pipeline/datasource_auth.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/auth/plugin/datasource/\u003cpath:provider_id\u003e/default",
+    "full_path": "/console/api/auth/plugin/datasource/\u003cpath:provider_id\u003e/default",
+    "class": "DatasourceAuthDefaultApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/datasets/rag_pipeline/datasource_auth.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/auth/plugin/datasource/\u003cpath:provider_id\u003e/delete",
+    "full_path": "/console/api/auth/plugin/datasource/\u003cpath:provider_id\u003e/delete",
+    "class": "DatasourceAuthDeleteApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/datasets/rag_pipeline/datasource_auth.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/auth/plugin/datasource/\u003cpath:provider_id\u003e/update",
+    "full_path": "/console/api/auth/plugin/datasource/\u003cpath:provider_id\u003e/update",
+    "class": "DatasourceAuthUpdateApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/datasets/rag_pipeline/datasource_auth.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/auth/plugin/datasource/\u003cpath:provider_id\u003e/update-name",
+    "full_path": "/console/api/auth/plugin/datasource/\u003cpath:provider_id\u003e/update-name",
+    "class": "DatasourceUpdateProviderNameApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/datasets/rag_pipeline/datasource_auth.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/auth/plugin/datasource/default-list",
+    "full_path": "/console/api/auth/plugin/datasource/default-list",
+    "class": "DatasourceHardCodeAuthListApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/datasets/rag_pipeline/datasource_auth.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/auth/plugin/datasource/list",
+    "full_path": "/console/api/auth/plugin/datasource/list",
+    "class": "DatasourceAuthListApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/billing/billing.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/billing/invoices",
+    "full_path": "/console/api/billing/invoices",
+    "class": "Invoices",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/billing/billing.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/billing/partners/\u003cstring:partner_key\u003e/tenants",
+    "full_path": "/console/api/billing/partners/\u003cstring:partner_key\u003e/tenants",
+    "class": "PartnerTenants",
+    "methods": [
+      "PUT"
+    ]
+  },
+  {
+    "file": "console/billing/billing.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/billing/subscription",
+    "full_path": "/console/api/billing/subscription",
+    "class": "Subscription",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/extension.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/code-based-extension",
+    "full_path": "/console/api/code-based-extension",
+    "class": "CodeBasedExtensionAPI",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/billing/compliance.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/compliance/download",
+    "full_path": "/console/api/compliance/download",
+    "class": "ComplianceApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/datasets/datasets.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/datasets",
+    "full_path": "/console/api/datasets",
+    "class": "DatasetListApi",
+    "methods": [
+      "GET",
+      "POST"
+    ]
+  },
+  {
+    "file": "console/datasets/datasets.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/datasets/\u003cuuid:dataset_id\u003e",
+    "full_path": "/console/api/datasets/\u003cuuid:dataset_id\u003e",
+    "class": "DatasetApi",
+    "methods": [
+      "GET",
+      "PATCH",
+      "DELETE"
+    ]
+  },
+  {
+    "file": "console/datasets/datasets.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/datasets/\u003cuuid:dataset_id\u003e/api-keys/\u003cstring:status\u003e",
+    "full_path": "/console/api/datasets/\u003cuuid:dataset_id\u003e/api-keys/\u003cstring:status\u003e",
+    "class": "DatasetEnableApiApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/datasets/datasets.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/datasets/\u003cuuid:dataset_id\u003e/auto-disable-logs",
+    "full_path": "/console/api/datasets/\u003cuuid:dataset_id\u003e/auto-disable-logs",
+    "class": "DatasetAutoDisableLogApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/datasets/datasets_document.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/datasets/\u003cuuid:dataset_id\u003e/batch/\u003cstring:batch\u003e/indexing-estimate",
+    "full_path": "/console/api/datasets/\u003cuuid:dataset_id\u003e/batch/\u003cstring:batch\u003e/indexing-estimate",
+    "class": "DocumentBatchIndexingEstimateApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/datasets/datasets_document.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/datasets/\u003cuuid:dataset_id\u003e/batch/\u003cstring:batch\u003e/indexing-status",
+    "full_path": "/console/api/datasets/\u003cuuid:dataset_id\u003e/batch/\u003cstring:batch\u003e/indexing-status",
+    "class": "DocumentBatchIndexingStatusApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/datasets/datasets_document.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/datasets/\u003cuuid:dataset_id\u003e/documents",
+    "full_path": "/console/api/datasets/\u003cuuid:dataset_id\u003e/documents",
+    "class": "DatasetDocumentListApi",
+    "methods": [
+      "GET",
+      "POST",
+      "DELETE"
+    ]
+  },
+  {
+    "file": "console/datasets/datasets_document.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/datasets/\u003cuuid:dataset_id\u003e/documents/\u003cuuid:document_id\u003e",
+    "full_path": "/console/api/datasets/\u003cuuid:dataset_id\u003e/documents/\u003cuuid:document_id\u003e",
+    "class": "DocumentApi",
+    "methods": [
+      "GET",
+      "DELETE"
+    ]
+  },
+  {
+    "file": "console/datasets/datasets_document.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/datasets/\u003cuuid:dataset_id\u003e/documents/\u003cuuid:document_id\u003e/download",
+    "full_path": "/console/api/datasets/\u003cuuid:dataset_id\u003e/documents/\u003cuuid:document_id\u003e/download",
+    "class": "DocumentDownloadApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/datasets/datasets_document.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/datasets/\u003cuuid:dataset_id\u003e/documents/\u003cuuid:document_id\u003e/indexing-estimate",
+    "full_path": "/console/api/datasets/\u003cuuid:dataset_id\u003e/documents/\u003cuuid:document_id\u003e/indexing-estimate",
+    "class": "DocumentIndexingEstimateApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/datasets/datasets_document.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/datasets/\u003cuuid:dataset_id\u003e/documents/\u003cuuid:document_id\u003e/indexing-status",
+    "full_path": "/console/api/datasets/\u003cuuid:dataset_id\u003e/documents/\u003cuuid:document_id\u003e/indexing-status",
+    "class": "DocumentIndexingStatusApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/datasets/datasets_document.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/datasets/\u003cuuid:dataset_id\u003e/documents/\u003cuuid:document_id\u003e/metadata",
+    "full_path": "/console/api/datasets/\u003cuuid:dataset_id\u003e/documents/\u003cuuid:document_id\u003e/metadata",
+    "class": "DocumentMetadataApi",
+    "methods": [
+      "PUT"
+    ]
+  },
+  {
+    "file": "console/datasets/data_source.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/datasets/\u003cuuid:dataset_id\u003e/documents/\u003cuuid:document_id\u003e/notion/sync",
+    "full_path": "/console/api/datasets/\u003cuuid:dataset_id\u003e/documents/\u003cuuid:document_id\u003e/notion/sync",
+    "class": "DataSourceNotionDocumentSyncApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/datasets/datasets_document.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/datasets/\u003cuuid:dataset_id\u003e/documents/\u003cuuid:document_id\u003e/pipeline-execution-log",
+    "full_path": "/console/api/datasets/\u003cuuid:dataset_id\u003e/documents/\u003cuuid:document_id\u003e/pipeline-execution-log",
+    "class": "DocumentPipelineExecutionLogApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/datasets/datasets_document.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/datasets/\u003cuuid:dataset_id\u003e/documents/\u003cuuid:document_id\u003e/processing/\u003cstring:action\u003e",
+    "full_path": "/console/api/datasets/\u003cuuid:dataset_id\u003e/documents/\u003cuuid:document_id\u003e/processing/\u003cstring:action\u003e",
+    "class": "DocumentProcessingApi",
+    "methods": [
+      "PATCH"
+    ]
+  },
+  {
+    "file": "console/datasets/datasets_document.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/datasets/\u003cuuid:dataset_id\u003e/documents/\u003cuuid:document_id\u003e/processing/pause",
+    "full_path": "/console/api/datasets/\u003cuuid:dataset_id\u003e/documents/\u003cuuid:document_id\u003e/processing/pause",
+    "class": "DocumentPauseApi",
+    "methods": [
+      "PATCH"
+    ]
+  },
+  {
+    "file": "console/datasets/datasets_document.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/datasets/\u003cuuid:dataset_id\u003e/documents/\u003cuuid:document_id\u003e/processing/resume",
+    "full_path": "/console/api/datasets/\u003cuuid:dataset_id\u003e/documents/\u003cuuid:document_id\u003e/processing/resume",
+    "class": "DocumentRecoverApi",
+    "methods": [
+      "PATCH"
+    ]
+  },
+  {
+    "file": "console/datasets/datasets_document.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/datasets/\u003cuuid:dataset_id\u003e/documents/\u003cuuid:document_id\u003e/rename",
+    "full_path": "/console/api/datasets/\u003cuuid:dataset_id\u003e/documents/\u003cuuid:document_id\u003e/rename",
+    "class": "DocumentRenameApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/datasets/datasets_segments.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/datasets/\u003cuuid:dataset_id\u003e/documents/\u003cuuid:document_id\u003e/segment",
+    "full_path": "/console/api/datasets/\u003cuuid:dataset_id\u003e/documents/\u003cuuid:document_id\u003e/segment",
+    "class": "DatasetDocumentSegmentAddApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/datasets/datasets_segments.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/datasets/\u003cuuid:dataset_id\u003e/documents/\u003cuuid:document_id\u003e/segment/\u003cstring:action\u003e",
+    "full_path": "/console/api/datasets/\u003cuuid:dataset_id\u003e/documents/\u003cuuid:document_id\u003e/segment/\u003cstring:action\u003e",
+    "class": "DatasetDocumentSegmentApi",
+    "methods": [
+      "PATCH"
+    ]
+  },
+  {
+    "file": "console/datasets/datasets_segments.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/datasets/\u003cuuid:dataset_id\u003e/documents/\u003cuuid:document_id\u003e/segments",
+    "full_path": "/console/api/datasets/\u003cuuid:dataset_id\u003e/documents/\u003cuuid:document_id\u003e/segments",
+    "class": "DatasetDocumentSegmentListApi",
+    "methods": [
+      "GET",
+      "DELETE"
+    ]
+  },
+  {
+    "file": "console/datasets/datasets_segments.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/datasets/\u003cuuid:dataset_id\u003e/documents/\u003cuuid:document_id\u003e/segments/\u003cuuid:segment_id\u003e",
+    "full_path": "/console/api/datasets/\u003cuuid:dataset_id\u003e/documents/\u003cuuid:document_id\u003e/segments/\u003cuuid:segment_id\u003e",
+    "class": "DatasetDocumentSegmentUpdateApi",
+    "methods": [
+      "PATCH",
+      "DELETE"
+    ]
+  },
+  {
+    "file": "console/datasets/datasets_segments.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/datasets/\u003cuuid:dataset_id\u003e/documents/\u003cuuid:document_id\u003e/segments/\u003cuuid:segment_id\u003e/child_chunks",
+    "full_path": "/console/api/datasets/\u003cuuid:dataset_id\u003e/documents/\u003cuuid:document_id\u003e/segments/\u003cuuid:segment_id\u003e/child_chunks",
+    "class": "ChildChunkAddApi",
+    "methods": [
+      "POST",
+      "GET",
+      "PATCH"
+    ]
+  },
+  {
+    "file": "console/datasets/datasets_document.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/datasets/\u003cuuid:dataset_id\u003e/documents/\u003cuuid:document_id\u003e/summary-status",
+    "full_path": "/console/api/datasets/\u003cuuid:dataset_id\u003e/documents/\u003cuuid:document_id\u003e/summary-status",
+    "class": "DocumentSummaryStatusApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/datasets/datasets_document.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/datasets/\u003cuuid:dataset_id\u003e/documents/\u003cuuid:document_id\u003e/website-sync",
+    "full_path": "/console/api/datasets/\u003cuuid:dataset_id\u003e/documents/\u003cuuid:document_id\u003e/website-sync",
+    "class": "WebsiteDocumentSyncApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/datasets/datasets_document.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/datasets/\u003cuuid:dataset_id\u003e/documents/download-zip",
+    "full_path": "/console/api/datasets/\u003cuuid:dataset_id\u003e/documents/download-zip",
+    "class": "DocumentBatchDownloadZipApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/datasets/datasets_document.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/datasets/\u003cuuid:dataset_id\u003e/documents/generate-summary",
+    "full_path": "/console/api/datasets/\u003cuuid:dataset_id\u003e/documents/generate-summary",
+    "class": "DocumentGenerateSummaryApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/datasets/metadata.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/datasets/\u003cuuid:dataset_id\u003e/documents/metadata",
+    "full_path": "/console/api/datasets/\u003cuuid:dataset_id\u003e/documents/metadata",
+    "class": "DocumentMetadataEditApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/datasets/datasets_document.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/datasets/\u003cuuid:dataset_id\u003e/documents/status/\u003cstring:action\u003e/batch",
+    "full_path": "/console/api/datasets/\u003cuuid:dataset_id\u003e/documents/status/\u003cstring:action\u003e/batch",
+    "class": "DocumentStatusApi",
+    "methods": [
+      "PATCH"
+    ]
+  },
+  {
+    "file": "console/datasets/datasets.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/datasets/\u003cuuid:dataset_id\u003e/error-docs",
+    "full_path": "/console/api/datasets/\u003cuuid:dataset_id\u003e/error-docs",
+    "class": "DatasetErrorDocs",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/datasets/external.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/datasets/\u003cuuid:dataset_id\u003e/external-hit-testing",
+    "full_path": "/console/api/datasets/\u003cuuid:dataset_id\u003e/external-hit-testing",
+    "class": "ExternalKnowledgeHitTestingApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/datasets/hit_testing.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/datasets/\u003cuuid:dataset_id\u003e/hit-testing",
+    "full_path": "/console/api/datasets/\u003cuuid:dataset_id\u003e/hit-testing",
+    "class": "HitTestingApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/datasets/datasets.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/datasets/\u003cuuid:dataset_id\u003e/indexing-status",
+    "full_path": "/console/api/datasets/\u003cuuid:dataset_id\u003e/indexing-status",
+    "class": "DatasetIndexingStatusApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/datasets/metadata.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/datasets/\u003cuuid:dataset_id\u003e/metadata",
+    "full_path": "/console/api/datasets/\u003cuuid:dataset_id\u003e/metadata",
+    "class": "DatasetMetadataCreateApi",
+    "methods": [
+      "POST",
+      "GET"
+    ]
+  },
+  {
+    "file": "console/datasets/metadata.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/datasets/\u003cuuid:dataset_id\u003e/metadata/\u003cuuid:metadata_id\u003e",
+    "full_path": "/console/api/datasets/\u003cuuid:dataset_id\u003e/metadata/\u003cuuid:metadata_id\u003e",
+    "class": "DatasetMetadataApi",
+    "methods": [
+      "PATCH",
+      "DELETE"
+    ]
+  },
+  {
+    "file": "console/datasets/metadata.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/datasets/\u003cuuid:dataset_id\u003e/metadata/built-in/\u003cstring:action\u003e",
+    "full_path": "/console/api/datasets/\u003cuuid:dataset_id\u003e/metadata/built-in/\u003cstring:action\u003e",
+    "class": "DatasetMetadataBuiltInFieldActionApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/datasets/data_source.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/datasets/\u003cuuid:dataset_id\u003e/notion/sync",
+    "full_path": "/console/api/datasets/\u003cuuid:dataset_id\u003e/notion/sync",
+    "class": "DataSourceNotionDatasetSyncApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/datasets/datasets.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/datasets/\u003cuuid:dataset_id\u003e/permission-part-users",
+    "full_path": "/console/api/datasets/\u003cuuid:dataset_id\u003e/permission-part-users",
+    "class": "DatasetPermissionUserListApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/datasets/datasets.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/datasets/\u003cuuid:dataset_id\u003e/queries",
+    "full_path": "/console/api/datasets/\u003cuuid:dataset_id\u003e/queries",
+    "class": "DatasetQueryApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/datasets/datasets.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/datasets/\u003cuuid:dataset_id\u003e/related-apps",
+    "full_path": "/console/api/datasets/\u003cuuid:dataset_id\u003e/related-apps",
+    "class": "DatasetRelatedAppListApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/datasets/datasets_document.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/datasets/\u003cuuid:dataset_id\u003e/retry",
+    "full_path": "/console/api/datasets/\u003cuuid:dataset_id\u003e/retry",
+    "class": "DocumentRetryApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/datasets/datasets.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/datasets/\u003cuuid:dataset_id\u003e/use-check",
+    "full_path": "/console/api/datasets/\u003cuuid:dataset_id\u003e/use-check",
+    "class": "DatasetUseCheckApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/apikey.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/datasets/\u003cuuid:resource_id\u003e/api-keys",
+    "full_path": "/console/api/datasets/\u003cuuid:resource_id\u003e/api-keys",
+    "class": "DatasetApiKeyListResource",
+    "methods": [
+      "GET",
+      "POST"
+    ]
+  },
+  {
+    "file": "console/apikey.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/datasets/\u003cuuid:resource_id\u003e/api-keys/\u003cuuid:api_key_id\u003e",
+    "full_path": "/console/api/datasets/\u003cuuid:resource_id\u003e/api-keys/\u003cuuid:api_key_id\u003e",
+    "class": "DatasetApiKeyResource",
+    "methods": [
+      "DELETE"
+    ]
+  },
+  {
+    "file": "console/datasets/datasets.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/datasets/api-base-info",
+    "full_path": "/console/api/datasets/api-base-info",
+    "class": "DatasetApiBaseUrlApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/datasets/datasets.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/datasets/api-keys",
+    "full_path": "/console/api/datasets/api-keys",
+    "class": "DatasetApiKeyApi",
+    "methods": [
+      "GET",
+      "POST"
+    ]
+  },
+  {
+    "file": "console/datasets/datasets.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/datasets/api-keys/\u003cuuid:api_key_id\u003e",
+    "full_path": "/console/api/datasets/api-keys/\u003cuuid:api_key_id\u003e",
+    "class": "DatasetApiDeleteApi",
+    "methods": [
+      "DELETE"
+    ]
+  },
+  {
+    "file": "console/datasets/external.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/datasets/external",
+    "full_path": "/console/api/datasets/external",
+    "class": "ExternalDatasetCreateApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/datasets/external.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/datasets/external-knowledge-api",
+    "full_path": "/console/api/datasets/external-knowledge-api",
+    "class": "ExternalApiTemplateListApi",
+    "methods": [
+      "GET",
+      "POST"
+    ]
+  },
+  {
+    "file": "console/datasets/external.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/datasets/external-knowledge-api/\u003cuuid:external_knowledge_api_id\u003e",
+    "full_path": "/console/api/datasets/external-knowledge-api/\u003cuuid:external_knowledge_api_id\u003e",
+    "class": "ExternalApiTemplateApi",
+    "methods": [
+      "GET",
+      "PATCH",
+      "DELETE"
+    ]
+  },
+  {
+    "file": "console/datasets/external.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/datasets/external-knowledge-api/\u003cuuid:external_knowledge_api_id\u003e/use-check",
+    "full_path": "/console/api/datasets/external-knowledge-api/\u003cuuid:external_knowledge_api_id\u003e/use-check",
+    "class": "ExternalApiUseCheckApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/datasets/datasets.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/datasets/indexing-estimate",
+    "full_path": "/console/api/datasets/indexing-estimate",
+    "class": "DatasetIndexingEstimateApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/datasets/datasets_document.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/datasets/init",
+    "full_path": "/console/api/datasets/init",
+    "class": "DatasetInitApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/datasets/metadata.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/datasets/metadata/built-in",
+    "full_path": "/console/api/datasets/metadata/built-in",
+    "class": "DatasetMetadataBuiltInFieldApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/datasets/datasets_document.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/datasets/process-rule",
+    "full_path": "/console/api/datasets/process-rule",
+    "class": "GetProcessRuleApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/datasets/datasets.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/datasets/retrieval-setting",
+    "full_path": "/console/api/datasets/retrieval-setting",
+    "class": "DatasetRetrievalSettingApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/datasets/datasets.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/datasets/retrieval-setting/\u003cstring:vector_type\u003e",
+    "full_path": "/console/api/datasets/retrieval-setting/\u003cstring:vector_type\u003e",
+    "class": "DatasetRetrievalSettingMockApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/auth/login.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/email-code-login",
+    "full_path": "/console/api/email-code-login",
+    "class": "EmailCodeLoginSendEmailApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/auth/login.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/email-code-login/validity",
+    "full_path": "/console/api/email-code-login/validity",
+    "class": "EmailCodeLoginApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/auth/email_register.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/email-register",
+    "full_path": "/console/api/email-register",
+    "class": "EmailRegisterResetApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/auth/email_register.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/email-register/send-email",
+    "full_path": "/console/api/email-register/send-email",
+    "class": "EmailRegisterSendEmailApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/auth/email_register.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/email-register/validity",
+    "full_path": "/console/api/email-register/validity",
+    "class": "EmailRegisterCheckApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/explore/recommended_app.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/explore/apps",
+    "full_path": "/console/api/explore/apps",
+    "class": "RecommendedAppListApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/explore/recommended_app.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/explore/apps/\u003cuuid:app_id\u003e",
+    "full_path": "/console/api/explore/apps/\u003cuuid:app_id\u003e",
+    "class": "RecommendedAppApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/feature.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/features",
+    "full_path": "/console/api/features",
+    "class": "FeatureApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/files.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/files/\u003cuuid:file_id\u003e/preview",
+    "full_path": "/console/api/files/\u003cuuid:file_id\u003e/preview",
+    "class": "FilePreviewApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/files.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/files/support-type",
+    "full_path": "/console/api/files/support-type",
+    "class": "FileSupportTypeApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/files.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/files/upload",
+    "full_path": "/console/api/files/upload",
+    "class": "FileApi",
+    "methods": [
+      "GET",
+      "POST"
+    ]
+  },
+  {
+    "file": "console/auth/forgot_password.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/forgot-password",
+    "full_path": "/console/api/forgot-password",
+    "class": "ForgotPasswordSendEmailApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/auth/forgot_password.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/forgot-password/resets",
+    "full_path": "/console/api/forgot-password/resets",
+    "class": "ForgotPasswordResetApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/auth/forgot_password.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/forgot-password/validity",
+    "full_path": "/console/api/forgot-password/validity",
+    "class": "ForgotPasswordCheckApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/human_input_form.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/form/human_input/\u003cstring:form_token\u003e",
+    "full_path": "/console/api/form/human_input/\u003cstring:form_token\u003e",
+    "class": "ConsoleHumanInputFormApi",
+    "methods": [
+      "GET",
+      "POST"
+    ]
+  },
+  {
+    "file": "console/workspace/workspace.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/info",
+    "full_path": "/console/api/info",
+    "class": "TenantApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/explore/installed_app.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/installed-apps",
+    "full_path": "/console/api/installed-apps",
+    "class": "InstalledAppsListApi",
+    "methods": [
+      "GET",
+      "POST"
+    ]
+  },
+  {
+    "file": "console/explore/installed_app.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/installed-apps/\u003cuuid:installed_app_id\u003e",
+    "full_path": "/console/api/installed-apps/\u003cuuid:installed_app_id\u003e",
+    "class": "InstalledAppApi",
+    "methods": [
+      "DELETE",
+      "PATCH"
+    ]
+  },
+  {
+    "file": "console/explore/parameter.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/installed-apps/\u003cuuid:installed_app_id\u003e/meta",
+    "full_path": "/console/api/installed-apps/\u003cuuid:installed_app_id\u003e/meta",
+    "class": "ExploreAppMetaApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/explore/parameter.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/installed-apps/\u003cuuid:installed_app_id\u003e/parameters",
+    "full_path": "/console/api/installed-apps/\u003cuuid:installed_app_id\u003e/parameters",
+    "class": "AppParameterApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/explore/saved_message.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/installed-apps/\u003cuuid:installed_app_id\u003e/saved-messages",
+    "full_path": "/console/api/installed-apps/\u003cuuid:installed_app_id\u003e/saved-messages",
+    "class": "SavedMessageListApi",
+    "methods": [
+      "GET",
+      "POST"
+    ]
+  },
+  {
+    "file": "console/explore/workflow.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/installed-apps/\u003cuuid:installed_app_id\u003e/workflows/run",
+    "full_path": "/console/api/installed-apps/\u003cuuid:installed_app_id\u003e/workflows/run",
+    "class": "InstalledAppWorkflowRunApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/explore/workflow.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/installed-apps/\u003cuuid:installed_app_id\u003e/workflows/tasks/\u003cstring:task_id\u003e/stop",
+    "full_path": "/console/api/installed-apps/\u003cuuid:installed_app_id\u003e/workflows/tasks/\u003cstring:task_id\u003e/stop",
+    "class": "InstalledAppWorkflowTaskStopApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/app/generator.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/instruction-generate",
+    "full_path": "/console/api/instruction-generate",
+    "class": "InstructionGenerateApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/app/generator.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/instruction-generate/template",
+    "full_path": "/console/api/instruction-generate/template",
+    "class": "InstructionGenerationTemplateApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/auth/login.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/login",
+    "full_path": "/console/api/login",
+    "class": "LoginApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/auth/login.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/logout",
+    "full_path": "/console/api/logout",
+    "class": "LogoutApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/workspace/tool_providers.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/mcp/oauth/callback",
+    "full_path": "/console/api/mcp/oauth/callback",
+    "class": "ToolMCPCallbackApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/notification.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/notification",
+    "full_path": "/console/api/notification",
+    "class": "NotificationApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/notification.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/notification/dismiss",
+    "full_path": "/console/api/notification/dismiss",
+    "class": "NotificationDismissApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/datasets/data_source.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/notion/pre-import/pages",
+    "full_path": "/console/api/notion/pre-import/pages",
+    "class": "DataSourceNotionListApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/auth/oauth.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/oauth/authorize/\u003cprovider\u003e",
+    "full_path": "/console/api/oauth/authorize/\u003cprovider\u003e",
+    "class": "OAuthCallback",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/auth/data_source_oauth.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/oauth/data-source/\u003cstring:provider\u003e",
+    "full_path": "/console/api/oauth/data-source/\u003cstring:provider\u003e",
+    "class": "OAuthDataSource",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/auth/data_source_oauth.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/oauth/data-source/\u003cstring:provider\u003e/\u003cuuid:binding_id\u003e/sync",
+    "full_path": "/console/api/oauth/data-source/\u003cstring:provider\u003e/\u003cuuid:binding_id\u003e/sync",
+    "class": "OAuthDataSourceSync",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/auth/data_source_oauth.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/oauth/data-source/binding/\u003cstring:provider\u003e",
+    "full_path": "/console/api/oauth/data-source/binding/\u003cstring:provider\u003e",
+    "class": "OAuthDataSourceBinding",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/auth/data_source_oauth.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/oauth/data-source/callback/\u003cstring:provider\u003e",
+    "full_path": "/console/api/oauth/data-source/callback/\u003cstring:provider\u003e",
+    "class": "OAuthDataSourceCallback",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/auth/oauth.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/oauth/login/\u003cprovider\u003e",
+    "full_path": "/console/api/oauth/login/\u003cprovider\u003e",
+    "class": "OAuthLogin",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/workspace/tool_providers.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/oauth/plugin/\u003cpath:provider\u003e/tool/authorization-url",
+    "full_path": "/console/api/oauth/plugin/\u003cpath:provider\u003e/tool/authorization-url",
+    "class": "ToolPluginOAuthApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/workspace/tool_providers.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/oauth/plugin/\u003cpath:provider\u003e/tool/callback",
+    "full_path": "/console/api/oauth/plugin/\u003cpath:provider\u003e/tool/callback",
+    "class": "ToolOAuthCallback",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/workspace/trigger_providers.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/oauth/plugin/\u003cpath:provider\u003e/trigger/callback",
+    "full_path": "/console/api/oauth/plugin/\u003cpath:provider\u003e/trigger/callback",
+    "class": "TriggerOAuthCallbackApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/datasets/rag_pipeline/datasource_auth.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/oauth/plugin/\u003cpath:provider_id\u003e/datasource/callback",
+    "full_path": "/console/api/oauth/plugin/\u003cpath:provider_id\u003e/datasource/callback",
+    "class": "DatasourceOAuthCallback",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/datasets/rag_pipeline/datasource_auth.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/oauth/plugin/\u003cpath:provider_id\u003e/datasource/get-authorization-url",
+    "full_path": "/console/api/oauth/plugin/\u003cpath:provider_id\u003e/datasource/get-authorization-url",
+    "class": "DatasourcePluginOAuthAuthorizationUrl",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/auth/oauth_server.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/oauth/provider",
+    "full_path": "/console/api/oauth/provider",
+    "class": "OAuthServerAppApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/auth/oauth_server.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/oauth/provider/account",
+    "full_path": "/console/api/oauth/provider/account",
+    "class": "OAuthServerUserAccountApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/auth/oauth_server.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/oauth/provider/authorize",
+    "full_path": "/console/api/oauth/provider/authorize",
+    "class": "OAuthServerUserAuthorizeApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/auth/oauth_server.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/oauth/provider/token",
+    "full_path": "/console/api/oauth/provider/token",
+    "class": "OAuthServerUserTokenApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/datasets/rag_pipeline/rag_pipeline.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/rag/pipeline/customized/templates/\u003cstring:template_id\u003e",
+    "full_path": "/console/api/rag/pipeline/customized/templates/\u003cstring:template_id\u003e",
+    "class": "CustomizedPipelineTemplateApi",
+    "methods": [
+      "PATCH",
+      "DELETE",
+      "POST"
+    ]
+  },
+  {
+    "file": "console/datasets/rag_pipeline/rag_pipeline_datasets.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/rag/pipeline/dataset",
+    "full_path": "/console/api/rag/pipeline/dataset",
+    "class": "CreateRagPipelineDatasetApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/datasets/rag_pipeline/rag_pipeline_datasets.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/rag/pipeline/empty-dataset",
+    "full_path": "/console/api/rag/pipeline/empty-dataset",
+    "class": "CreateEmptyRagPipelineDatasetApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/datasets/rag_pipeline/rag_pipeline.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/rag/pipeline/templates",
+    "full_path": "/console/api/rag/pipeline/templates",
+    "class": "PipelineTemplateListApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/datasets/rag_pipeline/rag_pipeline.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/rag/pipeline/templates/\u003cstring:template_id\u003e",
+    "full_path": "/console/api/rag/pipeline/templates/\u003cstring:template_id\u003e",
+    "class": "PipelineTemplateDetailApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/datasets/rag_pipeline/rag_pipeline.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/rag/pipelines/\u003cstring:pipeline_id\u003e/customized/publish",
+    "full_path": "/console/api/rag/pipelines/\u003cstring:pipeline_id\u003e/customized/publish",
+    "class": "PublishCustomizedPipelineTemplateApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/datasets/rag_pipeline/rag_pipeline_import.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/rag/pipelines/\u003cstring:pipeline_id\u003e/exports",
+    "full_path": "/console/api/rag/pipelines/\u003cstring:pipeline_id\u003e/exports",
+    "class": "RagPipelineExportApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/datasets/rag_pipeline/rag_pipeline_workflow.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/rag/pipelines/\u003cuuid:pipeline_id\u003e/workflow-runs",
+    "full_path": "/console/api/rag/pipelines/\u003cuuid:pipeline_id\u003e/workflow-runs",
+    "class": "RagPipelineWorkflowRunListApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/datasets/rag_pipeline/rag_pipeline_workflow.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/rag/pipelines/\u003cuuid:pipeline_id\u003e/workflow-runs/\u003cuuid:run_id\u003e",
+    "full_path": "/console/api/rag/pipelines/\u003cuuid:pipeline_id\u003e/workflow-runs/\u003cuuid:run_id\u003e",
+    "class": "RagPipelineWorkflowRunDetailApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/datasets/rag_pipeline/rag_pipeline_workflow.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/rag/pipelines/\u003cuuid:pipeline_id\u003e/workflow-runs/\u003cuuid:run_id\u003e/node-executions",
+    "full_path": "/console/api/rag/pipelines/\u003cuuid:pipeline_id\u003e/workflow-runs/\u003cuuid:run_id\u003e/node-executions",
+    "class": "RagPipelineWorkflowRunNodeExecutionListApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/datasets/rag_pipeline/rag_pipeline_workflow.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/rag/pipelines/\u003cuuid:pipeline_id\u003e/workflow-runs/tasks/\u003cstring:task_id\u003e/stop",
+    "full_path": "/console/api/rag/pipelines/\u003cuuid:pipeline_id\u003e/workflow-runs/tasks/\u003cstring:task_id\u003e/stop",
+    "class": "RagPipelineTaskStopApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/datasets/rag_pipeline/rag_pipeline_workflow.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/rag/pipelines/\u003cuuid:pipeline_id\u003e/workflows",
+    "full_path": "/console/api/rag/pipelines/\u003cuuid:pipeline_id\u003e/workflows",
+    "class": "PublishedAllRagPipelineApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/datasets/rag_pipeline/rag_pipeline_workflow.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/rag/pipelines/\u003cuuid:pipeline_id\u003e/workflows/\u003cstring:workflow_id\u003e",
+    "full_path": "/console/api/rag/pipelines/\u003cuuid:pipeline_id\u003e/workflows/\u003cstring:workflow_id\u003e",
+    "class": "RagPipelineByIdApi",
+    "methods": [
+      "PATCH",
+      "DELETE"
+    ]
+  },
+  {
+    "file": "console/datasets/rag_pipeline/rag_pipeline_workflow.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/rag/pipelines/\u003cuuid:pipeline_id\u003e/workflows/\u003cstring:workflow_id\u003e/restore",
+    "full_path": "/console/api/rag/pipelines/\u003cuuid:pipeline_id\u003e/workflows/\u003cstring:workflow_id\u003e/restore",
+    "class": "RagPipelineDraftWorkflowRestoreApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/datasets/rag_pipeline/rag_pipeline_workflow.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/rag/pipelines/\u003cuuid:pipeline_id\u003e/workflows/default-workflow-block-configs",
+    "full_path": "/console/api/rag/pipelines/\u003cuuid:pipeline_id\u003e/workflows/default-workflow-block-configs",
+    "class": "DefaultRagPipelineBlockConfigsApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/datasets/rag_pipeline/rag_pipeline_workflow.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/rag/pipelines/\u003cuuid:pipeline_id\u003e/workflows/default-workflow-block-configs/\u003cstring:block_type\u003e",
+    "full_path": "/console/api/rag/pipelines/\u003cuuid:pipeline_id\u003e/workflows/default-workflow-block-configs/\u003cstring:block_type\u003e",
+    "class": "DefaultRagPipelineBlockConfigApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/datasets/rag_pipeline/rag_pipeline_workflow.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/rag/pipelines/\u003cuuid:pipeline_id\u003e/workflows/draft",
+    "full_path": "/console/api/rag/pipelines/\u003cuuid:pipeline_id\u003e/workflows/draft",
+    "class": "DraftRagPipelineApi",
+    "methods": [
+      "GET",
+      "POST"
+    ]
+  },
+  {
+    "file": "console/datasets/rag_pipeline/rag_pipeline_workflow.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/rag/pipelines/\u003cuuid:pipeline_id\u003e/workflows/draft/datasource/nodes/\u003cstring:node_id\u003e/run",
+    "full_path": "/console/api/rag/pipelines/\u003cuuid:pipeline_id\u003e/workflows/draft/datasource/nodes/\u003cstring:node_id\u003e/run",
+    "class": "RagPipelineDraftDatasourceNodeRunApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/datasets/rag_pipeline/rag_pipeline_workflow.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/rag/pipelines/\u003cuuid:pipeline_id\u003e/workflows/draft/datasource/variables-inspect",
+    "full_path": "/console/api/rag/pipelines/\u003cuuid:pipeline_id\u003e/workflows/draft/datasource/variables-inspect",
+    "class": "RagPipelineDatasourceVariableApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/datasets/rag_pipeline/rag_pipeline_draft_variable.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/rag/pipelines/\u003cuuid:pipeline_id\u003e/workflows/draft/environment-variables",
+    "full_path": "/console/api/rag/pipelines/\u003cuuid:pipeline_id\u003e/workflows/draft/environment-variables",
+    "class": "RagPipelineEnvironmentVariableCollectionApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/datasets/rag_pipeline/rag_pipeline_workflow.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/rag/pipelines/\u003cuuid:pipeline_id\u003e/workflows/draft/iteration/nodes/\u003cstring:node_id\u003e/run",
+    "full_path": "/console/api/rag/pipelines/\u003cuuid:pipeline_id\u003e/workflows/draft/iteration/nodes/\u003cstring:node_id\u003e/run",
+    "class": "RagPipelineDraftRunIterationNodeApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/datasets/rag_pipeline/rag_pipeline_workflow.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/rag/pipelines/\u003cuuid:pipeline_id\u003e/workflows/draft/loop/nodes/\u003cstring:node_id\u003e/run",
+    "full_path": "/console/api/rag/pipelines/\u003cuuid:pipeline_id\u003e/workflows/draft/loop/nodes/\u003cstring:node_id\u003e/run",
+    "class": "RagPipelineDraftRunLoopNodeApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/datasets/rag_pipeline/rag_pipeline_workflow.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/rag/pipelines/\u003cuuid:pipeline_id\u003e/workflows/draft/nodes/\u003cstring:node_id\u003e/last-run",
+    "full_path": "/console/api/rag/pipelines/\u003cuuid:pipeline_id\u003e/workflows/draft/nodes/\u003cstring:node_id\u003e/last-run",
+    "class": "RagPipelineWorkflowLastRunApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/datasets/rag_pipeline/rag_pipeline_workflow.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/rag/pipelines/\u003cuuid:pipeline_id\u003e/workflows/draft/nodes/\u003cstring:node_id\u003e/run",
+    "full_path": "/console/api/rag/pipelines/\u003cuuid:pipeline_id\u003e/workflows/draft/nodes/\u003cstring:node_id\u003e/run",
+    "class": "RagPipelineDraftNodeRunApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/datasets/rag_pipeline/rag_pipeline_draft_variable.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/rag/pipelines/\u003cuuid:pipeline_id\u003e/workflows/draft/nodes/\u003cstring:node_id\u003e/variables",
+    "full_path": "/console/api/rag/pipelines/\u003cuuid:pipeline_id\u003e/workflows/draft/nodes/\u003cstring:node_id\u003e/variables",
+    "class": "RagPipelineNodeVariableCollectionApi",
+    "methods": [
+      "GET",
+      "DELETE"
+    ]
+  },
+  {
+    "file": "console/datasets/rag_pipeline/rag_pipeline_workflow.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/rag/pipelines/\u003cuuid:pipeline_id\u003e/workflows/draft/pre-processing/parameters",
+    "full_path": "/console/api/rag/pipelines/\u003cuuid:pipeline_id\u003e/workflows/draft/pre-processing/parameters",
+    "class": "DraftRagPipelineFirstStepApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/datasets/rag_pipeline/rag_pipeline_workflow.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/rag/pipelines/\u003cuuid:pipeline_id\u003e/workflows/draft/processing/parameters",
+    "full_path": "/console/api/rag/pipelines/\u003cuuid:pipeline_id\u003e/workflows/draft/processing/parameters",
+    "class": "DraftRagPipelineSecondStepApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/datasets/rag_pipeline/rag_pipeline_workflow.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/rag/pipelines/\u003cuuid:pipeline_id\u003e/workflows/draft/run",
+    "full_path": "/console/api/rag/pipelines/\u003cuuid:pipeline_id\u003e/workflows/draft/run",
+    "class": "DraftRagPipelineRunApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/datasets/rag_pipeline/rag_pipeline_draft_variable.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/rag/pipelines/\u003cuuid:pipeline_id\u003e/workflows/draft/system-variables",
+    "full_path": "/console/api/rag/pipelines/\u003cuuid:pipeline_id\u003e/workflows/draft/system-variables",
+    "class": "RagPipelineSystemVariableCollectionApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/datasets/rag_pipeline/rag_pipeline_draft_variable.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/rag/pipelines/\u003cuuid:pipeline_id\u003e/workflows/draft/variables",
+    "full_path": "/console/api/rag/pipelines/\u003cuuid:pipeline_id\u003e/workflows/draft/variables",
+    "class": "RagPipelineVariableCollectionApi",
+    "methods": [
+      "GET",
+      "DELETE"
+    ]
+  },
+  {
+    "file": "console/datasets/rag_pipeline/rag_pipeline_draft_variable.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/rag/pipelines/\u003cuuid:pipeline_id\u003e/workflows/draft/variables/\u003cuuid:variable_id\u003e",
+    "full_path": "/console/api/rag/pipelines/\u003cuuid:pipeline_id\u003e/workflows/draft/variables/\u003cuuid:variable_id\u003e",
+    "class": "RagPipelineVariableApi",
+    "methods": [
+      "GET",
+      "PATCH",
+      "DELETE"
+    ]
+  },
+  {
+    "file": "console/datasets/rag_pipeline/rag_pipeline_draft_variable.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/rag/pipelines/\u003cuuid:pipeline_id\u003e/workflows/draft/variables/\u003cuuid:variable_id\u003e/reset",
+    "full_path": "/console/api/rag/pipelines/\u003cuuid:pipeline_id\u003e/workflows/draft/variables/\u003cuuid:variable_id\u003e/reset",
+    "class": "RagPipelineVariableResetApi",
+    "methods": [
+      "PUT"
+    ]
+  },
+  {
+    "file": "console/datasets/rag_pipeline/rag_pipeline_workflow.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/rag/pipelines/\u003cuuid:pipeline_id\u003e/workflows/publish",
+    "full_path": "/console/api/rag/pipelines/\u003cuuid:pipeline_id\u003e/workflows/publish",
+    "class": "PublishedRagPipelineApi",
+    "methods": [
+      "GET",
+      "POST"
+    ]
+  },
+  {
+    "file": "console/datasets/rag_pipeline/datasource_content_preview.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/rag/pipelines/\u003cuuid:pipeline_id\u003e/workflows/published/datasource/nodes/\u003cstring:node_id\u003e/preview",
+    "full_path": "/console/api/rag/pipelines/\u003cuuid:pipeline_id\u003e/workflows/published/datasource/nodes/\u003cstring:node_id\u003e/preview",
+    "class": "DataSourceContentPreviewApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/datasets/rag_pipeline/rag_pipeline_workflow.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/rag/pipelines/\u003cuuid:pipeline_id\u003e/workflows/published/datasource/nodes/\u003cstring:node_id\u003e/run",
+    "full_path": "/console/api/rag/pipelines/\u003cuuid:pipeline_id\u003e/workflows/published/datasource/nodes/\u003cstring:node_id\u003e/run",
+    "class": "RagPipelinePublishedDatasourceNodeRunApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/datasets/rag_pipeline/rag_pipeline_workflow.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/rag/pipelines/\u003cuuid:pipeline_id\u003e/workflows/published/pre-processing/parameters",
+    "full_path": "/console/api/rag/pipelines/\u003cuuid:pipeline_id\u003e/workflows/published/pre-processing/parameters",
+    "class": "PublishedRagPipelineFirstStepApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/datasets/rag_pipeline/rag_pipeline_workflow.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/rag/pipelines/\u003cuuid:pipeline_id\u003e/workflows/published/processing/parameters",
+    "full_path": "/console/api/rag/pipelines/\u003cuuid:pipeline_id\u003e/workflows/published/processing/parameters",
+    "class": "PublishedRagPipelineSecondStepApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/datasets/rag_pipeline/rag_pipeline_workflow.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/rag/pipelines/\u003cuuid:pipeline_id\u003e/workflows/published/run",
+    "full_path": "/console/api/rag/pipelines/\u003cuuid:pipeline_id\u003e/workflows/published/run",
+    "class": "PublishedRagPipelineRunApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/datasets/rag_pipeline/rag_pipeline_workflow.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/rag/pipelines/datasource-plugins",
+    "full_path": "/console/api/rag/pipelines/datasource-plugins",
+    "class": "DatasourceListApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/datasets/rag_pipeline/rag_pipeline_import.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/rag/pipelines/imports",
+    "full_path": "/console/api/rag/pipelines/imports",
+    "class": "RagPipelineImportApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/datasets/rag_pipeline/rag_pipeline_import.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/rag/pipelines/imports/\u003cstring:import_id\u003e/confirm",
+    "full_path": "/console/api/rag/pipelines/imports/\u003cstring:import_id\u003e/confirm",
+    "class": "RagPipelineImportConfirmApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/datasets/rag_pipeline/rag_pipeline_import.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/rag/pipelines/imports/\u003cstring:pipeline_id\u003e/check-dependencies",
+    "full_path": "/console/api/rag/pipelines/imports/\u003cstring:pipeline_id\u003e/check-dependencies",
+    "class": "RagPipelineImportCheckDependenciesApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/datasets/rag_pipeline/rag_pipeline_workflow.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/rag/pipelines/recommended-plugins",
+    "full_path": "/console/api/rag/pipelines/recommended-plugins",
+    "class": "RagPipelineRecommendedPluginApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/datasets/rag_pipeline/rag_pipeline_workflow.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/rag/pipelines/transform/datasets/\u003cuuid:dataset_id\u003e",
+    "full_path": "/console/api/rag/pipelines/transform/datasets/\u003cuuid:dataset_id\u003e",
+    "class": "RagPipelineTransformApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/auth/login.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/refresh-token",
+    "full_path": "/console/api/refresh-token",
+    "class": "RefreshTokenApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/remote_files.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/remote-files/\u003cpath:url\u003e",
+    "full_path": "/console/api/remote-files/\u003cpath:url\u003e",
+    "class": "GetRemoteFileInfo",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/remote_files.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/remote-files/upload",
+    "full_path": "/console/api/remote-files/upload",
+    "class": "RemoteFileUpload",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/auth/login.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/reset-password",
+    "full_path": "/console/api/reset-password",
+    "class": "ResetPasswordSendEmailApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/app/generator.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/rule-code-generate",
+    "full_path": "/console/api/rule-code-generate",
+    "class": "RuleCodeGenerateApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/app/generator.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/rule-generate",
+    "full_path": "/console/api/rule-generate",
+    "class": "RuleGenerateApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/app/generator.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/rule-structured-output-generate",
+    "full_path": "/console/api/rule-structured-output-generate",
+    "class": "RuleStructuredOutputGenerateApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/spec.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/spec/schema-definitions",
+    "full_path": "/console/api/spec/schema-definitions",
+    "class": "SpecSchemaDefinitionsApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/feature.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/system-features",
+    "full_path": "/console/api/system-features",
+    "class": "SystemFeatureApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/tag/tags.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/tag-bindings/create",
+    "full_path": "/console/api/tag-bindings/create",
+    "class": "TagBindingCreateApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/tag/tags.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/tag-bindings/remove",
+    "full_path": "/console/api/tag-bindings/remove",
+    "class": "TagBindingDeleteApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/tag/tags.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/tags",
+    "full_path": "/console/api/tags",
+    "class": "TagListApi",
+    "methods": [
+      "GET",
+      "POST"
+    ]
+  },
+  {
+    "file": "console/tag/tags.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/tags/\u003cuuid:tag_id\u003e",
+    "full_path": "/console/api/tags/\u003cuuid:tag_id\u003e",
+    "class": "TagUpdateDeleteApi",
+    "methods": [
+      "PATCH",
+      "DELETE"
+    ]
+  },
+  {
+    "file": "console/datasets/external.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/test/retrieval",
+    "full_path": "/console/api/test/retrieval",
+    "class": "BedrockRetrievalApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/datasets/website.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/website/crawl",
+    "full_path": "/console/api/website/crawl",
+    "class": "WebsiteCrawlApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/datasets/website.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/website/crawl/status/\u003cstring:job_id\u003e",
+    "full_path": "/console/api/website/crawl/status/\u003cstring:job_id\u003e",
+    "class": "WebsiteCrawlStatusApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/human_input_form.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workflow/\u003cstring:workflow_run_id\u003e/events",
+    "full_path": "/console/api/workflow/\u003cstring:workflow_run_id\u003e/events",
+    "class": "ConsoleWorkflowEventsApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/app/workflow_run.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workflow/\u003cstring:workflow_run_id\u003e/pause-details",
+    "full_path": "/console/api/workflow/\u003cstring:workflow_run_id\u003e/pause-details",
+    "class": "ConsoleWorkflowPauseDetailsApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/workspace/workspace.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces",
+    "full_path": "/console/api/workspaces",
+    "class": "TenantListApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/workspace/model_providers.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/\u003cstring:tenant_id\u003e/model-providers/\u003cpath:provider\u003e/\u003cstring:icon_type\u003e/\u003cstring:lang\u003e",
+    "full_path": "/console/api/workspaces/\u003cstring:tenant_id\u003e/model-providers/\u003cpath:provider\u003e/\u003cstring:icon_type\u003e/\u003cstring:lang\u003e",
+    "class": "ModelProviderIconApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/workspace/workspace.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current",
+    "full_path": "/console/api/workspaces/current",
+    "class": "TenantApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/workspace/agent_providers.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/agent-provider/\u003cpath:provider_name\u003e",
+    "full_path": "/console/api/workspaces/current/agent-provider/\u003cpath:provider_name\u003e",
+    "class": "AgentProviderApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/workspace/agent_providers.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/agent-providers",
+    "full_path": "/console/api/workspaces/current/agent-providers",
+    "class": "AgentProviderListApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/workspace/members.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/dataset-operators",
+    "full_path": "/console/api/workspaces/current/dataset-operators",
+    "class": "DatasetOperatorMemberListApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/workspace/models.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/default-model",
+    "full_path": "/console/api/workspaces/current/default-model",
+    "class": "DefaultModelApi",
+    "methods": [
+      "GET",
+      "POST"
+    ]
+  },
+  {
+    "file": "console/workspace/endpoint.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/endpoints/create",
+    "full_path": "/console/api/workspaces/current/endpoints/create",
+    "class": "EndpointCreateApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/workspace/endpoint.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/endpoints/delete",
+    "full_path": "/console/api/workspaces/current/endpoints/delete",
+    "class": "EndpointDeleteApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/workspace/endpoint.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/endpoints/disable",
+    "full_path": "/console/api/workspaces/current/endpoints/disable",
+    "class": "EndpointDisableApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/workspace/endpoint.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/endpoints/enable",
+    "full_path": "/console/api/workspaces/current/endpoints/enable",
+    "class": "EndpointEnableApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/workspace/endpoint.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/endpoints/list",
+    "full_path": "/console/api/workspaces/current/endpoints/list",
+    "class": "EndpointListApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/workspace/endpoint.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/endpoints/list/plugin",
+    "full_path": "/console/api/workspaces/current/endpoints/list/plugin",
+    "class": "EndpointListForSinglePluginApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/workspace/endpoint.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/endpoints/update",
+    "full_path": "/console/api/workspaces/current/endpoints/update",
+    "class": "EndpointUpdateApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/workspace/members.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/members",
+    "full_path": "/console/api/workspaces/current/members",
+    "class": "MemberListApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/workspace/members.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/members/\u003cuuid:member_id\u003e",
+    "full_path": "/console/api/workspaces/current/members/\u003cuuid:member_id\u003e",
+    "class": "MemberCancelInviteApi",
+    "methods": [
+      "DELETE"
+    ]
+  },
+  {
+    "file": "console/workspace/members.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/members/\u003cuuid:member_id\u003e/owner-transfer",
+    "full_path": "/console/api/workspaces/current/members/\u003cuuid:member_id\u003e/owner-transfer",
+    "class": "OwnerTransfer",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/workspace/members.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/members/\u003cuuid:member_id\u003e/update-role",
+    "full_path": "/console/api/workspaces/current/members/\u003cuuid:member_id\u003e/update-role",
+    "class": "MemberUpdateRoleApi",
+    "methods": [
+      "PUT"
+    ]
+  },
+  {
+    "file": "console/workspace/members.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/members/invite-email",
+    "full_path": "/console/api/workspaces/current/members/invite-email",
+    "class": "MemberInviteEmailApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/workspace/members.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/members/owner-transfer-check",
+    "full_path": "/console/api/workspaces/current/members/owner-transfer-check",
+    "class": "OwnerTransferCheckApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/workspace/members.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/members/send-owner-transfer-confirm-email",
+    "full_path": "/console/api/workspaces/current/members/send-owner-transfer-confirm-email",
+    "class": "SendOwnerTransferEmailApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/workspace/model_providers.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/model-providers",
+    "full_path": "/console/api/workspaces/current/model-providers",
+    "class": "ModelProviderListApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/workspace/model_providers.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/model-providers/\u003cpath:provider\u003e/checkout-url",
+    "full_path": "/console/api/workspaces/current/model-providers/\u003cpath:provider\u003e/checkout-url",
+    "class": "ModelProviderPaymentCheckoutUrlApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/workspace/model_providers.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/model-providers/\u003cpath:provider\u003e/credentials",
+    "full_path": "/console/api/workspaces/current/model-providers/\u003cpath:provider\u003e/credentials",
+    "class": "ModelProviderCredentialApi",
+    "methods": [
+      "GET",
+      "POST",
+      "PUT",
+      "DELETE"
+    ]
+  },
+  {
+    "file": "console/workspace/model_providers.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/model-providers/\u003cpath:provider\u003e/credentials/switch",
+    "full_path": "/console/api/workspaces/current/model-providers/\u003cpath:provider\u003e/credentials/switch",
+    "class": "ModelProviderCredentialSwitchApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/workspace/model_providers.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/model-providers/\u003cpath:provider\u003e/credentials/validate",
+    "full_path": "/console/api/workspaces/current/model-providers/\u003cpath:provider\u003e/credentials/validate",
+    "class": "ModelProviderValidateApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/workspace/models.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/model-providers/\u003cpath:provider\u003e/models",
+    "full_path": "/console/api/workspaces/current/model-providers/\u003cpath:provider\u003e/models",
+    "class": "ModelProviderModelApi",
+    "methods": [
+      "GET",
+      "POST",
+      "DELETE"
+    ]
+  },
+  {
+    "file": "console/workspace/models.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/model-providers/\u003cpath:provider\u003e/models/credentials",
+    "full_path": "/console/api/workspaces/current/model-providers/\u003cpath:provider\u003e/models/credentials",
+    "class": "ModelProviderModelCredentialApi",
+    "methods": [
+      "GET",
+      "POST",
+      "PUT",
+      "DELETE"
+    ]
+  },
+  {
+    "file": "console/workspace/models.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/model-providers/\u003cpath:provider\u003e/models/credentials/switch",
+    "full_path": "/console/api/workspaces/current/model-providers/\u003cpath:provider\u003e/models/credentials/switch",
+    "class": "ModelProviderModelCredentialSwitchApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/workspace/models.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/model-providers/\u003cpath:provider\u003e/models/credentials/validate",
+    "full_path": "/console/api/workspaces/current/model-providers/\u003cpath:provider\u003e/models/credentials/validate",
+    "class": "ModelProviderModelValidateApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/workspace/models.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/model-providers/\u003cpath:provider\u003e/models/parameter-rules",
+    "full_path": "/console/api/workspaces/current/model-providers/\u003cpath:provider\u003e/models/parameter-rules",
+    "class": "ModelProviderModelParameterRuleApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/workspace/model_providers.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/model-providers/\u003cpath:provider\u003e/preferred-provider-type",
+    "full_path": "/console/api/workspaces/current/model-providers/\u003cpath:provider\u003e/preferred-provider-type",
+    "class": "PreferredProviderTypeUpdateApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/workspace/models.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/models/model-types/\u003cstring:model_type\u003e",
+    "full_path": "/console/api/workspaces/current/models/model-types/\u003cstring:model_type\u003e",
+    "class": "ModelProviderAvailableModelApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/workspace/workspace.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/permission",
+    "full_path": "/console/api/workspaces/current/permission",
+    "class": "WorkspacePermissionApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/workspace/plugin.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/plugin/asset",
+    "full_path": "/console/api/workspaces/current/plugin/asset",
+    "class": "PluginAssetApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/workspace/plugin.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/plugin/debugging-key",
+    "full_path": "/console/api/workspaces/current/plugin/debugging-key",
+    "class": "PluginDebuggingKeyApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/workspace/plugin.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/plugin/fetch-manifest",
+    "full_path": "/console/api/workspaces/current/plugin/fetch-manifest",
+    "class": "PluginFetchManifestApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/workspace/plugin.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/plugin/icon",
+    "full_path": "/console/api/workspaces/current/plugin/icon",
+    "class": "PluginIconApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/workspace/plugin.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/plugin/install/github",
+    "full_path": "/console/api/workspaces/current/plugin/install/github",
+    "class": "PluginInstallFromGithubApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/workspace/plugin.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/plugin/install/marketplace",
+    "full_path": "/console/api/workspaces/current/plugin/install/marketplace",
+    "class": "PluginInstallFromMarketplaceApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/workspace/plugin.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/plugin/install/pkg",
+    "full_path": "/console/api/workspaces/current/plugin/install/pkg",
+    "class": "PluginInstallFromPkgApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/workspace/plugin.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/plugin/list",
+    "full_path": "/console/api/workspaces/current/plugin/list",
+    "class": "PluginListApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/workspace/plugin.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/plugin/list/installations/ids",
+    "full_path": "/console/api/workspaces/current/plugin/list/installations/ids",
+    "class": "PluginListInstallationsFromIdsApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/workspace/plugin.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/plugin/list/latest-versions",
+    "full_path": "/console/api/workspaces/current/plugin/list/latest-versions",
+    "class": "PluginListLatestVersionsApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/workspace/plugin.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/plugin/marketplace/pkg",
+    "full_path": "/console/api/workspaces/current/plugin/marketplace/pkg",
+    "class": "PluginFetchMarketplacePkgApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/workspace/plugin.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/plugin/parameters/dynamic-options",
+    "full_path": "/console/api/workspaces/current/plugin/parameters/dynamic-options",
+    "class": "PluginFetchDynamicSelectOptionsApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/workspace/plugin.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/plugin/parameters/dynamic-options-with-credentials",
+    "full_path": "/console/api/workspaces/current/plugin/parameters/dynamic-options-with-credentials",
+    "class": "PluginFetchDynamicSelectOptionsWithCredentialsApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/workspace/plugin.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/plugin/permission/change",
+    "full_path": "/console/api/workspaces/current/plugin/permission/change",
+    "class": "PluginChangePermissionApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/workspace/plugin.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/plugin/permission/fetch",
+    "full_path": "/console/api/workspaces/current/plugin/permission/fetch",
+    "class": "PluginFetchPermissionApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/workspace/plugin.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/plugin/preferences/autoupgrade/exclude",
+    "full_path": "/console/api/workspaces/current/plugin/preferences/autoupgrade/exclude",
+    "class": "PluginAutoUpgradeExcludePluginApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/workspace/plugin.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/plugin/preferences/change",
+    "full_path": "/console/api/workspaces/current/plugin/preferences/change",
+    "class": "PluginChangePreferencesApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/workspace/plugin.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/plugin/preferences/fetch",
+    "full_path": "/console/api/workspaces/current/plugin/preferences/fetch",
+    "class": "PluginFetchPreferencesApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/workspace/plugin.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/plugin/readme",
+    "full_path": "/console/api/workspaces/current/plugin/readme",
+    "class": "PluginReadmeApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/workspace/plugin.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/plugin/tasks",
+    "full_path": "/console/api/workspaces/current/plugin/tasks",
+    "class": "PluginFetchInstallTasksApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/workspace/plugin.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/plugin/tasks/\u003ctask_id\u003e",
+    "full_path": "/console/api/workspaces/current/plugin/tasks/\u003ctask_id\u003e",
+    "class": "PluginFetchInstallTaskApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/workspace/plugin.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/plugin/tasks/\u003ctask_id\u003e/delete",
+    "full_path": "/console/api/workspaces/current/plugin/tasks/\u003ctask_id\u003e/delete",
+    "class": "PluginDeleteInstallTaskApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/workspace/plugin.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/plugin/tasks/\u003ctask_id\u003e/delete/\u003cpath:identifier\u003e",
+    "full_path": "/console/api/workspaces/current/plugin/tasks/\u003ctask_id\u003e/delete/\u003cpath:identifier\u003e",
+    "class": "PluginDeleteInstallTaskItemApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/workspace/plugin.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/plugin/tasks/delete_all",
+    "full_path": "/console/api/workspaces/current/plugin/tasks/delete_all",
+    "class": "PluginDeleteAllInstallTaskItemsApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/workspace/plugin.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/plugin/uninstall",
+    "full_path": "/console/api/workspaces/current/plugin/uninstall",
+    "class": "PluginUninstallApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/workspace/plugin.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/plugin/upgrade/github",
+    "full_path": "/console/api/workspaces/current/plugin/upgrade/github",
+    "class": "PluginUpgradeFromGithubApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/workspace/plugin.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/plugin/upgrade/marketplace",
+    "full_path": "/console/api/workspaces/current/plugin/upgrade/marketplace",
+    "class": "PluginUpgradeFromMarketplaceApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/workspace/plugin.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/plugin/upload/bundle",
+    "full_path": "/console/api/workspaces/current/plugin/upload/bundle",
+    "class": "PluginUploadFromBundleApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/workspace/plugin.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/plugin/upload/github",
+    "full_path": "/console/api/workspaces/current/plugin/upload/github",
+    "class": "PluginUploadFromGithubApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/workspace/plugin.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/plugin/upload/pkg",
+    "full_path": "/console/api/workspaces/current/plugin/upload/pkg",
+    "class": "PluginUploadFromPkgApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/workspace/tool_providers.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/tool-labels",
+    "full_path": "/console/api/workspaces/current/tool-labels",
+    "class": "ToolLabelsApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/workspace/tool_providers.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/tool-provider/api/add",
+    "full_path": "/console/api/workspaces/current/tool-provider/api/add",
+    "class": "ToolApiProviderAddApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/workspace/tool_providers.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/tool-provider/api/delete",
+    "full_path": "/console/api/workspaces/current/tool-provider/api/delete",
+    "class": "ToolApiProviderDeleteApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/workspace/tool_providers.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/tool-provider/api/get",
+    "full_path": "/console/api/workspaces/current/tool-provider/api/get",
+    "class": "ToolApiProviderGetApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/workspace/tool_providers.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/tool-provider/api/remote",
+    "full_path": "/console/api/workspaces/current/tool-provider/api/remote",
+    "class": "ToolApiProviderGetRemoteSchemaApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/workspace/tool_providers.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/tool-provider/api/schema",
+    "full_path": "/console/api/workspaces/current/tool-provider/api/schema",
+    "class": "ToolApiProviderSchemaApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/workspace/tool_providers.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/tool-provider/api/test/pre",
+    "full_path": "/console/api/workspaces/current/tool-provider/api/test/pre",
+    "class": "ToolApiProviderPreviousTestApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/workspace/tool_providers.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/tool-provider/api/tools",
+    "full_path": "/console/api/workspaces/current/tool-provider/api/tools",
+    "class": "ToolApiProviderListToolsApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/workspace/tool_providers.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/tool-provider/api/update",
+    "full_path": "/console/api/workspaces/current/tool-provider/api/update",
+    "class": "ToolApiProviderUpdateApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/workspace/tool_providers.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/tool-provider/builtin/\u003cpath:provider\u003e/add",
+    "full_path": "/console/api/workspaces/current/tool-provider/builtin/\u003cpath:provider\u003e/add",
+    "class": "ToolBuiltinProviderAddApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/workspace/tool_providers.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/tool-provider/builtin/\u003cpath:provider\u003e/credential/info",
+    "full_path": "/console/api/workspaces/current/tool-provider/builtin/\u003cpath:provider\u003e/credential/info",
+    "class": "ToolBuiltinProviderGetCredentialInfoApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/workspace/tool_providers.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/tool-provider/builtin/\u003cpath:provider\u003e/credential/schema/\u003cpath:credential_type\u003e",
+    "full_path": "/console/api/workspaces/current/tool-provider/builtin/\u003cpath:provider\u003e/credential/schema/\u003cpath:credential_type\u003e",
+    "class": "ToolBuiltinProviderCredentialsSchemaApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/workspace/tool_providers.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/tool-provider/builtin/\u003cpath:provider\u003e/credentials",
+    "full_path": "/console/api/workspaces/current/tool-provider/builtin/\u003cpath:provider\u003e/credentials",
+    "class": "ToolBuiltinProviderGetCredentialsApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/workspace/tool_providers.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/tool-provider/builtin/\u003cpath:provider\u003e/default-credential",
+    "full_path": "/console/api/workspaces/current/tool-provider/builtin/\u003cpath:provider\u003e/default-credential",
+    "class": "ToolBuiltinProviderSetDefaultApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/workspace/tool_providers.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/tool-provider/builtin/\u003cpath:provider\u003e/delete",
+    "full_path": "/console/api/workspaces/current/tool-provider/builtin/\u003cpath:provider\u003e/delete",
+    "class": "ToolBuiltinProviderDeleteApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/workspace/tool_providers.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/tool-provider/builtin/\u003cpath:provider\u003e/icon",
+    "full_path": "/console/api/workspaces/current/tool-provider/builtin/\u003cpath:provider\u003e/icon",
+    "class": "ToolBuiltinProviderIconApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/workspace/tool_providers.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/tool-provider/builtin/\u003cpath:provider\u003e/info",
+    "full_path": "/console/api/workspaces/current/tool-provider/builtin/\u003cpath:provider\u003e/info",
+    "class": "ToolBuiltinProviderInfoApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/workspace/tool_providers.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/tool-provider/builtin/\u003cpath:provider\u003e/oauth/client-schema",
+    "full_path": "/console/api/workspaces/current/tool-provider/builtin/\u003cpath:provider\u003e/oauth/client-schema",
+    "class": "ToolBuiltinProviderGetOauthClientSchemaApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/workspace/tool_providers.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/tool-provider/builtin/\u003cpath:provider\u003e/oauth/custom-client",
+    "full_path": "/console/api/workspaces/current/tool-provider/builtin/\u003cpath:provider\u003e/oauth/custom-client",
+    "class": "ToolOAuthCustomClient",
+    "methods": [
+      "POST",
+      "GET",
+      "DELETE"
+    ]
+  },
+  {
+    "file": "console/workspace/tool_providers.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/tool-provider/builtin/\u003cpath:provider\u003e/tools",
+    "full_path": "/console/api/workspaces/current/tool-provider/builtin/\u003cpath:provider\u003e/tools",
+    "class": "ToolBuiltinProviderListToolsApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/workspace/tool_providers.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/tool-provider/builtin/\u003cpath:provider\u003e/update",
+    "full_path": "/console/api/workspaces/current/tool-provider/builtin/\u003cpath:provider\u003e/update",
+    "class": "ToolBuiltinProviderUpdateApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/workspace/tool_providers.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/tool-provider/mcp",
+    "full_path": "/console/api/workspaces/current/tool-provider/mcp",
+    "class": "ToolProviderMCPApi",
+    "methods": [
+      "POST",
+      "PUT",
+      "DELETE"
+    ]
+  },
+  {
+    "file": "console/workspace/tool_providers.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/tool-provider/mcp/auth",
+    "full_path": "/console/api/workspaces/current/tool-provider/mcp/auth",
+    "class": "ToolMCPAuthApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/workspace/tool_providers.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/tool-provider/mcp/tools/\u003cpath:provider_id\u003e",
+    "full_path": "/console/api/workspaces/current/tool-provider/mcp/tools/\u003cpath:provider_id\u003e",
+    "class": "ToolMCPDetailApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/workspace/tool_providers.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/tool-provider/mcp/update/\u003cpath:provider_id\u003e",
+    "full_path": "/console/api/workspaces/current/tool-provider/mcp/update/\u003cpath:provider_id\u003e",
+    "class": "ToolMCPUpdateApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/workspace/tool_providers.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/tool-provider/workflow/create",
+    "full_path": "/console/api/workspaces/current/tool-provider/workflow/create",
+    "class": "ToolWorkflowProviderCreateApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/workspace/tool_providers.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/tool-provider/workflow/delete",
+    "full_path": "/console/api/workspaces/current/tool-provider/workflow/delete",
+    "class": "ToolWorkflowProviderDeleteApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/workspace/tool_providers.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/tool-provider/workflow/get",
+    "full_path": "/console/api/workspaces/current/tool-provider/workflow/get",
+    "class": "ToolWorkflowProviderGetApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/workspace/tool_providers.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/tool-provider/workflow/tools",
+    "full_path": "/console/api/workspaces/current/tool-provider/workflow/tools",
+    "class": "ToolWorkflowProviderListToolApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/workspace/tool_providers.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/tool-provider/workflow/update",
+    "full_path": "/console/api/workspaces/current/tool-provider/workflow/update",
+    "class": "ToolWorkflowProviderUpdateApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/workspace/tool_providers.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/tool-providers",
+    "full_path": "/console/api/workspaces/current/tool-providers",
+    "class": "ToolProviderListApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/workspace/tool_providers.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/tools/api",
+    "full_path": "/console/api/workspaces/current/tools/api",
+    "class": "ToolApiListApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/workspace/tool_providers.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/tools/builtin",
+    "full_path": "/console/api/workspaces/current/tools/builtin",
+    "class": "ToolBuiltinListApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/workspace/tool_providers.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/tools/mcp",
+    "full_path": "/console/api/workspaces/current/tools/mcp",
+    "class": "ToolMCPListAllApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/workspace/tool_providers.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/tools/workflow",
+    "full_path": "/console/api/workspaces/current/tools/workflow",
+    "class": "ToolWorkflowListApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/workspace/trigger_providers.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/trigger-provider/\u003cpath:provider\u003e/icon",
+    "full_path": "/console/api/workspaces/current/trigger-provider/\u003cpath:provider\u003e/icon",
+    "class": "TriggerProviderIconApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/workspace/trigger_providers.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/trigger-provider/\u003cpath:provider\u003e/info",
+    "full_path": "/console/api/workspaces/current/trigger-provider/\u003cpath:provider\u003e/info",
+    "class": "TriggerProviderInfoApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/workspace/trigger_providers.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/trigger-provider/\u003cpath:provider\u003e/oauth/client",
+    "full_path": "/console/api/workspaces/current/trigger-provider/\u003cpath:provider\u003e/oauth/client",
+    "class": "TriggerOAuthClientManageApi",
+    "methods": [
+      "GET",
+      "POST",
+      "DELETE"
+    ]
+  },
+  {
+    "file": "console/workspace/trigger_providers.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/trigger-provider/\u003cpath:provider\u003e/subscriptions/list",
+    "full_path": "/console/api/workspaces/current/trigger-provider/\u003cpath:provider\u003e/subscriptions/list",
+    "class": "TriggerSubscriptionListApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/workspace/trigger_providers.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/trigger-provider/\u003cpath:provider\u003e/subscriptions/oauth/authorize",
+    "full_path": "/console/api/workspaces/current/trigger-provider/\u003cpath:provider\u003e/subscriptions/oauth/authorize",
+    "class": "TriggerOAuthAuthorizeApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/workspace/trigger_providers.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/current/triggers",
+    "full_path": "/console/api/workspaces/current/triggers",
+    "class": "TriggerProviderListApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "console/workspace/workspace.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/custom-config",
+    "full_path": "/console/api/workspaces/custom-config",
+    "class": "CustomConfigWorkspaceApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/workspace/workspace.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/custom-config/webapp-logo/upload",
+    "full_path": "/console/api/workspaces/custom-config/webapp-logo/upload",
+    "class": "WebappLogoWorkspaceApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/workspace/workspace.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/info",
+    "full_path": "/console/api/workspaces/info",
+    "class": "WorkspaceInfoApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "console/workspace/workspace.py",
+    "group": "console",
+    "prefix": "/console/api",
+    "path": "/workspaces/switch",
+    "full_path": "/console/api/workspaces/switch",
+    "class": "SwitchWorkspaceApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "files/image_preview.py",
+    "group": "files",
+    "prefix": "/files",
+    "path": "/\u003cuuid:file_id\u003e/file-preview",
+    "full_path": "/files/\u003cuuid:file_id\u003e/file-preview",
+    "class": "FilePreviewApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "files/image_preview.py",
+    "group": "files",
+    "prefix": "/files",
+    "path": "/\u003cuuid:file_id\u003e/image-preview",
+    "full_path": "/files/\u003cuuid:file_id\u003e/image-preview",
+    "class": "ImagePreviewApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "files/tool_files.py",
+    "group": "files",
+    "prefix": "/files",
+    "path": "/tools/\u003cuuid:file_id\u003e.\u003cstring:extension\u003e",
+    "full_path": "/files/tools/\u003cuuid:file_id\u003e.\u003cstring:extension\u003e",
+    "class": "ToolFileApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "files/upload.py",
+    "group": "files",
+    "prefix": "/files",
+    "path": "/upload/for-plugin",
+    "full_path": "/files/upload/for-plugin",
+    "class": "PluginUploadFileApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "files/image_preview.py",
+    "group": "files",
+    "prefix": "/files",
+    "path": "/workspaces/\u003cuuid:workspace_id\u003e/webapp-logo",
+    "full_path": "/files/workspaces/\u003cuuid:workspace_id\u003e/webapp-logo",
+    "class": "WorkspaceWebappLogoApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "inner_api/mail.py",
+    "group": "inner_api",
+    "prefix": "/inner/api",
+    "path": "/billing/mail",
+    "full_path": "/inner/api/billing/mail",
+    "class": "BillingMail",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "inner_api/app/dsl.py",
+    "group": "inner_api",
+    "prefix": "/inner/api",
+    "path": "/enterprise/apps/\u003cstring:app_id\u003e/dsl",
+    "full_path": "/inner/api/enterprise/apps/\u003cstring:app_id\u003e/dsl",
+    "class": "EnterpriseAppDSLExport",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "inner_api/mail.py",
+    "group": "inner_api",
+    "prefix": "/inner/api",
+    "path": "/enterprise/mail",
+    "full_path": "/inner/api/enterprise/mail",
+    "class": "EnterpriseMail",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "inner_api/workspace/workspace.py",
+    "group": "inner_api",
+    "prefix": "/inner/api",
+    "path": "/enterprise/workspace",
+    "full_path": "/inner/api/enterprise/workspace",
+    "class": "EnterpriseWorkspace",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "inner_api/workspace/workspace.py",
+    "group": "inner_api",
+    "prefix": "/inner/api",
+    "path": "/enterprise/workspace/ownerless",
+    "full_path": "/inner/api/enterprise/workspace/ownerless",
+    "class": "EnterpriseWorkspaceNoOwnerEmail",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "inner_api/app/dsl.py",
+    "group": "inner_api",
+    "prefix": "/inner/api",
+    "path": "/enterprise/workspaces/\u003cstring:workspace_id\u003e/dsl/import",
+    "full_path": "/inner/api/enterprise/workspaces/\u003cstring:workspace_id\u003e/dsl/import",
+    "class": "EnterpriseAppDSLImport",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "inner_api/plugin/plugin.py",
+    "group": "inner_api",
+    "prefix": "/inner/api",
+    "path": "/fetch/app/info",
+    "full_path": "/inner/api/fetch/app/info",
+    "class": "PluginFetchAppInfoApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "inner_api/plugin/plugin.py",
+    "group": "inner_api",
+    "prefix": "/inner/api",
+    "path": "/invoke/app",
+    "full_path": "/inner/api/invoke/app",
+    "class": "PluginInvokeAppApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "inner_api/plugin/plugin.py",
+    "group": "inner_api",
+    "prefix": "/inner/api",
+    "path": "/invoke/encrypt",
+    "full_path": "/inner/api/invoke/encrypt",
+    "class": "PluginInvokeEncryptApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "inner_api/plugin/plugin.py",
+    "group": "inner_api",
+    "prefix": "/inner/api",
+    "path": "/invoke/llm",
+    "full_path": "/inner/api/invoke/llm",
+    "class": "PluginInvokeLLMApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "inner_api/plugin/plugin.py",
+    "group": "inner_api",
+    "prefix": "/inner/api",
+    "path": "/invoke/llm/structured-output",
+    "full_path": "/inner/api/invoke/llm/structured-output",
+    "class": "PluginInvokeLLMWithStructuredOutputApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "inner_api/plugin/plugin.py",
+    "group": "inner_api",
+    "prefix": "/inner/api",
+    "path": "/invoke/moderation",
+    "full_path": "/inner/api/invoke/moderation",
+    "class": "PluginInvokeModerationApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "inner_api/plugin/plugin.py",
+    "group": "inner_api",
+    "prefix": "/inner/api",
+    "path": "/invoke/parameter-extractor",
+    "full_path": "/inner/api/invoke/parameter-extractor",
+    "class": "PluginInvokeParameterExtractorNodeApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "inner_api/plugin/plugin.py",
+    "group": "inner_api",
+    "prefix": "/inner/api",
+    "path": "/invoke/question-classifier",
+    "full_path": "/inner/api/invoke/question-classifier",
+    "class": "PluginInvokeQuestionClassifierNodeApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "inner_api/plugin/plugin.py",
+    "group": "inner_api",
+    "prefix": "/inner/api",
+    "path": "/invoke/rerank",
+    "full_path": "/inner/api/invoke/rerank",
+    "class": "PluginInvokeRerankApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "inner_api/plugin/plugin.py",
+    "group": "inner_api",
+    "prefix": "/inner/api",
+    "path": "/invoke/speech2text",
+    "full_path": "/inner/api/invoke/speech2text",
+    "class": "PluginInvokeSpeech2TextApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "inner_api/plugin/plugin.py",
+    "group": "inner_api",
+    "prefix": "/inner/api",
+    "path": "/invoke/summary",
+    "full_path": "/inner/api/invoke/summary",
+    "class": "PluginInvokeSummaryApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "inner_api/plugin/plugin.py",
+    "group": "inner_api",
+    "prefix": "/inner/api",
+    "path": "/invoke/text-embedding",
+    "full_path": "/inner/api/invoke/text-embedding",
+    "class": "PluginInvokeTextEmbeddingApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "inner_api/plugin/plugin.py",
+    "group": "inner_api",
+    "prefix": "/inner/api",
+    "path": "/invoke/tool",
+    "full_path": "/inner/api/invoke/tool",
+    "class": "PluginInvokeToolApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "inner_api/plugin/plugin.py",
+    "group": "inner_api",
+    "prefix": "/inner/api",
+    "path": "/invoke/tts",
+    "full_path": "/inner/api/invoke/tts",
+    "class": "PluginInvokeTTSApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "inner_api/plugin/plugin.py",
+    "group": "inner_api",
+    "prefix": "/inner/api",
+    "path": "/upload/file/request",
+    "full_path": "/inner/api/upload/file/request",
+    "class": "PluginUploadFileRequestApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "mcp/mcp.py",
+    "group": "mcp",
+    "prefix": "/mcp",
+    "path": "/server/\u003cstring:server_code\u003e/mcp",
+    "full_path": "/mcp/server/\u003cstring:server_code\u003e/mcp",
+    "class": "MCPAppApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "service_api/index.py",
+    "group": "service_api",
+    "prefix": "/v1",
+    "path": "/",
+    "full_path": "/v1/",
+    "class": "IndexApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "service_api/app/message.py",
+    "group": "service_api",
+    "prefix": "/v1",
+    "path": "/app/feedbacks",
+    "full_path": "/v1/app/feedbacks",
+    "class": "AppGetFeedbacksApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "service_api/app/annotation.py",
+    "group": "service_api",
+    "prefix": "/v1",
+    "path": "/apps/annotation-reply/\u003cstring:action\u003e",
+    "full_path": "/v1/apps/annotation-reply/\u003cstring:action\u003e",
+    "class": "AnnotationReplyActionApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "service_api/app/annotation.py",
+    "group": "service_api",
+    "prefix": "/v1",
+    "path": "/apps/annotation-reply/\u003cstring:action\u003e/status/\u003cuuid:job_id\u003e",
+    "full_path": "/v1/apps/annotation-reply/\u003cstring:action\u003e/status/\u003cuuid:job_id\u003e",
+    "class": "AnnotationReplyActionStatusApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "service_api/app/annotation.py",
+    "group": "service_api",
+    "prefix": "/v1",
+    "path": "/apps/annotations",
+    "full_path": "/v1/apps/annotations",
+    "class": "AnnotationListApi",
+    "methods": [
+      "GET",
+      "POST"
+    ]
+  },
+  {
+    "file": "service_api/app/annotation.py",
+    "group": "service_api",
+    "prefix": "/v1",
+    "path": "/apps/annotations/\u003cuuid:annotation_id\u003e",
+    "full_path": "/v1/apps/annotations/\u003cuuid:annotation_id\u003e",
+    "class": "AnnotationUpdateDeleteApi",
+    "methods": [
+      "PUT",
+      "DELETE"
+    ]
+  },
+  {
+    "file": "service_api/app/audio.py",
+    "group": "service_api",
+    "prefix": "/v1",
+    "path": "/audio-to-text",
+    "full_path": "/v1/audio-to-text",
+    "class": "AudioApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "service_api/app/completion.py",
+    "group": "service_api",
+    "prefix": "/v1",
+    "path": "/chat-messages",
+    "full_path": "/v1/chat-messages",
+    "class": "ChatApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "service_api/app/completion.py",
+    "group": "service_api",
+    "prefix": "/v1",
+    "path": "/chat-messages/\u003cstring:task_id\u003e/stop",
+    "full_path": "/v1/chat-messages/\u003cstring:task_id\u003e/stop",
+    "class": "ChatStopApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "service_api/app/completion.py",
+    "group": "service_api",
+    "prefix": "/v1",
+    "path": "/completion-messages",
+    "full_path": "/v1/completion-messages",
+    "class": "CompletionApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "service_api/app/completion.py",
+    "group": "service_api",
+    "prefix": "/v1",
+    "path": "/completion-messages/\u003cstring:task_id\u003e/stop",
+    "full_path": "/v1/completion-messages/\u003cstring:task_id\u003e/stop",
+    "class": "CompletionStopApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "service_api/app/conversation.py",
+    "group": "service_api",
+    "prefix": "/v1",
+    "path": "/conversations",
+    "full_path": "/v1/conversations",
+    "class": "ConversationApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "service_api/app/conversation.py",
+    "group": "service_api",
+    "prefix": "/v1",
+    "path": "/conversations/\u003cuuid:c_id\u003e",
+    "full_path": "/v1/conversations/\u003cuuid:c_id\u003e",
+    "class": "ConversationDetailApi",
+    "methods": [
+      "DELETE"
+    ]
+  },
+  {
+    "file": "service_api/app/conversation.py",
+    "group": "service_api",
+    "prefix": "/v1",
+    "path": "/conversations/\u003cuuid:c_id\u003e/name",
+    "full_path": "/v1/conversations/\u003cuuid:c_id\u003e/name",
+    "class": "ConversationRenameApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "service_api/app/conversation.py",
+    "group": "service_api",
+    "prefix": "/v1",
+    "path": "/conversations/\u003cuuid:c_id\u003e/variables",
+    "full_path": "/v1/conversations/\u003cuuid:c_id\u003e/variables",
+    "class": "ConversationVariablesApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "service_api/app/conversation.py",
+    "group": "service_api",
+    "prefix": "/v1",
+    "path": "/conversations/\u003cuuid:c_id\u003e/variables/\u003cuuid:variable_id\u003e",
+    "full_path": "/v1/conversations/\u003cuuid:c_id\u003e/variables/\u003cuuid:variable_id\u003e",
+    "class": "ConversationVariableDetailApi",
+    "methods": [
+      "PUT"
+    ]
+  },
+  {
+    "file": "service_api/dataset/dataset.py",
+    "group": "service_api",
+    "prefix": "/v1",
+    "path": "/datasets",
+    "full_path": "/v1/datasets",
+    "class": "DatasetListApi",
+    "methods": [
+      "GET",
+      "POST"
+    ]
+  },
+  {
+    "file": "service_api/dataset/dataset.py",
+    "group": "service_api",
+    "prefix": "/v1",
+    "path": "/datasets/\u003cuuid:dataset_id\u003e",
+    "full_path": "/v1/datasets/\u003cuuid:dataset_id\u003e",
+    "class": "DatasetApi",
+    "methods": [
+      "GET",
+      "PATCH",
+      "DELETE"
+    ]
+  },
+  {
+    "file": "service_api/dataset/document.py",
+    "group": "service_api",
+    "prefix": "/v1",
+    "path": "/datasets/\u003cuuid:dataset_id\u003e/documents",
+    "full_path": "/v1/datasets/\u003cuuid:dataset_id\u003e/documents",
+    "class": "DocumentListApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "service_api/dataset/document.py",
+    "group": "service_api",
+    "prefix": "/v1",
+    "path": "/datasets/\u003cuuid:dataset_id\u003e/documents/\u003cstring:batch\u003e/indexing-status",
+    "full_path": "/v1/datasets/\u003cuuid:dataset_id\u003e/documents/\u003cstring:batch\u003e/indexing-status",
+    "class": "DocumentIndexingStatusApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "service_api/dataset/document.py",
+    "group": "service_api",
+    "prefix": "/v1",
+    "path": "/datasets/\u003cuuid:dataset_id\u003e/documents/\u003cuuid:document_id\u003e",
+    "full_path": "/v1/datasets/\u003cuuid:dataset_id\u003e/documents/\u003cuuid:document_id\u003e",
+    "class": "DocumentApi",
+    "methods": [
+      "GET",
+      "DELETE"
+    ]
+  },
+  {
+    "file": "service_api/dataset/document.py",
+    "group": "service_api",
+    "prefix": "/v1",
+    "path": "/datasets/\u003cuuid:dataset_id\u003e/documents/\u003cuuid:document_id\u003e/download",
+    "full_path": "/v1/datasets/\u003cuuid:dataset_id\u003e/documents/\u003cuuid:document_id\u003e/download",
+    "class": "DocumentDownloadApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "service_api/dataset/segment.py",
+    "group": "service_api",
+    "prefix": "/v1",
+    "path": "/datasets/\u003cuuid:dataset_id\u003e/documents/\u003cuuid:document_id\u003e/segments",
+    "full_path": "/v1/datasets/\u003cuuid:dataset_id\u003e/documents/\u003cuuid:document_id\u003e/segments",
+    "class": "SegmentApi",
+    "methods": [
+      "POST",
+      "GET"
+    ]
+  },
+  {
+    "file": "service_api/dataset/segment.py",
+    "group": "service_api",
+    "prefix": "/v1",
+    "path": "/datasets/\u003cuuid:dataset_id\u003e/documents/\u003cuuid:document_id\u003e/segments/\u003cuuid:segment_id\u003e",
+    "full_path": "/v1/datasets/\u003cuuid:dataset_id\u003e/documents/\u003cuuid:document_id\u003e/segments/\u003cuuid:segment_id\u003e",
+    "class": "DatasetSegmentApi",
+    "methods": [
+      "DELETE",
+      "POST",
+      "GET"
+    ]
+  },
+  {
+    "file": "service_api/dataset/document.py",
+    "group": "service_api",
+    "prefix": "/v1",
+    "path": "/datasets/\u003cuuid:dataset_id\u003e/documents/download-zip",
+    "full_path": "/v1/datasets/\u003cuuid:dataset_id\u003e/documents/download-zip",
+    "class": "DocumentBatchDownloadZipApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "service_api/dataset/metadata.py",
+    "group": "service_api",
+    "prefix": "/v1",
+    "path": "/datasets/\u003cuuid:dataset_id\u003e/documents/metadata",
+    "full_path": "/v1/datasets/\u003cuuid:dataset_id\u003e/documents/metadata",
+    "class": "DocumentMetadataEditServiceApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "service_api/dataset/dataset.py",
+    "group": "service_api",
+    "prefix": "/v1",
+    "path": "/datasets/\u003cuuid:dataset_id\u003e/documents/status/\u003cstring:action\u003e",
+    "full_path": "/v1/datasets/\u003cuuid:dataset_id\u003e/documents/status/\u003cstring:action\u003e",
+    "class": "DocumentStatusApi",
+    "methods": [
+      "PATCH"
+    ]
+  },
+  {
+    "file": "service_api/dataset/hit_testing.py",
+    "group": "service_api",
+    "prefix": "/v1",
+    "path": "/datasets/\u003cuuid:dataset_id\u003e/hit-testing",
+    "full_path": "/v1/datasets/\u003cuuid:dataset_id\u003e/hit-testing",
+    "class": "HitTestingApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "service_api/dataset/metadata.py",
+    "group": "service_api",
+    "prefix": "/v1",
+    "path": "/datasets/\u003cuuid:dataset_id\u003e/metadata",
+    "full_path": "/v1/datasets/\u003cuuid:dataset_id\u003e/metadata",
+    "class": "DatasetMetadataCreateServiceApi",
+    "methods": [
+      "POST",
+      "GET"
+    ]
+  },
+  {
+    "file": "service_api/dataset/metadata.py",
+    "group": "service_api",
+    "prefix": "/v1",
+    "path": "/datasets/\u003cuuid:dataset_id\u003e/metadata/\u003cuuid:metadata_id\u003e",
+    "full_path": "/v1/datasets/\u003cuuid:dataset_id\u003e/metadata/\u003cuuid:metadata_id\u003e",
+    "class": "DatasetMetadataServiceApi",
+    "methods": [
+      "PATCH",
+      "DELETE"
+    ]
+  },
+  {
+    "file": "service_api/dataset/metadata.py",
+    "group": "service_api",
+    "prefix": "/v1",
+    "path": "/datasets/\u003cuuid:dataset_id\u003e/metadata/built-in",
+    "full_path": "/v1/datasets/\u003cuuid:dataset_id\u003e/metadata/built-in",
+    "class": "DatasetMetadataBuiltInFieldServiceApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "service_api/dataset/metadata.py",
+    "group": "service_api",
+    "prefix": "/v1",
+    "path": "/datasets/\u003cuuid:dataset_id\u003e/metadata/built-in/\u003cstring:action\u003e",
+    "full_path": "/v1/datasets/\u003cuuid:dataset_id\u003e/metadata/built-in/\u003cstring:action\u003e",
+    "class": "DatasetMetadataBuiltInFieldActionServiceApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "service_api/dataset/rag_pipeline/rag_pipeline_workflow.py",
+    "group": "service_api",
+    "prefix": "/v1",
+    "path": "/datasets/\u003cuuid:dataset_id\u003e/pipeline/datasource-plugins",
+    "full_path": "/v1/datasets/\u003cuuid:dataset_id\u003e/pipeline/datasource-plugins",
+    "class": "DatasourcePluginsApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "service_api/dataset/rag_pipeline/rag_pipeline_workflow.py",
+    "group": "service_api",
+    "prefix": "/v1",
+    "path": "/datasets/\u003cuuid:dataset_id\u003e/pipeline/datasource/nodes/\u003cstring:node_id\u003e/run",
+    "full_path": "/v1/datasets/\u003cuuid:dataset_id\u003e/pipeline/datasource/nodes/\u003cstring:node_id\u003e/run",
+    "class": "DatasourceNodeRunApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "service_api/dataset/rag_pipeline/rag_pipeline_workflow.py",
+    "group": "service_api",
+    "prefix": "/v1",
+    "path": "/datasets/\u003cuuid:dataset_id\u003e/pipeline/run",
+    "full_path": "/v1/datasets/\u003cuuid:dataset_id\u003e/pipeline/run",
+    "class": "PipelineRunApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "service_api/dataset/dataset.py",
+    "group": "service_api",
+    "prefix": "/v1",
+    "path": "/datasets/\u003cuuid:dataset_id\u003e/tags",
+    "full_path": "/v1/datasets/\u003cuuid:dataset_id\u003e/tags",
+    "class": "DatasetTagsBindingStatusApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "service_api/dataset/rag_pipeline/rag_pipeline_workflow.py",
+    "group": "service_api",
+    "prefix": "/v1",
+    "path": "/datasets/pipeline/file-upload",
+    "full_path": "/v1/datasets/pipeline/file-upload",
+    "class": "KnowledgebasePipelineFileUploadApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "service_api/dataset/dataset.py",
+    "group": "service_api",
+    "prefix": "/v1",
+    "path": "/datasets/tags",
+    "full_path": "/v1/datasets/tags",
+    "class": "DatasetTagsApi",
+    "methods": [
+      "GET",
+      "POST",
+      "PATCH",
+      "DELETE"
+    ]
+  },
+  {
+    "file": "service_api/dataset/dataset.py",
+    "group": "service_api",
+    "prefix": "/v1",
+    "path": "/datasets/tags/binding",
+    "full_path": "/v1/datasets/tags/binding",
+    "class": "DatasetTagBindingApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "service_api/dataset/dataset.py",
+    "group": "service_api",
+    "prefix": "/v1",
+    "path": "/datasets/tags/unbinding",
+    "full_path": "/v1/datasets/tags/unbinding",
+    "class": "DatasetTagUnbindingApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "service_api/end_user/end_user.py",
+    "group": "service_api",
+    "prefix": "/v1",
+    "path": "/end-users/\u003cuuid:end_user_id\u003e",
+    "full_path": "/v1/end-users/\u003cuuid:end_user_id\u003e",
+    "class": "EndUserApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "service_api/app/file_preview.py",
+    "group": "service_api",
+    "prefix": "/v1",
+    "path": "/files/\u003cuuid:file_id\u003e/preview",
+    "full_path": "/v1/files/\u003cuuid:file_id\u003e/preview",
+    "class": "FilePreviewApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "service_api/app/file.py",
+    "group": "service_api",
+    "prefix": "/v1",
+    "path": "/files/upload",
+    "full_path": "/v1/files/upload",
+    "class": "FileApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "service_api/app/app.py",
+    "group": "service_api",
+    "prefix": "/v1",
+    "path": "/info",
+    "full_path": "/v1/info",
+    "class": "AppInfoApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "service_api/app/message.py",
+    "group": "service_api",
+    "prefix": "/v1",
+    "path": "/messages",
+    "full_path": "/v1/messages",
+    "class": "MessageListApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "service_api/app/message.py",
+    "group": "service_api",
+    "prefix": "/v1",
+    "path": "/messages/\u003cuuid:message_id\u003e/feedbacks",
+    "full_path": "/v1/messages/\u003cuuid:message_id\u003e/feedbacks",
+    "class": "MessageFeedbackApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "service_api/app/message.py",
+    "group": "service_api",
+    "prefix": "/v1",
+    "path": "/messages/\u003cuuid:message_id\u003e/suggested",
+    "full_path": "/v1/messages/\u003cuuid:message_id\u003e/suggested",
+    "class": "MessageSuggestedApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "service_api/app/app.py",
+    "group": "service_api",
+    "prefix": "/v1",
+    "path": "/meta",
+    "full_path": "/v1/meta",
+    "class": "AppMetaApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "service_api/app/app.py",
+    "group": "service_api",
+    "prefix": "/v1",
+    "path": "/parameters",
+    "full_path": "/v1/parameters",
+    "class": "AppParameterApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "service_api/app/site.py",
+    "group": "service_api",
+    "prefix": "/v1",
+    "path": "/site",
+    "full_path": "/v1/site",
+    "class": "AppSiteApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "service_api/app/audio.py",
+    "group": "service_api",
+    "prefix": "/v1",
+    "path": "/text-to-audio",
+    "full_path": "/v1/text-to-audio",
+    "class": "TextApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "service_api/app/workflow.py",
+    "group": "service_api",
+    "prefix": "/v1",
+    "path": "/workflows/\u003cstring:workflow_id\u003e/run",
+    "full_path": "/v1/workflows/\u003cstring:workflow_id\u003e/run",
+    "class": "WorkflowRunByIdApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "service_api/app/workflow.py",
+    "group": "service_api",
+    "prefix": "/v1",
+    "path": "/workflows/logs",
+    "full_path": "/v1/workflows/logs",
+    "class": "WorkflowAppLogApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "service_api/app/workflow.py",
+    "group": "service_api",
+    "prefix": "/v1",
+    "path": "/workflows/run",
+    "full_path": "/v1/workflows/run",
+    "class": "WorkflowRunApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "service_api/app/workflow.py",
+    "group": "service_api",
+    "prefix": "/v1",
+    "path": "/workflows/run/\u003cstring:workflow_run_id\u003e",
+    "full_path": "/v1/workflows/run/\u003cstring:workflow_run_id\u003e",
+    "class": "WorkflowRunDetailApi",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "service_api/app/workflow.py",
+    "group": "service_api",
+    "prefix": "/v1",
+    "path": "/workflows/tasks/\u003cstring:task_id\u003e/stop",
+    "full_path": "/v1/workflows/tasks/\u003cstring:task_id\u003e/stop",
+    "class": "WorkflowTaskStopApi",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "service_api/workspace/models.py",
+    "group": "service_api",
+    "prefix": "/v1",
+    "path": "/workspaces/current/models/model-types/\u003cstring:model_type\u003e",
+    "full_path": "/v1/workspaces/current/models/model-types/\u003cstring:model_type\u003e",
+    "class": "ModelProviderAvailableModelApi",
+    "methods": [
+      "GET"
+    ]
+  }
+]

@@ -1,0 +1,68 @@
+# Dify Go Migration
+
+`dify-go` now contains:
+
+- The original Dify frontend workspace copied from `../dify` without app-level changes.
+- A new Go backend compatibility layer under `cmd/` and `internal/`.
+- A generated Python route inventory at [route-manifest.json](/Users/tt/goworkspace/src/dify-go/docs/route-manifest.json).
+
+## What Works Now
+
+The Go server keeps Dify's existing API prefixes so the frontend can continue calling the same paths:
+
+- `GET /console/api/system-features`
+- `GET /console/api/setup`
+- `POST /console/api/setup`
+- `GET /console/api/init`
+- `POST /console/api/init`
+- `POST /console/api/login`
+- `POST /console/api/logout`
+- `POST /console/api/refresh-token`
+- `GET /console/api/account/profile`
+- `GET /console/api/account/avatar`
+- `POST /console/api/workspaces/current`
+- `GET /console/api/workspaces`
+- `GET /console/api/version`
+- `GET /console/api/files/upload`
+- `GET /console/api/files/support-type`
+- `GET /console/api/files/{id}/preview`
+- `GET /console/api/spec/schema-definitions`
+- `GET /api/system-features`
+- `GET /api/login/status`
+- `POST /api/logout`
+
+## Compatibility Mode
+
+Unported API routes can be forwarded to the original Python backend by setting:
+
+```bash
+export DIFY_GO_LEGACY_API_BASE_URL=http://127.0.0.1:5001
+```
+
+That lets us migrate endpoint groups incrementally while the frontend stays untouched.
+
+## Run
+
+Start the Go backend:
+
+```bash
+go run ./cmd/dify-server
+```
+
+Start the unchanged frontend in another terminal:
+
+```bash
+pnpm install
+pnpm --dir web dev
+```
+
+The frontend already defaults to:
+
+- Console API: `http://localhost:5001/console/api`
+- Public API: `http://localhost:5001/api`
+
+## Current Limits
+
+- The Go backend currently uses a lightweight file-backed bootstrap store at `var/state.json`.
+- Session storage is in-memory for now.
+- Most business routes are still pending migration and should either be proxied to the Python backend or implemented next by priority.
