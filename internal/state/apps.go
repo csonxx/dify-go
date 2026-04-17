@@ -93,6 +93,9 @@ type App struct {
 	WorkflowVersions    []WorkflowState                  `json:"workflow_versions,omitempty"`
 	WorkflowRuns        []WorkflowRun                    `json:"workflow_runs,omitempty"`
 	WorkflowNodeRuns    map[string]WorkflowNodeExecution `json:"workflow_node_runs,omitempty"`
+	MCPServer           *AppMCPServer                    `json:"mcp_server,omitempty"`
+	Annotations         []AppAnnotation                  `json:"annotations,omitempty"`
+	MessageFeedbacks    []AppMessageFeedback             `json:"message_feedbacks,omitempty"`
 	Tracing             Tracing                          `json:"tracing"`
 }
 

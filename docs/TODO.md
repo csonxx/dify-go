@@ -29,7 +29,7 @@
 
 ## 阶段 1：应用运营与日志
 
-状态：待实现
+状态：已完成
 
 范围：
 
@@ -54,6 +54,12 @@
 - 应用日志和会话页面不再依赖 Python fallback。
 - Workflow pause details 能从前端正常查看。
 - MCP server 的创建、更新、刷新在已迁 app 上可用。
+
+本阶段额外补齐了日志详情页实际依赖的兼容接口：
+
+- `/apps/{appId}/chat-messages`
+- `/apps/{appId}/feedbacks`
+- `/apps/{appId}/annotations/{annotationId}`
 
 ## 阶段 2：工作区扩展能力
 
