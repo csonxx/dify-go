@@ -43,6 +43,20 @@ func (s *server) mountAppRoutes(r chi.Router) {
 	r.Get("/apps/{appID}/text-to-audio/voices", s.handleAppVoices)
 	r.Get("/apps/{appID}/statistics/{metric}", s.handleAppStatistics)
 	r.Get("/apps/{appID}/workflow/statistics/{metric}", s.handleWorkflowStatistics)
+	r.Get("/apps/{appID}/workflows/draft", s.handleWorkflowDraftGet)
+	r.Post("/apps/{appID}/workflows/draft", s.handleWorkflowDraftSync)
+	r.Get("/apps/{appID}/workflows/draft/environment-variables", s.handleWorkflowDraftEnvironmentVariables)
+	r.Post("/apps/{appID}/workflows/draft/environment-variables", s.handleWorkflowDraftEnvironmentVariablesUpdate)
+	r.Get("/apps/{appID}/workflows/draft/conversation-variables", s.handleWorkflowDraftConversationVariables)
+	r.Post("/apps/{appID}/workflows/draft/conversation-variables", s.handleWorkflowDraftConversationVariablesUpdate)
+	r.Get("/apps/{appID}/workflows/draft/system-variables", s.handleWorkflowDraftSystemVariables)
+	r.Get("/apps/{appID}/workflows/draft/variables", s.handleWorkflowDraftVariables)
+	r.Get("/apps/{appID}/workflows/draft/nodes/{nodeID}/variables", s.handleWorkflowDraftNodeVariables)
+	r.Post("/apps/{appID}/workflows/draft/features", s.handleWorkflowDraftFeaturesUpdate)
+	r.Get("/apps/{appID}/workflows/default-workflow-block-configs", s.handleWorkflowDefaultBlockConfigs)
+	r.Get("/apps/{appID}/workflows/default-workflow-block-configs/{blockType}", s.handleWorkflowDefaultBlockConfig)
+	r.Get("/apps/{appID}/workflows/publish", s.handleWorkflowPublishedGet)
+	r.Post("/apps/{appID}/workflows/publish", s.handleWorkflowPublish)
 }
 
 func (s *server) handleAppList(w http.ResponseWriter, r *http.Request) {

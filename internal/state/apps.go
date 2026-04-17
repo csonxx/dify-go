@@ -15,6 +15,23 @@ type Workflow struct {
 	UpdatedAt int64  `json:"updated_at"`
 }
 
+type WorkflowState struct {
+	ID                    string           `json:"id"`
+	Graph                 map[string]any   `json:"graph"`
+	Features              map[string]any   `json:"features"`
+	CreatedBy             string           `json:"created_by"`
+	CreatedAt             int64            `json:"created_at"`
+	UpdatedBy             string           `json:"updated_by"`
+	UpdatedAt             int64            `json:"updated_at"`
+	Hash                  string           `json:"hash"`
+	ToolPublished         bool             `json:"tool_published"`
+	EnvironmentVariables  []map[string]any `json:"environment_variables"`
+	ConversationVariables []map[string]any `json:"conversation_variables"`
+	Version               string           `json:"version"`
+	MarkedName            string           `json:"marked_name"`
+	MarkedComment         string           `json:"marked_comment"`
+}
+
 type Site struct {
 	AccessToken            string  `json:"access_token"`
 	Title                  string  `json:"title"`
@@ -71,6 +88,8 @@ type App struct {
 	ModelConfig         map[string]any `json:"model_config"`
 	Site                Site           `json:"site"`
 	Workflow            *Workflow      `json:"workflow,omitempty"`
+	WorkflowDraft       *WorkflowState `json:"workflow_draft,omitempty"`
+	WorkflowPublished   *WorkflowState `json:"workflow_published,omitempty"`
 	Tracing             Tracing        `json:"tracing"`
 }
 
@@ -352,6 +371,27 @@ func (s *Store) CopyApp(id, workspaceID string, owner User, input CopyAppInput, 
 		Enabled:  false,
 		Provider: "",
 		Configs:  cloneTracingConfigs(original.Tracing.Configs),
+	}
+	if original.WorkflowDraft != nil {
+		draft := cloneWorkflowState(*original.WorkflowDraft)
+		draft.ID = firstNonEmpty(app.Workflow.ID, draft.ID)
+		draft.CreatedAt = now.UTC().Unix()
+		draft.CreatedBy = owner.ID
+		draft.UpdatedAt = draft.CreatedAt
+		draft.UpdatedBy = owner.ID
+		draft.ToolPublished = original.WorkflowPublished != nil
+		draft.Hash = workflowHash(draft.Graph, draft.Features, draft.EnvironmentVariables, draft.ConversationVariables)
+		app.WorkflowDraft = &draft
+	}
+	if original.WorkflowPublished != nil {
+		published := cloneWorkflowState(*original.WorkflowPublished)
+		published.ID = firstNonEmpty(app.Workflow.ID, published.ID)
+		published.CreatedAt = now.UTC().Unix()
+		published.CreatedBy = owner.ID
+		published.UpdatedAt = published.CreatedAt
+		published.UpdatedBy = owner.ID
+		published.Hash = workflowHash(published.Graph, published.Features, published.EnvironmentVariables, published.ConversationVariables)
+		app.WorkflowPublished = &published
 	}
 	return s.replaceApp(app)
 }
