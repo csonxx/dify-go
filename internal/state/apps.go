@@ -64,33 +64,36 @@ type Tracing struct {
 }
 
 type App struct {
-	ID                  string         `json:"id"`
-	WorkspaceID         string         `json:"workspace_id"`
-	Name                string         `json:"name"`
-	Description         string         `json:"description"`
-	Mode                string         `json:"mode"`
-	IconType            string         `json:"icon_type"`
-	Icon                string         `json:"icon"`
-	IconBackground      string         `json:"icon_background"`
-	UseIconAsAnswerIcon bool           `json:"use_icon_as_answer_icon"`
-	EnableSite          bool           `json:"enable_site"`
-	EnableAPI           bool           `json:"enable_api"`
-	APIRPM              int            `json:"api_rpm"`
-	APIRPH              int            `json:"api_rph"`
-	IsDemo              bool           `json:"is_demo"`
-	AuthorName          string         `json:"author_name"`
-	CreatedBy           string         `json:"created_by"`
-	UpdatedBy           string         `json:"updated_by"`
-	CreatedAt           int64          `json:"created_at"`
-	UpdatedAt           int64          `json:"updated_at"`
-	AccessMode          string         `json:"access_mode"`
-	MaxActiveRequests   *int           `json:"max_active_requests,omitempty"`
-	ModelConfig         map[string]any `json:"model_config"`
-	Site                Site           `json:"site"`
-	Workflow            *Workflow      `json:"workflow,omitempty"`
-	WorkflowDraft       *WorkflowState `json:"workflow_draft,omitempty"`
-	WorkflowPublished   *WorkflowState `json:"workflow_published,omitempty"`
-	Tracing             Tracing        `json:"tracing"`
+	ID                  string                           `json:"id"`
+	WorkspaceID         string                           `json:"workspace_id"`
+	Name                string                           `json:"name"`
+	Description         string                           `json:"description"`
+	Mode                string                           `json:"mode"`
+	IconType            string                           `json:"icon_type"`
+	Icon                string                           `json:"icon"`
+	IconBackground      string                           `json:"icon_background"`
+	UseIconAsAnswerIcon bool                             `json:"use_icon_as_answer_icon"`
+	EnableSite          bool                             `json:"enable_site"`
+	EnableAPI           bool                             `json:"enable_api"`
+	APIRPM              int                              `json:"api_rpm"`
+	APIRPH              int                              `json:"api_rph"`
+	IsDemo              bool                             `json:"is_demo"`
+	AuthorName          string                           `json:"author_name"`
+	CreatedBy           string                           `json:"created_by"`
+	UpdatedBy           string                           `json:"updated_by"`
+	CreatedAt           int64                            `json:"created_at"`
+	UpdatedAt           int64                            `json:"updated_at"`
+	AccessMode          string                           `json:"access_mode"`
+	MaxActiveRequests   *int                             `json:"max_active_requests,omitempty"`
+	ModelConfig         map[string]any                   `json:"model_config"`
+	Site                Site                             `json:"site"`
+	Workflow            *Workflow                        `json:"workflow,omitempty"`
+	WorkflowDraft       *WorkflowState                   `json:"workflow_draft,omitempty"`
+	WorkflowPublished   *WorkflowState                   `json:"workflow_published,omitempty"`
+	WorkflowVersions    []WorkflowState                  `json:"workflow_versions,omitempty"`
+	WorkflowRuns        []WorkflowRun                    `json:"workflow_runs,omitempty"`
+	WorkflowNodeRuns    map[string]WorkflowNodeExecution `json:"workflow_node_runs,omitempty"`
+	Tracing             Tracing                          `json:"tracing"`
 }
 
 type AppListFilters struct {
@@ -374,7 +377,7 @@ func (s *Store) CopyApp(id, workspaceID string, owner User, input CopyAppInput, 
 	}
 	if original.WorkflowDraft != nil {
 		draft := cloneWorkflowState(*original.WorkflowDraft)
-		draft.ID = firstNonEmpty(app.Workflow.ID, draft.ID)
+		draft.ID = firstNonEmpty(draft.ID, app.Workflow.ID)
 		draft.CreatedAt = now.UTC().Unix()
 		draft.CreatedBy = owner.ID
 		draft.UpdatedAt = draft.CreatedAt
@@ -385,13 +388,32 @@ func (s *Store) CopyApp(id, workspaceID string, owner User, input CopyAppInput, 
 	}
 	if original.WorkflowPublished != nil {
 		published := cloneWorkflowState(*original.WorkflowPublished)
-		published.ID = firstNonEmpty(app.Workflow.ID, published.ID)
+		published.ID = firstNonEmpty(published.ID, app.Workflow.ID)
 		published.CreatedAt = now.UTC().Unix()
 		published.CreatedBy = owner.ID
 		published.UpdatedAt = published.CreatedAt
 		published.UpdatedBy = owner.ID
 		published.Hash = workflowHash(published.Graph, published.Features, published.EnvironmentVariables, published.ConversationVariables)
 		app.WorkflowPublished = &published
+	}
+	if len(original.WorkflowVersions) > 0 {
+		app.WorkflowVersions = cloneWorkflowStateList(original.WorkflowVersions)
+		for i := range app.WorkflowVersions {
+			app.WorkflowVersions[i].CreatedAt = now.UTC().Unix()
+			app.WorkflowVersions[i].CreatedBy = owner.ID
+			app.WorkflowVersions[i].UpdatedAt = app.WorkflowVersions[i].CreatedAt
+			app.WorkflowVersions[i].UpdatedBy = owner.ID
+		}
+	}
+	if app.WorkflowPublished != nil && len(app.WorkflowVersions) == 0 {
+		app.WorkflowVersions = []WorkflowState{cloneWorkflowState(*app.WorkflowPublished)}
+	}
+	if app.Workflow != nil {
+		if app.WorkflowPublished != nil {
+			app.Workflow.ID = app.WorkflowPublished.ID
+		} else if app.WorkflowDraft != nil {
+			app.Workflow.ID = app.WorkflowDraft.ID
+		}
 	}
 	return s.replaceApp(app)
 }

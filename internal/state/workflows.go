@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -51,7 +52,7 @@ func (s *Store) SyncWorkflowDraft(appID, workspaceID string, user User, graph, f
 			draft = &copied
 		}
 		if draft.ID == "" {
-			draft.ID = firstNonEmpty(app.Workflow.ID, generateID("wf"))
+			draft.ID = generateID("wf")
 			draft.CreatedAt = now.UTC().Unix()
 			draft.CreatedBy = user.ID
 			draft.Version = "draft"
@@ -128,8 +129,11 @@ func (s *Store) PublishWorkflow(appID, workspaceID string, user User, markedName
 	if app.WorkflowDraft == nil {
 		return WorkflowState{}, fmt.Errorf("draft_workflow_not_exist")
 	}
+	ensureWorkflowVersions(&app)
 
+	versionID := generateID("wfv")
 	published := cloneWorkflowState(*app.WorkflowDraft)
+	published.ID = versionID
 	published.MarkedName = markedName
 	published.MarkedComment = markedComment
 	published.CreatedAt = now.UTC().Unix()
@@ -137,9 +141,13 @@ func (s *Store) PublishWorkflow(appID, workspaceID string, user User, markedName
 	published.UpdatedAt = now.UTC().Unix()
 	published.UpdatedBy = user.ID
 	published.ToolPublished = true
-	published.Version = "published"
+	published.Version = now.UTC().Format(time.RFC3339)
 	published.Hash = workflowHash(published.Graph, published.Features, published.EnvironmentVariables, published.ConversationVariables)
 	app.WorkflowPublished = &published
+	app.WorkflowVersions = append([]WorkflowState{cloneWorkflowState(published)}, app.WorkflowVersions...)
+	if len(app.WorkflowVersions) > 100 {
+		app.WorkflowVersions = app.WorkflowVersions[:100]
+	}
 
 	draft := cloneWorkflowState(*app.WorkflowDraft)
 	draft.ToolPublished = true
@@ -149,6 +157,7 @@ func (s *Store) PublishWorkflow(appID, workspaceID string, user User, markedName
 	app.UpdatedAt = now.UTC().Unix()
 	app.UpdatedBy = user.ID
 	if app.Workflow != nil {
+		app.Workflow.ID = versionID
 		app.Workflow.UpdatedAt = app.UpdatedAt
 		app.Workflow.UpdatedBy = user.ID
 	}
@@ -173,9 +182,10 @@ func (s *Store) mutateWorkflow(appID, workspaceID string, now time.Time, apply f
 		return WorkflowState{}, err
 	}
 	app.UpdatedAt = now.UTC().Unix()
-	app.UpdatedBy = app.CreatedBy
+	app.UpdatedBy = workflowUpdatedBy(app)
 	if app.Workflow != nil {
 		app.Workflow.UpdatedAt = app.UpdatedAt
+		app.Workflow.UpdatedBy = app.UpdatedBy
 	}
 	s.state.Apps[index] = app
 	if err := s.saveLocked(); err != nil {
@@ -199,7 +209,7 @@ func ensureWorkflowDraft(app *App, user User, now time.Time) *WorkflowState {
 	}
 
 	return &WorkflowState{
-		ID:                    firstNonEmpty(stringValueFromWorkflow(app.Workflow), generateID("wf")),
+		ID:                    generateID("wf"),
 		Graph:                 map[string]any{"nodes": []any{}, "edges": []any{}, "viewport": map[string]any{"x": 0, "y": 0, "zoom": 1}},
 		Features:              map[string]any{},
 		CreatedAt:             now.UTC().Unix(),
@@ -262,4 +272,15 @@ func cloneObjectList(src []map[string]any) []map[string]any {
 		out[i] = cloneMap(item)
 	}
 	return out
+}
+
+func workflowUpdatedBy(app App) string {
+	updatedBy := app.CreatedBy
+	if app.WorkflowPublished != nil && strings.TrimSpace(app.WorkflowPublished.UpdatedBy) != "" {
+		updatedBy = app.WorkflowPublished.UpdatedBy
+	}
+	if app.WorkflowDraft != nil && strings.TrimSpace(app.WorkflowDraft.UpdatedBy) != "" {
+		updatedBy = app.WorkflowDraft.UpdatedBy
+	}
+	return updatedBy
 }
