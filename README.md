@@ -60,6 +60,15 @@
   <a href="./docs/hi-IN/README.md"><img alt="README in हिन्दी" src="https://img.shields.io/badge/Hindi-d9d9d9"></a>
 </p>
 
+> `dify-go` is an incremental Go backend migration for Dify that keeps the upstream frontend largely unchanged and ports backend capabilities domain by domain.
+>
+> This repository is based on and pays tribute to [langgenius/dify](https://github.com/langgenius/dify). Thanks to the Dify team and community for building the original product, open-sourcing it, and making this migration possible.
+>
+> Migration and design docs for this repository:
+> [docs/GO_MIGRATION.md](./docs/GO_MIGRATION.md) ·
+> [docs/TODO.md](./docs/TODO.md) ·
+> [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md)
+
 Dify is an open-source LLM app development platform. Its intuitive interface combines AI workflow, RAG pipeline, agent capabilities, model management, observability features (including [Opik](https://www.comet.com/docs/opik/integrations/dify), [Langfuse](https://docs.langfuse.com), and [Arize Phoenix](https://docs.arize.com/phoenix)) and more, letting you quickly go from prototype to production. Here's a list of the core features:
 
 ## Quick start

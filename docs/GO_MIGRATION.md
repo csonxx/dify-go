@@ -5,6 +5,16 @@
 - The original Dify frontend workspace copied from `../dify` without app-level changes.
 - A new Go backend compatibility layer under `cmd/` and `internal/`.
 - A generated Python route inventory at [route-manifest.json](/Users/tt/goworkspace/src/dify-go/docs/route-manifest.json).
+- A step-by-step migration backlog at [TODO.md](/Users/tt/goworkspace/src/dify-go/docs/TODO.md).
+- A detailed architecture and design document at [ARCHITECTURE.md](/Users/tt/goworkspace/src/dify-go/docs/ARCHITECTURE.md).
+
+This repository is a Go migration project built on top of, and in tribute to, [langgenius/dify](https://github.com/langgenius/dify).
+
+## Planning Docs
+
+- Migration status: [GO_MIGRATION.md](/Users/tt/goworkspace/src/dify-go/docs/GO_MIGRATION.md)
+- Implementation backlog: [TODO.md](/Users/tt/goworkspace/src/dify-go/docs/TODO.md)
+- Architecture and design: [ARCHITECTURE.md](/Users/tt/goworkspace/src/dify-go/docs/ARCHITECTURE.md)
 
 ## What Works Now
 
