@@ -28,15 +28,16 @@ type User struct {
 }
 
 type Workspace struct {
-	ID                  string `json:"id"`
-	Name                string `json:"name"`
-	Plan                string `json:"plan"`
-	Status              string `json:"status"`
-	Role                string `json:"role"`
-	CreatedAt           int64  `json:"created_at"`
-	TrialCredits        int    `json:"trial_credits"`
-	TrialCreditsUsed    int    `json:"trial_credits_used"`
-	NextCreditResetDate int64  `json:"next_credit_reset_date"`
+	ID                  string                 `json:"id"`
+	Name                string                 `json:"name"`
+	Plan                string                 `json:"plan"`
+	Status              string                 `json:"status"`
+	Role                string                 `json:"role"`
+	CreatedAt           int64                  `json:"created_at"`
+	TrialCredits        int                    `json:"trial_credits"`
+	TrialCreditsUsed    int                    `json:"trial_credits_used"`
+	NextCreditResetDate int64                  `json:"next_credit_reset_date"`
+	ModelSettings       WorkspaceModelSettings `json:"model_settings,omitempty"`
 }
 
 type State struct {
@@ -88,6 +89,9 @@ func Open(path string) (*Store, error) {
 	}
 	if store.state.Workspaces == nil {
 		store.state.Workspaces = []Workspace{}
+	}
+	for i := range store.state.Workspaces {
+		normalizeWorkspaceModelSettings(&store.state.Workspaces[i].ModelSettings)
 	}
 	if store.state.Apps == nil {
 		store.state.Apps = []App{}
