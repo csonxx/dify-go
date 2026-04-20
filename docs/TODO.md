@@ -337,7 +337,7 @@
 
 ## 阶段 5：RAG Pipeline
 
-状态：进行中（空白 dataset + workflow alias + DSL import/export 第二批已落地）
+状态：进行中（空白 dataset + workflow alias + DSL import/export + template/customized template 第三批已落地）
 
 范围：
 
@@ -374,10 +374,14 @@
 
 - [x] `/rag/pipeline/empty-dataset`
 - [x] `/rag/pipeline/dataset`
+- [x] `/rag/pipeline/templates`
+- [x] `/rag/pipeline/templates/{templateId}`
+- [x] `/rag/pipeline/customized/templates/{templateId}`
 - [x] `/rag/pipelines/datasource-plugins`
 - [x] `/rag/pipelines/imports`
 - [x] `/rag/pipelines/imports/{importId}/confirm`
 - [x] `/rag/pipelines/{pipelineId}/exports`
+- [x] `/rag/pipelines/{pipelineId}/customized/publish`
 - [x] `/rag/pipelines/{pipelineId}/workflows/draft`
 - [x] `/rag/pipelines/{pipelineId}/workflows/publish`
 - [x] `/rag/pipelines/{pipelineId}/workflows`
@@ -389,8 +393,7 @@
 
 本阶段剩余重点：
 
-- [ ] 把 template/customized template 主链路从 fallback 迁到 Go
-- [ ] 补齐 published run、pipeline execution log、publish as customized pipeline 等真正执行面能力
+- [ ] 补齐 published run、pipeline execution log 等真正执行面能力
 - [ ] 把 datasource plugin 列表从当前空兼容响应推进到真实 workspace plugin / datasource 发现语义
 - [ ] 继续收敛 pipeline 与 dataset 之间的共享状态，让空白 dataset、publish 状态、execution log、文档处理流程完全共用 Go 模型
 
@@ -399,6 +402,7 @@
 - 现在 `.pipeline` / YAML DSL 已经可以在 Go 侧完成导出、导入、以及“从 DSL 创建 dataset”。
 - 导入时会把 `workflow.graph/features/environment_variables/conversation_variables/rag_pipeline_variables` 同步到 Go 的 workflow draft。
 - 如果 DSL 的 `knowledge-index` 节点里带了 `chunk_structure`、`indexing_technique`、`retrieval_model`、`embedding_model(_provider)`、`summary_index_setting`，会同步回写到 dataset 状态，确保前端 dataset/pipeline 面板看到的是同一份配置。
+- Template 目录现在也已经落到 Go：内置 built-in 模板列表/详情由 Go 直接提供，customized template 支持发布、列表、详情、更新元信息、导出和删除。
 
 ## 阶段 6：公共运行时 API
 

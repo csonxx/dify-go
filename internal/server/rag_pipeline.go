@@ -15,6 +15,11 @@ func (s *server) mountRAGPipelineRoutes(r chi.Router) {
 	r.Route("/rag/pipeline", func(r chi.Router) {
 		r.Post("/empty-dataset", s.handleRAGPipelineEmptyDatasetCreate)
 		r.Post("/dataset", s.handleRAGPipelineDatasetCreateFromDSL)
+		r.Get("/templates", s.handleRAGPipelineTemplateList)
+		r.Get("/templates/{templateID}", s.handleRAGPipelineTemplateDetail)
+		r.Patch("/customized/templates/{templateID}", s.handleCustomizedRAGPipelineTemplateUpdate)
+		r.Delete("/customized/templates/{templateID}", s.handleCustomizedRAGPipelineTemplateDelete)
+		r.Post("/customized/templates/{templateID}", s.handleCustomizedRAGPipelineTemplateExport)
 		r.NotFound(s.compatFallback)
 	})
 
@@ -23,6 +28,7 @@ func (s *server) mountRAGPipelineRoutes(r chi.Router) {
 	r.Post("/rag/pipelines/imports/{importID}/confirm", s.handleRAGPipelineImportConfirm)
 	r.Route("/rag/pipelines/{pipelineID}", func(r chi.Router) {
 		r.Use(s.withResolvedPipelineApp)
+		r.Post("/customized/publish", s.handleRAGPipelinePublishCustomizedTemplate)
 		r.Get("/exports", s.handleRAGPipelineExport)
 		r.Get("/workflows/draft", s.handleWorkflowDraftGet)
 		r.Post("/workflows/draft", s.handleWorkflowDraftSync)

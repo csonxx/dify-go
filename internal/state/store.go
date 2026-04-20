@@ -48,6 +48,7 @@ type State struct {
 	Workspaces            []Workspace            `json:"workspaces"`
 	Apps                  []App                  `json:"apps"`
 	Datasets              []Dataset              `json:"datasets"`
+	PipelineTemplates     []PipelineTemplate     `json:"pipeline_templates"`
 	UploadedFiles         []UploadedFile         `json:"uploaded_files"`
 	ExternalKnowledgeAPIs []ExternalKnowledgeAPI `json:"external_knowledge_apis"`
 	APIKeys               []APIKey               `json:"api_keys"`
@@ -67,6 +68,7 @@ func Open(path string) (*Store, error) {
 			Workspaces:            []Workspace{},
 			Apps:                  []App{},
 			Datasets:              []Dataset{},
+			PipelineTemplates:     []PipelineTemplate{},
 			UploadedFiles:         []UploadedFile{},
 			ExternalKnowledgeAPIs: []ExternalKnowledgeAPI{},
 			APIKeys:               []APIKey{},
@@ -109,6 +111,12 @@ func Open(path string) (*Store, error) {
 	}
 	for i := range store.state.Datasets {
 		normalizeDataset(&store.state.Datasets[i])
+	}
+	if store.state.PipelineTemplates == nil {
+		store.state.PipelineTemplates = []PipelineTemplate{}
+	}
+	for i := range store.state.PipelineTemplates {
+		normalizePipelineTemplate(&store.state.PipelineTemplates[i])
 	}
 	if store.state.UploadedFiles == nil {
 		store.state.UploadedFiles = []UploadedFile{}

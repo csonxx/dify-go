@@ -211,10 +211,14 @@ The Go server keeps Dify's existing API prefixes so the frontend can continue ca
 - `POST /console/api/apps/{id}/workflow-runs/tasks/{taskId}/stop`
 - `POST /console/api/rag/pipeline/empty-dataset`
 - `POST /console/api/rag/pipeline/dataset`
+- `GET /console/api/rag/pipeline/templates`
+- `GET /console/api/rag/pipeline/templates/{templateId}`
+- `PATCH|DELETE|POST /console/api/rag/pipeline/customized/templates/{templateId}`
 - `GET /console/api/rag/pipelines/datasource-plugins`
 - `POST /console/api/rag/pipelines/imports`
 - `POST /console/api/rag/pipelines/imports/{importId}/confirm`
 - `GET /console/api/rag/pipelines/{pipelineId}/exports`
+- `POST /console/api/rag/pipelines/{pipelineId}/customized/publish`
 - `GET|POST /console/api/rag/pipelines/{pipelineId}/workflows/draft`
 - `GET /console/api/rag/pipelines/{pipelineId}/workflows/default-workflow-block-configs`
 - `GET /console/api/rag/pipelines/{pipelineId}/workflows/default-workflow-block-configs/{blockType}`
@@ -235,6 +239,8 @@ The Go server keeps Dify's existing API prefixes so the frontend can continue ca
 说明：这一批 route 会先把 `pipelineId` 解析到 Go 侧的 workflow app，再复用既有 workflow draft/publish/version/run 处理器；同时新增 `rag_pipeline_variables` 的持久化与参数过滤，空白 pipeline dataset 删除时也会同步回收绑定的 workflow app。
 
 补充：RAG pipeline DSL 现在已经可以在 Go 侧完成导出、导入和“从 DSL 创建 dataset”。导入时会把 `workflow.graph/features/environment_variables/conversation_variables/rag_pipeline_variables` 回写到 Go workflow draft；如果 DSL 中的 `knowledge-index` 节点带了知识库配置，也会同步更新 dataset 的 `doc_form/indexing_technique/retrieval_model/embedding_model/summary_index_setting`。
+
+补充：pipeline template 目录也已经迁到 Go。内置 built-in 模板现在由 Go 直接提供稳定目录，customized template 支持从当前 pipeline 发布、列表/详情查询、元信息更新、DSL 导出和删除；这些能力通过新的 `pipeline_templates` 持久化切片保存在本地状态文件里。
 - `GET /console/api/datasets/retrieval-setting`
 - `GET /console/api/datasets/process-rule`
 - `POST /console/api/datasets/indexing-estimate`

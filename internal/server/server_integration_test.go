@@ -87,6 +87,28 @@ type ragPipelineImportResponse struct {
 	Error              string `json:"error"`
 }
 
+type pipelineTemplateListResponse struct {
+	PipelineTemplates []struct {
+		ID             string         `json:"id"`
+		Name           string         `json:"name"`
+		Description    string         `json:"description"`
+		Position       int            `json:"position"`
+		ChunkStructure string         `json:"chunk_structure"`
+		Icon           map[string]any `json:"icon"`
+	} `json:"pipeline_templates"`
+}
+
+type pipelineTemplateDetailResponse struct {
+	ID             string         `json:"id"`
+	Name           string         `json:"name"`
+	Description    string         `json:"description"`
+	ChunkStructure string         `json:"chunk_structure"`
+	IconInfo       map[string]any `json:"icon_info"`
+	ExportData     string         `json:"export_data"`
+	Graph          map[string]any `json:"graph"`
+	CreatedBy      string         `json:"created_by"`
+}
+
 type externalKnowledgeAPIResponse struct {
 	ID       string `json:"id"`
 	Settings struct {
@@ -921,6 +943,126 @@ workflow:
 	}
 	if stringFromAny(draft.Features["opening_statement"]) != "hello" {
 		t.Fatalf("unexpected imported features: %+v", draft.Features)
+	}
+}
+
+func TestRAGPipelineBuiltInTemplateListAndDetail(t *testing.T) {
+	env := newServerTestEnv(t)
+	env.setupAndLogin()
+
+	list := getJSON[pipelineTemplateListResponse](env, "/console/api/rag/pipeline/templates?type=built-in&language=zh-Hans", true, http.StatusOK)
+	if len(list.PipelineTemplates) == 0 {
+		t.Fatal("expected built-in pipeline templates")
+	}
+
+	first := list.PipelineTemplates[0]
+	if first.ID == "" || first.Name == "" || first.ChunkStructure == "" {
+		t.Fatalf("unexpected built-in pipeline template summary: %+v", first)
+	}
+
+	detail := getJSON[pipelineTemplateDetailResponse](env, "/console/api/rag/pipeline/templates/"+first.ID+"?type=built-in&language=zh-Hans", true, http.StatusOK)
+	if detail.ID != first.ID || detail.Name == "" || detail.ExportData == "" {
+		t.Fatalf("unexpected built-in pipeline template detail: %+v", detail)
+	}
+	if !strings.Contains(detail.ExportData, "kind: rag_pipeline") {
+		t.Fatalf("expected built-in export data to be rag pipeline DSL, got %q", detail.ExportData)
+	}
+	if len(anySlice(detail.Graph["nodes"])) == 0 {
+		t.Fatalf("expected built-in graph nodes, got %+v", detail.Graph)
+	}
+}
+
+func TestRAGPipelineCustomizedTemplateCRUD(t *testing.T) {
+	env := newServerTestEnv(t)
+	env.setupAndLogin()
+
+	dataset := postJSON[ragPipelineDatasetResponse](env, http.MethodPost, "/console/api/rag/pipeline/empty-dataset", nil, true, http.StatusCreated)
+	postJSON[workflowSyncResponse](env, http.MethodPost, "/console/api/rag/pipelines/"+dataset.PipelineID+"/workflows/draft", map[string]any{
+		"graph": map[string]any{
+			"nodes": []map[string]any{
+				{
+					"id": "knowledge-node",
+					"data": map[string]any{
+						"title":                    "Knowledge Index",
+						"type":                     "knowledge-index",
+						"chunk_structure":          "hierarchical_model",
+						"indexing_technique":       "high_quality",
+						"embedding_model":          "text-embedding-3-large",
+						"embedding_model_provider": "openai",
+						"retrieval_model": map[string]any{
+							"search_method":           "semantic_search",
+							"top_k":                   6,
+							"score_threshold":         0.61,
+							"score_threshold_enabled": true,
+						},
+					},
+				},
+			},
+			"edges":    []any{},
+			"viewport": map[string]any{"x": 0, "y": 0, "zoom": 1},
+		},
+		"features": map[string]any{"opening_statement": "template workflow"},
+	}, true, http.StatusOK)
+	postJSON[map[string]any](env, http.MethodPost, "/console/api/rag/pipelines/"+dataset.PipelineID+"/workflows/publish", map[string]any{
+		"marked_name": "v1",
+	}, true, http.StatusOK)
+
+	publishResult := postJSON[map[string]any](env, http.MethodPost, "/console/api/rag/pipelines/"+dataset.PipelineID+"/customized/publish", map[string]any{
+		"name":        "My Customized Template",
+		"description": "saved from pipeline",
+		"icon_info": map[string]any{
+			"icon_type":       "emoji",
+			"icon":            "🧪",
+			"icon_background": "#123456",
+		},
+	}, true, http.StatusOK)
+	if stringFromAny(publishResult["result"]) != "success" {
+		t.Fatalf("unexpected publish-as-template result: %+v", publishResult)
+	}
+
+	list := getJSON[pipelineTemplateListResponse](env, "/console/api/rag/pipeline/templates?type=customized", true, http.StatusOK)
+	if len(list.PipelineTemplates) != 1 {
+		t.Fatalf("expected one customized template, got %+v", list.PipelineTemplates)
+	}
+	templateID := list.PipelineTemplates[0].ID
+	if list.PipelineTemplates[0].Name != "My Customized Template" || list.PipelineTemplates[0].ChunkStructure != "hierarchical_model" {
+		t.Fatalf("unexpected customized template summary: %+v", list.PipelineTemplates[0])
+	}
+
+	detail := getJSON[pipelineTemplateDetailResponse](env, "/console/api/rag/pipeline/templates/"+templateID+"?type=customized", true, http.StatusOK)
+	if detail.CreatedBy != "Tester" {
+		t.Fatalf("expected created_by to resolve to user name, got %+v", detail)
+	}
+	if !strings.Contains(detail.ExportData, "My Customized Template") || !strings.Contains(detail.ExportData, "saved from pipeline") {
+		t.Fatalf("expected stored DSL metadata in customized template, got %q", detail.ExportData)
+	}
+	if len(anySlice(detail.Graph["nodes"])) != 1 {
+		t.Fatalf("expected customized template graph to persist, got %+v", detail.Graph)
+	}
+
+	updateResult := postJSON[map[string]any](env, http.MethodPatch, "/console/api/rag/pipeline/customized/templates/"+templateID, map[string]any{
+		"name":        "Updated Template",
+		"description": "updated description",
+		"icon_info": map[string]any{
+			"icon_type":       "emoji",
+			"icon":            "🛠",
+			"icon_background": "#654321",
+		},
+	}, true, http.StatusOK)
+	if stringFromAny(updateResult["name"]) != "Updated Template" {
+		t.Fatalf("unexpected update template response: %+v", updateResult)
+	}
+
+	exported := postJSON[ragPipelineExportResponse](env, http.MethodPost, "/console/api/rag/pipeline/customized/templates/"+templateID, nil, true, http.StatusOK)
+	if !strings.Contains(exported.Data, "Updated Template") || !strings.Contains(exported.Data, "updated description") {
+		t.Fatalf("expected exported customized template DSL to reflect updated metadata, got %q", exported.Data)
+	}
+
+	postJSON[map[string]any](env, http.MethodDelete, "/console/api/rag/pipeline/customized/templates/"+templateID, nil, true, http.StatusOK)
+
+	listAfterDelete := getJSON[pipelineTemplateListResponse](env, "/console/api/rag/pipeline/templates?type=customized", true, http.StatusOK)
+	if len(listAfterDelete.PipelineTemplates) != 0 {
+		t.Fatalf("expected customized templates to be deleted, got %+v", listAfterDelete.PipelineTemplates)
 	}
 }
 
