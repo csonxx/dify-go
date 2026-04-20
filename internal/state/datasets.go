@@ -982,7 +982,7 @@ func (s *Store) CreateDatasetDocuments(datasetID, workspaceID string, user User,
 	}
 	retrievalModel := normalizeDatasetRetrievalModel(input.RetrievalModel)
 
-	specs := datasetDocumentSpecs(input.DataSourceType, input.DataSource, user, timestamp, batchID)
+	specs := s.datasetDocumentSpecsLocked(workspaceID, input.DataSourceType, input.DataSource, user, timestamp, batchID)
 	if len(specs) == 0 {
 		specs = []datasetDocumentSpec{{
 			Name:     firstNonEmpty(dataset.Name, "Knowledge Document"),
@@ -1496,7 +1496,7 @@ type datasetDocumentSpec struct {
 	ChildChunks          []DatasetChildChunk
 }
 
-func datasetDocumentSpecs(dataSourceType string, dataSource map[string]any, user User, timestamp int64, batchID string) []datasetDocumentSpec {
+func (s *Store) datasetDocumentSpecsLocked(workspaceID, dataSourceType string, dataSource map[string]any, user User, timestamp int64, batchID string) []datasetDocumentSpec {
 	infoList := mapStringAny(dataSource["info_list"])
 	switch strings.TrimSpace(dataSourceType) {
 	case "notion_import":
@@ -1504,49 +1504,77 @@ func datasetDocumentSpecs(dataSourceType string, dataSource map[string]any, user
 	case "website_crawl":
 		return websiteDocumentSpecs(infoList)
 	default:
-		return fileDocumentSpecs(infoList, user, timestamp, batchID)
+		return s.fileDocumentSpecsLocked(workspaceID, infoList, user, timestamp, batchID)
 	}
 }
 
-func fileDocumentSpecs(infoList map[string]any, user User, timestamp int64, batchID string) []datasetDocumentSpec {
+func (s *Store) fileDocumentSpecsLocked(workspaceID string, infoList map[string]any, user User, timestamp int64, batchID string) []datasetDocumentSpec {
 	fileInfoList := mapStringAny(infoList["file_info_list"])
 	fileIDs := stringSliceFromAny(fileInfoList["file_ids"])
 	specs := make([]datasetDocumentSpec, 0, len(fileIDs))
 	for _, fileID := range fileIDs {
+		uploadedFile, hasUploadedFile := s.findUploadedFileLocked(workspaceID, fileID)
 		name := firstNonEmpty(strings.TrimSpace(fileID), "upload-file")
+		size := int64(0)
+		mimeType := datasetMimeType(datasetFileExtension(name))
+		sourceURL := ""
+		if hasUploadedFile {
+			name = firstNonEmpty(uploadedFile.Name, name)
+			size = uploadedFile.Size
+			mimeType = firstNonEmpty(uploadedFile.MimeType, mimeType)
+			sourceURL = uploadedFile.SourceURL
+		}
 		extension := datasetFileExtension(name)
+		if hasUploadedFile && uploadedFile.Extension != "" {
+			extension = uploadedFile.Extension
+		}
 		content := "Imported file " + name + " through dify-go dataset compatibility layer."
+		uploadFilePayload := map[string]any{
+			"id":         fileID,
+			"name":       name,
+			"size":       size,
+			"mime_type":  mimeType,
+			"created_at": timestamp,
+			"created_by": user.ID,
+			"extension":  extension,
+			"source_url": sourceURL,
+		}
+		dataSourceInfo := map[string]any{
+			"upload_file_id":  fileID,
+			"upload_file":     uploadFilePayload,
+			"related_id":      fileID,
+			"name":            name,
+			"size":            size,
+			"mime_type":       mimeType,
+			"extension":       extension,
+			"transfer_method": "local_file",
+			"job_id":          batchID,
+			"url":             sourceURL,
+		}
+		if sourceURL != "" {
+			dataSourceInfo["source_url"] = sourceURL
+		}
+		attachment := DatasetAttachment{
+			ID:        fileID,
+			Name:      name,
+			Size:      size,
+			Extension: extension,
+			MimeType:  mimeType,
+			SourceURL: sourceURL,
+		}
+		if hasUploadedFile {
+			attachment = datasetAttachmentFromUploadedFile(uploadedFile)
+		}
 		specs = append(specs, datasetDocumentSpec{
-			Name:     name,
-			Content:  content,
-			Summary:  "Compatible imported file document",
-			Keywords: datasetDocumentKeywords(name, content),
-			DataSourceInfo: map[string]any{
-				"upload_file": map[string]any{
-					"id":         fileID,
-					"name":       name,
-					"size":       0,
-					"mime_type":  datasetMimeType(extension),
-					"created_at": timestamp,
-					"created_by": user.ID,
-					"extension":  extension,
-				},
-				"job_id": batchID,
-				"url":    "",
-			},
+			Name:           name,
+			Content:        content,
+			Summary:        "Compatible imported file document",
+			Keywords:       datasetDocumentKeywords(name, content),
+			DataSourceInfo: dataSourceInfo,
 			DataSourceDetailDict: map[string]any{
-				"upload_file": map[string]any{
-					"name":      name,
-					"extension": extension,
-				},
+				"upload_file": uploadFilePayload,
 			},
-			Attachments: []DatasetAttachment{{
-				ID:        generateID("att"),
-				Name:      name,
-				Extension: extension,
-				MimeType:  datasetMimeType(extension),
-				SourceURL: "",
-			}},
+			Attachments: []DatasetAttachment{attachment},
 		})
 	}
 	return specs

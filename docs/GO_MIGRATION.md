@@ -268,9 +268,11 @@ The Go server keeps Dify's existing API prefixes so the frontend can continue ca
 补充：本轮继续把 external knowledge API CRUD、external dataset 创建、单文档下载和批量 zip 下载迁到 Go，并验证了 external API 绑定关系会随着更新/删除同步到 dataset 状态。
 
 补充：dataset 文档也已经具备 pipeline execution log 兼容状态，并通过真实 HTTP 冒烟验证了 local file / website / notion 三类 datasource 的 execution log 返回，以及 notion / website 的 sync 动作。
-- `GET /console/api/files/upload`
+- `GET|POST /console/api/files/upload`
 - `GET /console/api/files/support-type`
 - `GET /console/api/files/{id}/preview`
+- `GET /files/{id}/file-preview`
+- `GET /files/{id}/image-preview`
 - `GET /console/api/spec/schema-definitions`
 - `GET /console/api/rag/pipelines/imports/{pipelineId}/check-dependencies`
 - `GET /api/system-features`

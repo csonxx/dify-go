@@ -141,6 +141,15 @@ func datasetPipelineDatasourceInfo(document DatasetDocument) map[string]any {
 			"size": document.DataSourceInfo["size"],
 		}
 	default:
+		if relatedID := stringValue(document.DataSourceInfo["related_id"], ""); relatedID != "" {
+			return map[string]any{
+				"related_id": relatedID,
+				"name":       firstNonEmpty(stringValue(document.DataSourceInfo["name"], ""), document.Name),
+				"extension":  firstNonEmpty(stringValue(document.DataSourceInfo["extension"], ""), datasetFileExtension(document.Name)),
+				"size":       document.DataSourceInfo["size"],
+				"mime_type":  stringValue(document.DataSourceInfo["mime_type"], ""),
+			}
+		}
 		uploadFile := mapStringAny(document.DataSourceInfo["upload_file"])
 		if len(uploadFile) > 0 {
 			return map[string]any{

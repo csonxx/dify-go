@@ -70,7 +70,7 @@ func New(cfg config.Config) (http.Handler, error) {
 
 	r.Mount("/console/api", s.consoleRoutes())
 	r.Mount("/api", s.publicRoutes())
-	r.Mount("/files", s.compatOnlyRoutes())
+	r.Mount("/files", s.fileRoutes())
 	r.Mount("/inner/api", s.compatOnlyRoutes())
 	r.Mount("/mcp", s.compatOnlyRoutes())
 	r.Mount("/trigger", s.triggerRoutes())
@@ -110,6 +110,7 @@ func (s *server) consoleRoutes() http.Handler {
 		s.mountWorkspaceExtensionRoutes(r)
 		s.mountWorkspacePluginRoutes(r)
 		r.Get("/files/upload", s.handleUploadConfig)
+		r.Post("/files/upload", s.handleFileUpload)
 		r.Get("/files/support-type", s.handleFileSupportTypes)
 		r.Get("/files/{fileID}/preview", s.handleFilePreview)
 		r.Get("/spec/schema-definitions", s.handleSchemaDefinitions)
@@ -461,28 +462,22 @@ func (s *server) handleWorkspacePermission(w http.ResponseWriter, r *http.Reques
 
 func (s *server) handleUploadConfig(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{
-		"batch_count_limit":                10,
-		"image_file_size_limit":            10 * 1024 * 1024,
-		"image_file_batch_limit":           10,
-		"single_chunk_attachment_limit":    10,
-		"attachment_image_file_size_limit": 2 * 1024 * 1024,
-		"file_size_limit":                  15 * 1024 * 1024,
-		"audio_file_size_limit":            50 * 1024 * 1024,
-		"video_file_size_limit":            100 * 1024 * 1024,
-		"workflow_file_upload_limit":       10,
-		"file_upload_limit":                5,
+		"batch_count_limit":                uploadBatchCountLimit,
+		"image_file_size_limit":            uploadImageFileSizeLimitMB,
+		"image_file_batch_limit":           uploadImageFileBatchLimit,
+		"single_chunk_attachment_limit":    uploadSingleChunkAttachmentLimit,
+		"attachment_image_file_size_limit": uploadAttachmentImageFileSizeLimitMB,
+		"file_size_limit":                  uploadDocumentFileSizeLimitMB,
+		"audio_file_size_limit":            uploadAudioFileSizeLimitMB,
+		"video_file_size_limit":            uploadVideoFileSizeLimitMB,
+		"workflow_file_upload_limit":       uploadWorkflowFileUploadLimit,
+		"file_upload_limit":                uploadFileUploadLimit,
 	})
 }
 
 func (s *server) handleFileSupportTypes(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{
 		"allowed_extensions": []string{"txt", "markdown", "md", "mdx", "pdf", "html", "htm", "xlsx", "xls", "docx", "csv", "vtt", "properties"},
-	})
-}
-
-func (s *server) handleFilePreview(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]any{
-		"content": "File preview is not implemented in dify-go yet.",
 	})
 }
 

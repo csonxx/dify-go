@@ -375,7 +375,7 @@ func (s *Store) AddDatasetSegment(datasetID, workspaceID, documentID string, inp
 		IndexingAt:    timestamp,
 		CompletedAt:   timestamp,
 		UpdatedAt:     timestamp,
-		Attachments:   attachmentsFromIDs(input.AttachmentIDs),
+		Attachments:   s.attachmentsFromIDsLocked(workspaceID, input.AttachmentIDs),
 	}
 	if segment.Content == "" {
 		return DatasetSegment{}, "", fmt.Errorf("segment content is required")
@@ -445,7 +445,7 @@ func (s *Store) UpdateDatasetSegment(datasetID, workspaceID, documentID, segment
 		segment.Keywords = cloneStringSlice(*input.Keywords)
 	}
 	if input.AttachmentIDs != nil {
-		segment.Attachments = attachmentsFromIDs(input.AttachmentIDs)
+		segment.Attachments = s.attachmentsFromIDsLocked(workspaceID, input.AttachmentIDs)
 	}
 	if input.RegenerateChildChunks {
 		segment.ChildChunks = segmentChildChunksFromContent(segment.Content, segment.ID, now, childChunkTypeAutomatic)
@@ -786,6 +786,9 @@ func (s *Store) CreateDatasetBatchImportJob(datasetID, workspaceID, documentID, 
 	}
 
 	importLabel := firstNonEmpty(strings.TrimSpace(uploadFileID), "batch-import")
+	if uploadedFile, ok := s.findUploadedFileLocked(workspaceID, uploadFileID); ok {
+		importLabel = firstNonEmpty(uploadedFile.Name, importLabel)
+	}
 	if document.DocForm == "hierarchical_model" && document.DocumentProcessRule.Rules.ParentMode == "full-doc" {
 		if len(document.Segments) == 0 {
 			document.Segments = []DatasetSegment{datasetSegmentFromDocument(*document)}
@@ -1033,7 +1036,32 @@ func attachmentsFromIDs(ids *[]string) []DatasetAttachment {
 			Name:      trimmed,
 			Extension: datasetFileExtension(trimmed),
 			MimeType:  datasetMimeType(datasetFileExtension(trimmed)),
-			SourceURL: "/files/" + trimmed,
+			SourceURL: "/files/" + trimmed + "/file-preview",
+		})
+	}
+	return items
+}
+
+func (s *Store) attachmentsFromIDsLocked(workspaceID string, ids *[]string) []DatasetAttachment {
+	if ids == nil {
+		return []DatasetAttachment{}
+	}
+	items := make([]DatasetAttachment, 0, len(*ids))
+	for _, id := range *ids {
+		trimmed := strings.TrimSpace(id)
+		if trimmed == "" {
+			continue
+		}
+		if uploadedFile, ok := s.findUploadedFileLocked(workspaceID, trimmed); ok {
+			items = append(items, datasetAttachmentFromUploadedFile(uploadedFile))
+			continue
+		}
+		items = append(items, DatasetAttachment{
+			ID:        trimmed,
+			Name:      trimmed,
+			Extension: datasetFileExtension(trimmed),
+			MimeType:  datasetMimeType(datasetFileExtension(trimmed)),
+			SourceURL: "/files/" + trimmed + "/file-preview",
 		})
 	}
 	return items
