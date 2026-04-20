@@ -316,14 +316,20 @@
 - [x] `/datasets/{datasetId}/documents/{documentId}/notion/sync`
 - [x] `/datasets/{datasetId}/documents/{documentId}/website-sync`
 - [x] `/console/api/files/upload`
+- [x] `/console/api/files/support-type`
+- [x] `/console/api/remote-files/upload`
 - [x] `/console/api/files/{fileID}/preview`
 - [x] `/files/{fileID}/file-preview`
 - [x] `/files/{fileID}/image-preview`
+- [x] `/api/files/upload`
+- [x] `/api/files/support-type`
+- [x] `/api/remote-files/upload`
 
 本阶段剩余重点：
 
-- [ ] 把批量导入、远程文件、外部知识库命中链路继续从兼容壳推进到更贴近上游的真实语义
+- [ ] 把批量导入、外部知识库命中链路继续从兼容壳推进到更贴近上游的真实语义
 - [ ] 收敛 dataset service API、索引状态流转、命中测试记录与后续 pipeline 之间的共享模型
+  当前已经支持 console/public 本地上传、`remote-files/upload`、以及 hit-testing 记录里的 `attachment_ids -> image_query -> file_info/source_url` 回写链路
 - [ ] 继续压缩知识库详情页剩余 fallback，优先补 provider-specific external retrieval 和 remote file 行为
 - [ ] 为 dataset metadata / segments / child chunks 增加更系统的集成测试覆盖
 

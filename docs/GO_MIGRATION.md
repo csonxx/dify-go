@@ -268,11 +268,17 @@ The Go server keeps Dify's existing API prefixes so the frontend can continue ca
 补充：本轮继续把 external knowledge API CRUD、external dataset 创建、单文档下载和批量 zip 下载迁到 Go，并验证了 external API 绑定关系会随着更新/删除同步到 dataset 状态。
 
 补充：dataset 文档也已经具备 pipeline execution log 兼容状态，并通过真实 HTTP 冒烟验证了 local file / website / notion 三类 datasource 的 execution log 返回，以及 notion / website 的 sync 动作。
+
+补充：文件上传现在已经走 Go 侧持久化存储，支持 console/public 本地上传、`remote-files/upload` 远程拉取入库，以及知识库 hit-testing 里 `attachment_ids` 到 `image_query.file_info` 的查询记录回写。
+- `POST /console/api/remote-files/upload`
 - `GET|POST /console/api/files/upload`
 - `GET /console/api/files/support-type`
 - `GET /console/api/files/{id}/preview`
 - `GET /files/{id}/file-preview`
 - `GET /files/{id}/image-preview`
+- `GET|POST /api/files/upload`
+- `GET /api/files/support-type`
+- `POST /api/remote-files/upload`
 - `GET /console/api/spec/schema-definitions`
 - `GET /console/api/rag/pipelines/imports/{pipelineId}/check-dependencies`
 - `GET /api/system-features`
@@ -316,5 +322,5 @@ The frontend already defaults to:
 
 - The Go backend currently uses a lightweight file-backed bootstrap store at `var/state.json`.
 - Session storage is in-memory for now.
-- Dataset metadata, segments, external knowledge base, and RAG pipeline deep-link semantics are still only partially migrated.
+- Dataset external retrieval, bulk import semantics, and RAG pipeline deep-link semantics are still only partially migrated.
 - Most remaining business routes are still pending migration and should either be proxied to the Python backend or implemented next by priority.

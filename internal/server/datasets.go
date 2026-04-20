@@ -677,23 +677,27 @@ func (s *server) handleDatasetHitTesting(w http.ResponseWriter, r *http.Request)
 	}
 
 	var payload struct {
-		Query string `json:"query"`
+		Query         string   `json:"query"`
+		AttachmentIDs []string `json:"attachment_ids"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid_request", "Invalid JSON payload.")
 		return
 	}
 	query := strings.TrimSpace(payload.Query)
+	queryItems := s.datasetHitTestingQueryItems(dataset.WorkspaceID, query, payload.AttachmentIDs)
+	if len(queryItems) == 0 {
+		writeError(w, http.StatusBadRequest, "invalid_request", "Query or attachment_ids is required.")
+		return
+	}
 
 	record := state.DatasetQueryRecord{
-		Source: "hit_testing",
-		Queries: []state.DatasetQueryItem{
-			{Content: query, ContentType: "text_query"},
-		},
+		Source:  "hit_testing",
+		Queries: queryItems,
 	}
 	_ = s.store.AddDatasetQueryRecord(dataset.ID, dataset.WorkspaceID, record, currentUser(r), time.Now())
 
-	results := datasetHitResults(dataset, query)
+	results := datasetHitResults(dataset, datasetHitTestingSearchText(queryItems))
 	writeJSON(w, http.StatusOK, map[string]any{
 		"query": map[string]any{
 			"content":       query,
@@ -1187,6 +1191,64 @@ func datasetQueryRecordPayload(record state.DatasetQueryRecord) map[string]any {
 		"created_at":      record.CreatedAt,
 		"queries":         queries,
 	}
+}
+
+func (s *server) datasetHitTestingQueryItems(workspaceID, textQuery string, attachmentIDs []string) []state.DatasetQueryItem {
+	items := make([]state.DatasetQueryItem, 0, 1+len(attachmentIDs))
+	if textQuery = strings.TrimSpace(textQuery); textQuery != "" {
+		items = append(items, state.DatasetQueryItem{
+			Content:     textQuery,
+			ContentType: "text_query",
+		})
+	}
+
+	seen := map[string]struct{}{}
+	for _, attachmentID := range attachmentIDs {
+		attachmentID = strings.TrimSpace(attachmentID)
+		if attachmentID == "" {
+			continue
+		}
+		if _, ok := seen[attachmentID]; ok {
+			continue
+		}
+		seen[attachmentID] = struct{}{}
+
+		uploadedFile, ok := s.store.GetUploadedFile(workspaceID, attachmentID)
+		if !ok {
+			uploadedFile, ok = s.store.FindUploadedFile(attachmentID)
+		}
+		if !ok {
+			continue
+		}
+
+		attachment := &state.DatasetAttachment{
+			ID:        uploadedFile.ID,
+			Name:      uploadedFile.Name,
+			Size:      uploadedFile.Size,
+			Extension: uploadedFile.Extension,
+			MimeType:  uploadedFile.MimeType,
+			SourceURL: uploadedFile.SourceURL,
+		}
+		items = append(items, state.DatasetQueryItem{
+			Content:     attachment.SourceURL,
+			ContentType: "image_query",
+			FileInfo:    attachment,
+		})
+	}
+	return items
+}
+
+func datasetHitTestingSearchText(items []state.DatasetQueryItem) string {
+	parts := make([]string, 0, len(items))
+	for _, item := range items {
+		if item.ContentType == "text_query" && strings.TrimSpace(item.Content) != "" {
+			return strings.TrimSpace(item.Content)
+		}
+		if item.FileInfo != nil && strings.TrimSpace(item.FileInfo.Name) != "" {
+			parts = append(parts, strings.TrimSpace(item.FileInfo.Name))
+		}
+	}
+	return strings.Join(parts, " ")
 }
 
 func datasetHitResults(dataset state.Dataset, query string) []map[string]any {

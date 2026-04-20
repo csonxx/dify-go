@@ -113,6 +113,7 @@ func (s *server) consoleRoutes() http.Handler {
 		r.Post("/files/upload", s.handleFileUpload)
 		r.Get("/files/support-type", s.handleFileSupportTypes)
 		r.Get("/files/{fileID}/preview", s.handleFilePreview)
+		r.Post("/remote-files/upload", s.handleRemoteFileUpload)
 		r.Get("/spec/schema-definitions", s.handleSchemaDefinitions)
 	})
 
@@ -125,6 +126,10 @@ func (s *server) publicRoutes() http.Handler {
 	r.Get("/system-features", s.handlePublicSystemFeatures)
 	r.Get("/login/status", s.handlePublicLoginStatus)
 	r.Post("/logout", s.handlePublicLogout)
+	r.Get("/files/upload", s.handleUploadConfig)
+	r.Post("/files/upload", s.handlePublicFileUpload)
+	r.Get("/files/support-type", s.handleFileSupportTypes)
+	r.Post("/remote-files/upload", s.handlePublicRemoteFileUpload)
 	r.NotFound(s.compatFallback)
 	return r
 }

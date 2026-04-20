@@ -245,6 +245,16 @@ func (s *Store) ListWorkspacesForUser(userID string) []Workspace {
 	return []Workspace{workspace}
 }
 
+func (s *Store) PrimaryWorkspace() (Workspace, bool) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	if len(s.state.Workspaces) == 0 {
+		return Workspace{}, false
+	}
+	return s.state.Workspaces[0], true
+}
+
 func (s *Store) TouchLogin(userID string, now time.Time) (User, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()

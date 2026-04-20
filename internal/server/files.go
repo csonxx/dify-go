@@ -3,9 +3,13 @@ package server
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"mime"
 	"net/http"
+	"net/url"
 	"os"
 	"path"
 	"path/filepath"
@@ -53,6 +57,16 @@ var (
 	}
 )
 
+type uploadAPIError struct {
+	status  int
+	code    string
+	message string
+}
+
+func (e *uploadAPIError) Error() string {
+	return e.message
+}
+
 func (s *server) fileRoutes() http.Handler {
 	r := chi.NewRouter()
 	r.Get("/{fileID}/file-preview", s.handleUploadedFileBinary)
@@ -62,6 +76,14 @@ func (s *server) fileRoutes() http.Handler {
 }
 
 func (s *server) handleFileUpload(w http.ResponseWriter, r *http.Request) {
+	s.handleMultipartFileUpload(w, r)
+}
+
+func (s *server) handlePublicFileUpload(w http.ResponseWriter, r *http.Request) {
+	s.handleMultipartFileUpload(w, r)
+}
+
+func (s *server) handleMultipartFileUpload(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseMultipartForm(128 << 20); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid_request", "Invalid multipart payload.")
 		return
@@ -113,60 +135,14 @@ func (s *server) handleFileUpload(w http.ResponseWriter, r *http.Request) {
 	if contentType == "" && len(content) > 0 {
 		contentType = http.DetectContentType(content)
 	}
-	extension := detectUploadExtension(filename, contentType)
-	if _, ok := allowedUploadExtensions()[extension]; !ok {
-		writeError(w, http.StatusUnsupportedMediaType, "unsupported_file_type", "Unsupported file type.")
-		return
-	}
-
-	limitBytes := uploadFileSizeLimitBytes(extension)
-	if int64(len(content)) > limitBytes {
-		writeError(w, http.StatusRequestEntityTooLarge, "file_too_large", "Uploaded file exceeds the supported size limit.")
-		return
-	}
-	if extension != "" && filepath.Ext(filename) == "" {
-		filename = filename + "." + extension
-	}
-
-	workspace, ok := s.currentUserWorkspace(r)
+	workspace, createdBy, ok := s.uploadRequestWorkspace(r)
 	if !ok {
 		writeError(w, http.StatusNotFound, "workspace_not_found", "Workspace not found.")
 		return
 	}
-	user := currentUser(r)
-	fileID := generateUploadFileID()
-	storageKey := path.Join(workspace.ID, fileID+"."+extension)
-	fullPath := s.uploadedFilePath(storageKey)
-	if err := os.MkdirAll(filepath.Dir(fullPath), 0o755); err != nil {
-		writeError(w, http.StatusInternalServerError, "upload_failed", "Unable to prepare upload storage.")
-		return
-	}
-	if err := os.WriteFile(fullPath, content, 0o644); err != nil {
-		writeError(w, http.StatusInternalServerError, "upload_failed", "Unable to store uploaded file.")
-		return
-	}
-
-	uploadedFile := state.UploadedFile{
-		ID:          fileID,
-		WorkspaceID: workspace.ID,
-		Name:        filename,
-		Size:        int64(len(content)),
-		Extension:   extension,
-		MimeType:    contentType,
-		CreatedBy:   user.ID,
-		CreatedAt:   time.Now().UTC().Unix(),
-		StorageKey:  storageKey,
-		SourceURL:   "/files/" + fileID + "/file-preview",
-		PreviewURL:  "/files/" + fileID + "/file-preview",
-	}
-	if uploadedFile.MimeType == "" {
-		uploadedFile.MimeType = http.DetectContentType(content)
-	}
-
-	recorded, err := s.store.RecordUploadedFile(uploadedFile)
+	recorded, err := s.persistUploadedFile(workspace.ID, createdBy, filename, contentType, content)
 	if err != nil {
-		_ = os.Remove(fullPath)
-		writeError(w, http.StatusInternalServerError, "upload_failed", "Unable to persist uploaded file metadata.")
+		writeUploadAPIError(w, err, http.StatusInternalServerError, "upload_failed", "Unable to store uploaded file.")
 		return
 	}
 
@@ -180,6 +156,55 @@ func (s *server) handleFileUpload(w http.ResponseWriter, r *http.Request) {
 		"created_at":  recorded.CreatedAt,
 		"preview_url": recorded.PreviewURL,
 		"source_url":  recorded.SourceURL,
+	})
+}
+
+func (s *server) handleRemoteFileUpload(w http.ResponseWriter, r *http.Request) {
+	s.handleRemoteFileUploadRequest(w, r)
+}
+
+func (s *server) handlePublicRemoteFileUpload(w http.ResponseWriter, r *http.Request) {
+	s.handleRemoteFileUploadRequest(w, r)
+}
+
+func (s *server) handleRemoteFileUploadRequest(w http.ResponseWriter, r *http.Request) {
+	var payload struct {
+		URL string `json:"url"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_request", "Invalid JSON payload.")
+		return
+	}
+	rawURL := strings.TrimSpace(payload.URL)
+	if rawURL == "" {
+		writeError(w, http.StatusBadRequest, "invalid_request", "Valid remote file URL is required.")
+		return
+	}
+
+	workspace, createdBy, ok := s.uploadRequestWorkspace(r)
+	if !ok {
+		writeError(w, http.StatusNotFound, "workspace_not_found", "Workspace not found.")
+		return
+	}
+
+	filename, contentType, content, err := s.fetchRemoteUploadContent(r, rawURL)
+	if err != nil {
+		writeUploadAPIError(w, err, http.StatusBadGateway, "remote_file_fetch_failed", "Unable to fetch remote file.")
+		return
+	}
+
+	recorded, err := s.persistUploadedFile(workspace.ID, createdBy, filename, contentType, content)
+	if err != nil {
+		writeUploadAPIError(w, err, http.StatusInternalServerError, "upload_failed", "Unable to store remote file.")
+		return
+	}
+
+	writeJSON(w, http.StatusCreated, map[string]any{
+		"id":        recorded.ID,
+		"name":      recorded.Name,
+		"size":      recorded.Size,
+		"mime_type": recorded.MimeType,
+		"url":       recorded.SourceURL,
 	})
 }
 
@@ -282,6 +307,7 @@ func hasExtension(set map[string]struct{}, extension string) bool {
 }
 
 func detectUploadExtension(filename, contentType string) string {
+	contentType = canonicalUploadContentType(contentType)
 	trimmed := strings.TrimSpace(filename)
 	if ext := strings.ToLower(strings.TrimPrefix(filepath.Ext(trimmed), ".")); ext != "" {
 		return ext
@@ -306,6 +332,21 @@ func detectUploadExtension(filename, contentType string) string {
 	default:
 		return "txt"
 	}
+}
+
+func canonicalUploadContentType(contentType string) string {
+	contentType = strings.TrimSpace(contentType)
+	if contentType == "" {
+		return ""
+	}
+	mediaType, _, err := mime.ParseMediaType(contentType)
+	if err == nil {
+		return strings.ToLower(strings.TrimSpace(mediaType))
+	}
+	if idx := strings.Index(contentType, ";"); idx >= 0 {
+		contentType = contentType[:idx]
+	}
+	return strings.ToLower(strings.TrimSpace(contentType))
 }
 
 func sanitizeUploadFilename(filename string) string {
@@ -365,4 +406,265 @@ func generateUploadFileID() string {
 		panic(err)
 	}
 	return "file_" + hex.EncodeToString(buf)
+}
+
+func maxUploadTransferBytes() int64 {
+	return int64(uploadVideoFileSizeLimitMB) * 1024 * 1024
+}
+
+func writeUploadAPIError(w http.ResponseWriter, err error, fallbackStatus int, fallbackCode, fallbackMessage string) {
+	var apiErr *uploadAPIError
+	if errors.As(err, &apiErr) {
+		writeError(w, apiErr.status, apiErr.code, apiErr.message)
+		return
+	}
+	writeError(w, fallbackStatus, fallbackCode, fallbackMessage)
+}
+
+func (s *server) uploadRequestWorkspace(r *http.Request) (state.Workspace, string, bool) {
+	user := currentUser(r)
+	if user.ID != "" {
+		workspace, ok := s.store.UserWorkspace(user.ID)
+		return workspace, user.ID, ok
+	}
+
+	if token := accessTokenFromRequest(r); token != "" {
+		if session, ok := s.sessions.Get(token); ok {
+			if user, ok := s.store.GetUser(session.UserID); ok {
+				workspace, ok := s.store.UserWorkspace(user.ID)
+				return workspace, user.ID, ok
+			}
+		}
+	}
+
+	workspace, ok := s.store.PrimaryWorkspace()
+	return workspace, "", ok
+}
+
+func accessTokenFromRequest(r *http.Request) string {
+	if token := strings.TrimSpace(readCookie(r, accessTokenCookie)); token != "" {
+		return token
+	}
+	authHeader := strings.TrimSpace(r.Header.Get("Authorization"))
+	if strings.HasPrefix(strings.ToLower(authHeader), "bearer ") {
+		return strings.TrimSpace(authHeader[7:])
+	}
+	return ""
+}
+
+func (s *server) persistUploadedFile(workspaceID, createdBy, filename, contentType string, content []byte) (state.UploadedFile, error) {
+	filename = sanitizeUploadFilename(filename)
+	if filename == "" {
+		return state.UploadedFile{}, &uploadAPIError{
+			status:  http.StatusBadRequest,
+			code:    "filename_not_exists",
+			message: "Filename is required.",
+		}
+	}
+
+	contentType = canonicalUploadContentType(contentType)
+	if (contentType == "" || contentType == "application/octet-stream") && len(content) > 0 {
+		contentType = canonicalUploadContentType(http.DetectContentType(content))
+	}
+
+	extension := detectUploadExtension(filename, contentType)
+	if _, ok := allowedUploadExtensions()[extension]; !ok {
+		return state.UploadedFile{}, &uploadAPIError{
+			status:  http.StatusUnsupportedMediaType,
+			code:    "unsupported_file_type",
+			message: "Unsupported file type.",
+		}
+	}
+	if int64(len(content)) > uploadFileSizeLimitBytes(extension) {
+		return state.UploadedFile{}, &uploadAPIError{
+			status:  http.StatusRequestEntityTooLarge,
+			code:    "file_too_large",
+			message: "Uploaded file exceeds the supported size limit.",
+		}
+	}
+	if extension != "" && filepath.Ext(filename) == "" {
+		filename += "." + extension
+	}
+
+	fileID := generateUploadFileID()
+	storageKey := path.Join(workspaceID, fileID+"."+extension)
+	fullPath := s.uploadedFilePath(storageKey)
+	if err := os.MkdirAll(filepath.Dir(fullPath), 0o755); err != nil {
+		return state.UploadedFile{}, &uploadAPIError{
+			status:  http.StatusInternalServerError,
+			code:    "upload_failed",
+			message: "Unable to prepare upload storage.",
+		}
+	}
+	if err := os.WriteFile(fullPath, content, 0o644); err != nil {
+		return state.UploadedFile{}, &uploadAPIError{
+			status:  http.StatusInternalServerError,
+			code:    "upload_failed",
+			message: "Unable to store uploaded file.",
+		}
+	}
+
+	uploadedFile := state.UploadedFile{
+		ID:          fileID,
+		WorkspaceID: workspaceID,
+		Name:        filename,
+		Size:        int64(len(content)),
+		Extension:   extension,
+		MimeType:    contentType,
+		CreatedBy:   createdBy,
+		CreatedAt:   time.Now().UTC().Unix(),
+		StorageKey:  storageKey,
+		SourceURL:   "/files/" + fileID + "/file-preview",
+		PreviewURL:  "/files/" + fileID + "/file-preview",
+	}
+	if uploadedFile.MimeType == "" {
+		uploadedFile.MimeType = canonicalUploadContentType(http.DetectContentType(content))
+	}
+
+	recorded, err := s.store.RecordUploadedFile(uploadedFile)
+	if err != nil {
+		_ = os.Remove(fullPath)
+		return state.UploadedFile{}, &uploadAPIError{
+			status:  http.StatusInternalServerError,
+			code:    "upload_failed",
+			message: "Unable to persist uploaded file metadata.",
+		}
+	}
+	return recorded, nil
+}
+
+func (s *server) fetchRemoteUploadContent(r *http.Request, rawURL string) (string, string, []byte, error) {
+	parsedURL, err := url.Parse(strings.TrimSpace(rawURL))
+	if err != nil || parsedURL == nil || parsedURL.Host == "" {
+		return "", "", nil, &uploadAPIError{
+			status:  http.StatusBadRequest,
+			code:    "invalid_request",
+			message: "Valid remote file URL is required.",
+		}
+	}
+	switch strings.ToLower(parsedURL.Scheme) {
+	case "http", "https":
+	default:
+		return "", "", nil, &uploadAPIError{
+			status:  http.StatusBadRequest,
+			code:    "invalid_request",
+			message: "Only HTTP and HTTPS remote files are supported.",
+		}
+	}
+
+	client := &http.Client{Timeout: 15 * time.Second}
+	var headHeader http.Header
+	headReq, err := http.NewRequestWithContext(r.Context(), http.MethodHead, parsedURL.String(), nil)
+	if err == nil {
+		if headResp, err := client.Do(headReq); err == nil {
+			headHeader = headResp.Header.Clone()
+			if headResp.ContentLength > maxUploadTransferBytes() {
+				headResp.Body.Close()
+				return "", "", nil, &uploadAPIError{
+					status:  http.StatusRequestEntityTooLarge,
+					code:    "file_too_large",
+					message: "Uploaded file exceeds the supported size limit.",
+				}
+			}
+			headResp.Body.Close()
+		}
+	}
+
+	req, err := http.NewRequestWithContext(r.Context(), http.MethodGet, parsedURL.String(), nil)
+	if err != nil {
+		return "", "", nil, &uploadAPIError{
+			status:  http.StatusBadRequest,
+			code:    "invalid_request",
+			message: "Valid remote file URL is required.",
+		}
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", "", nil, &uploadAPIError{
+			status:  http.StatusBadGateway,
+			code:    "remote_file_fetch_failed",
+			message: "Unable to fetch remote file.",
+		}
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		return "", "", nil, &uploadAPIError{
+			status:  http.StatusBadGateway,
+			code:    "remote_file_fetch_failed",
+			message: fmt.Sprintf("Remote file fetch returned HTTP %d.", resp.StatusCode),
+		}
+	}
+	if resp.ContentLength > maxUploadTransferBytes() {
+		return "", "", nil, &uploadAPIError{
+			status:  http.StatusRequestEntityTooLarge,
+			code:    "file_too_large",
+			message: "Uploaded file exceeds the supported size limit.",
+		}
+	}
+
+	content, err := io.ReadAll(io.LimitReader(resp.Body, maxUploadTransferBytes()+1))
+	if err != nil {
+		return "", "", nil, &uploadAPIError{
+			status:  http.StatusBadGateway,
+			code:    "remote_file_fetch_failed",
+			message: "Unable to read remote file.",
+		}
+	}
+	if int64(len(content)) > maxUploadTransferBytes() {
+		return "", "", nil, &uploadAPIError{
+			status:  http.StatusRequestEntityTooLarge,
+			code:    "file_too_large",
+			message: "Uploaded file exceeds the supported size limit.",
+		}
+	}
+
+	contentType := canonicalUploadContentType(firstNonEmpty(resp.Header.Get("Content-Type"), headHeader.Get("Content-Type")))
+	if (contentType == "" || contentType == "application/octet-stream") && len(content) > 0 {
+		contentType = canonicalUploadContentType(http.DetectContentType(content))
+	}
+
+	filename := remoteUploadFilename(parsedURL, resp.Header, headHeader, contentType)
+	return filename, contentType, content, nil
+}
+
+func remoteUploadFilename(parsedURL *url.URL, responseHeader, fallbackHeader http.Header, contentType string) string {
+	for _, header := range []http.Header{responseHeader, fallbackHeader} {
+		if filename := filenameFromContentDisposition(header.Get("Content-Disposition")); filename != "" {
+			if filepath.Ext(filename) == "" {
+				if extension := detectUploadExtension(filename, contentType); extension != "" {
+					filename += "." + extension
+				}
+			}
+			return sanitizeUploadFilename(filename)
+		}
+	}
+
+	filename := ""
+	if parsedURL != nil {
+		base := path.Base(strings.TrimSpace(parsedURL.Path))
+		if base != "." && base != "/" {
+			filename = sanitizeUploadFilename(base)
+		}
+	}
+	if filename == "" {
+		filename = "remote-file"
+	}
+	if filepath.Ext(filename) == "" {
+		if extension := detectUploadExtension(filename, contentType); extension != "" {
+			filename += "." + extension
+		}
+	}
+	return sanitizeUploadFilename(filename)
+}
+
+func filenameFromContentDisposition(contentDisposition string) string {
+	if strings.TrimSpace(contentDisposition) == "" {
+		return ""
+	}
+	_, params, err := mime.ParseMediaType(contentDisposition)
+	if err != nil {
+		return ""
+	}
+	return sanitizeUploadFilename(params["filename"])
 }
