@@ -185,6 +185,40 @@ flowchart LR
 - plugin detail panel 这类“先拉声明，再做配置，再拿回调地址”的页面可以闭环工作，不需要再向 Python 查询工作区扩展记录。
 - `/trigger/...` 这类真正会被外部系统调用的入口，已经不只是占位前缀，而是可以直接把 builder / subscription 请求写回 Go 侧状态并供前端查看日志。
 
+## 5.6 Workspace 插件平台状态
+
+第三阶段开始后，`Workspace.ToolSettings` 进一步承担插件平台的兼容状态：
+
+- 已安装插件记录
+- 插件偏好设置（权限、自动升级策略）
+- 插件安装/升级任务列表
+
+当前这层状态的设计重点不是“真实还原 Python plugin daemon 的所有内部细节”，而是优先满足前端当前真的会走到的链路：
+
+- 插件列表展示
+- README / asset / icon 渲染
+- 本地包、GitHub、Marketplace 三种入口的安装和升级
+- 任务轮询和任务删除
+- 权限与自动升级偏好设置
+
+因此这一层现在采用的是“兼容版 manifest 推导 + 持久化安装记录”的做法：
+
+- Go 侧会根据 `plugin_unique_identifier`、GitHub repo、上传文件名等信息推导出一个稳定的 manifest。
+- 已安装插件、任务状态和偏好设置会写进工作区状态文件，保证刷新后仍可读。
+- README、asset、icon 等内容当前由 Go 兼容层按插件元数据动态生成，优先保证前端面板能工作。
+
+这样做的收益是：
+
+- 插件页面和安装弹窗可以先彻底脱离 Python fallback。
+- 插件任务状态、已安装列表、偏好设置不再是纯前端临时态，而是 Go 侧可持续推进的业务模型。
+- 后续如果接入真实 plugin daemon，只需要把 manifest / 任务 / 资产的来源替换掉，而不需要重做整个前端兼容面。
+
+当前这层仍然保留明确边界：
+
+- upload / install / upgrade 还没有做到真实包解析、bundle 依赖拆解和失败回滚。
+- dynamic options、权限校验和插件运行时行为还是兼容实现，不等同于完整的生产语义。
+- app / pipeline 的 dependency check 已经迁到 Go，但当前返回的是稳定兼容结构，后续再接入真实 DSL 依赖分析。
+
 ## 6. 请求处理流程
 
 一个已经迁移的 console 请求，大致经历下面流程：

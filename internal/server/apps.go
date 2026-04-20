@@ -18,6 +18,7 @@ func (s *server) mountAppRoutes(r chi.Router) {
 	r.Post("/apps", s.handleAppCreate)
 	r.Post("/apps/imports", s.handleAppImport)
 	r.Post("/apps/imports/{importID}/confirm", s.handleAppImportConfirm)
+	r.Get("/apps/imports/{appID}/check-dependencies", s.handleAppImportCheckDependencies)
 	r.Get("/apps/workflows/online-users", s.handleWorkflowOnlineUsers)
 	r.Get("/apps/{appID}", s.handleAppDetail)
 	r.Put("/apps/{appID}", s.handleAppUpdate)

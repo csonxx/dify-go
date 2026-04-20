@@ -154,7 +154,7 @@
 
 ## 阶段 3：插件平台
 
-状态：待实现
+状态：进行中（基础兼容版已落地）
 
 范围：
 
@@ -180,6 +180,47 @@
 - 插件安装、升级、卸载不再依赖 Python。
 - 插件任务轮询、任务删除、偏好配置可用。
 - app/pipeline 导入依赖检查接口可用。
+
+本轮已完成的子范围：
+
+- [x] `/workspaces/current/plugin/debugging-key`
+- [x] `/workspaces/current/plugin/list`
+- [x] `/workspaces/current/plugin/list/latest-versions`
+- [x] `/workspaces/current/plugin/list/installations/ids`
+- [x] `/workspaces/current/plugin/icon`
+- [x] `/workspaces/current/plugin/asset`
+- [x] `/workspaces/current/plugin/upload/pkg`
+- [x] `/workspaces/current/plugin/upload/github`
+- [x] `/workspaces/current/plugin/upload/bundle`
+- [x] `/workspaces/current/plugin/install/pkg`
+- [x] `/workspaces/current/plugin/install/github`
+- [x] `/workspaces/current/plugin/install/marketplace`
+- [x] `/workspaces/current/plugin/marketplace/pkg`
+- [x] `/workspaces/current/plugin/fetch-manifest`
+- [x] `/workspaces/current/plugin/tasks`
+- [x] `/workspaces/current/plugin/tasks/{task_id}`
+- [x] `/workspaces/current/plugin/tasks/{task_id}/delete`
+- [x] `/workspaces/current/plugin/tasks/delete_all`
+- [x] `/workspaces/current/plugin/tasks/{task_id}/delete/{identifier}`
+- [x] `/workspaces/current/plugin/upgrade/marketplace`
+- [x] `/workspaces/current/plugin/upgrade/github`
+- [x] `/workspaces/current/plugin/uninstall`
+- [x] `/workspaces/current/plugin/permission/change`
+- [x] `/workspaces/current/plugin/permission/fetch`
+- [x] `/workspaces/current/plugin/parameters/dynamic-options`
+- [x] `/workspaces/current/plugin/parameters/dynamic-options-with-credentials`
+- [x] `/workspaces/current/plugin/preferences/change`
+- [x] `/workspaces/current/plugin/preferences/fetch`
+- [x] `/workspaces/current/plugin/preferences/autoupgrade/exclude`
+- [x] `/workspaces/current/plugin/readme`
+- [x] `/apps/imports/{appId}/check-dependencies`
+- [x] `/rag/pipelines/imports/{pipelineId}/check-dependencies`
+
+本阶段剩余重点：
+
+- [ ] 接入真实 plugin daemon / marketplace 元数据，而不是当前兼容版的本地推导 manifest
+- [ ] 让 upload/install/upgrade 语义进一步贴近真实包解析、bundle 依赖拆解和失败回滚
+- [ ] 把 dynamic options、权限校验、README/asset/icon 等接口从兼容占位继续收敛到真实插件运行时行为
 
 ## 阶段 4：知识库与 Dataset 主链路
 
