@@ -1,5 +1,9 @@
 package server
 
+import (
+	"strings"
+)
+
 type ragPipelineDatasourceProviderSpec struct {
 	PluginID               string
 	PluginUniqueIdentifier string
@@ -10,14 +14,18 @@ type ragPipelineDatasourceProviderSpec struct {
 	Description            string
 	Icon                   string
 	Tags                   []string
-	IsAuthorized           bool
 	DatasourceName         string
 	DatasourceLabel        string
 	DatasourceDescription  string
+	IncludeInAuthCatalog   bool
+	SystemOAuth            bool
+	CredentialSchema       []map[string]any
+	OAuthClientSchema      []map[string]any
+	OAuthCredentialSchema  []map[string]any
 }
 
-func (s *server) ragPipelineDatasourcePlugins() []map[string]any {
-	specs := []ragPipelineDatasourceProviderSpec{
+func ragPipelineDatasourceProviderSpecs() []ragPipelineDatasourceProviderSpec {
+	return []ragPipelineDatasourceProviderSpec{
 		{
 			PluginID:               "langgenius/file",
 			PluginUniqueIdentifier: "langgenius/file:0.0.1@dify-go",
@@ -28,10 +36,14 @@ func (s *server) ragPipelineDatasourcePlugins() []map[string]any {
 			Description:            "Upload a local file and use it as the pipeline datasource.",
 			Icon:                   providerIconDataURI("F", "#DBEAFE", "#1D4ED8"),
 			Tags:                   []string{"file", "builtin"},
-			IsAuthorized:           true,
 			DatasourceName:         "local-file",
 			DatasourceLabel:        "Local File",
 			DatasourceDescription:  "Upload and process a local file.",
+			IncludeInAuthCatalog:   false,
+			SystemOAuth:            false,
+			CredentialSchema:       []map[string]any{},
+			OAuthClientSchema:      []map[string]any{},
+			OAuthCredentialSchema:  []map[string]any{},
 		},
 		{
 			PluginID:               "langgenius/notion_datasource",
@@ -43,10 +55,23 @@ func (s *server) ragPipelineDatasourcePlugins() []map[string]any {
 			Description:            "Browse authorized Notion pages and use them as pipeline input.",
 			Icon:                   providerIconDataURI("N", "#111827", "#FFFFFF"),
 			Tags:                   []string{"notion", "document"},
-			IsAuthorized:           false,
 			DatasourceName:         "notion_datasource",
 			DatasourceLabel:        "Notion",
 			DatasourceDescription:  "Select pages from an authorized Notion workspace.",
+			IncludeInAuthCatalog:   true,
+			SystemOAuth:            true,
+			CredentialSchema:       []map[string]any{},
+			OAuthClientSchema: []map[string]any{
+				datasourceCredentialField("client_id", "Client ID", "text-input", true, "", ""),
+				datasourceCredentialField("client_secret", "Client Secret", "secret-input", true, "", ""),
+				datasourceCredentialField("authorization_url", "Authorization URL", "text-input", false, "https://api.notion.com/v1/oauth/authorize", ""),
+				datasourceCredentialField("token_url", "Token URL", "text-input", false, "https://api.notion.com/v1/oauth/token", ""),
+				datasourceCredentialField("scope", "Scope", "text-input", false, "read:content", ""),
+			},
+			OAuthCredentialSchema: []map[string]any{
+				datasourceCredentialField("access_token", "Access Token", "secret-input", true, "", ""),
+				datasourceCredentialField("refresh_token", "Refresh Token", "secret-input", false, "", ""),
+			},
 		},
 		{
 			PluginID:               "langgenius/firecrawl_datasource",
@@ -58,10 +83,16 @@ func (s *server) ragPipelineDatasourcePlugins() []map[string]any {
 			Description:            "Crawl websites, preview the discovered pages, and import the selected content.",
 			Icon:                   providerIconDataURI("W", "#FEF3C7", "#92400E"),
 			Tags:                   []string{"website", "crawl"},
-			IsAuthorized:           false,
 			DatasourceName:         "crawl",
 			DatasourceLabel:        "Firecrawl",
 			DatasourceDescription:  "Crawl a website and select the pages to process.",
+			IncludeInAuthCatalog:   true,
+			SystemOAuth:            false,
+			CredentialSchema: []map[string]any{
+				datasourceCredentialField("api_key", "API Key", "secret-input", true, "", "Paste the Firecrawl API key for website crawling."),
+			},
+			OAuthClientSchema:     []map[string]any{},
+			OAuthCredentialSchema: []map[string]any{},
 		},
 		{
 			PluginID:               "langgenius/google_drive",
@@ -73,26 +104,53 @@ func (s *server) ragPipelineDatasourcePlugins() []map[string]any {
 			Description:            "Browse files from Google Drive and use the selected file as pipeline input.",
 			Icon:                   providerIconDataURI("D", "#DCFCE7", "#166534"),
 			Tags:                   []string{"drive", "cloud"},
-			IsAuthorized:           false,
 			DatasourceName:         "google_drive",
 			DatasourceLabel:        "Google Drive",
 			DatasourceDescription:  "Browse Google Drive folders and select files to process.",
+			IncludeInAuthCatalog:   true,
+			SystemOAuth:            true,
+			CredentialSchema:       []map[string]any{},
+			OAuthClientSchema: []map[string]any{
+				datasourceCredentialField("client_id", "Client ID", "text-input", true, "", ""),
+				datasourceCredentialField("client_secret", "Client Secret", "secret-input", true, "", ""),
+				datasourceCredentialField("authorization_url", "Authorization URL", "text-input", false, "https://accounts.google.com/o/oauth2/v2/auth", ""),
+				datasourceCredentialField("token_url", "Token URL", "text-input", false, "https://oauth2.googleapis.com/token", ""),
+				datasourceCredentialField("scope", "Scope", "text-input", false, "https://www.googleapis.com/auth/drive.readonly", ""),
+			},
+			OAuthCredentialSchema: []map[string]any{
+				datasourceCredentialField("access_token", "Access Token", "secret-input", true, "", ""),
+				datasourceCredentialField("refresh_token", "Refresh Token", "secret-input", false, "", ""),
+			},
 		},
 	}
+}
 
+func ragPipelineDatasourceProviderSpecByProvider(pluginID, provider string) (ragPipelineDatasourceProviderSpec, bool) {
+	pluginID = strings.TrimSpace(pluginID)
+	provider = strings.TrimSpace(provider)
+	for _, item := range ragPipelineDatasourceProviderSpecs() {
+		if item.PluginID == pluginID && item.Provider == provider {
+			return item, true
+		}
+	}
+	return ragPipelineDatasourceProviderSpec{}, false
+}
+
+func (s *server) ragPipelineDatasourcePlugins(workspaceID string) []map[string]any {
+	specs := ragPipelineDatasourceProviderSpecs()
 	plugins := make([]map[string]any, 0, len(specs))
 	for _, spec := range specs {
-		plugins = append(plugins, s.ragPipelineDatasourcePluginPayload(spec))
+		plugins = append(plugins, s.ragPipelineDatasourcePluginPayload(workspaceID, spec))
 	}
 	return plugins
 }
 
-func (s *server) ragPipelineDatasourcePluginPayload(spec ragPipelineDatasourceProviderSpec) map[string]any {
+func (s *server) ragPipelineDatasourcePluginPayload(workspaceID string, spec ragPipelineDatasourceProviderSpec) map[string]any {
 	return map[string]any{
 		"plugin_id":                spec.PluginID,
 		"plugin_unique_identifier": spec.PluginUniqueIdentifier,
 		"provider":                 spec.Provider,
-		"is_authorized":            spec.IsAuthorized,
+		"is_authorized":            s.isRAGPipelineDatasourceAuthorized(workspaceID, spec),
 		"declaration": map[string]any{
 			"credentials_schema": []any{},
 			"provider_type":      spec.ProviderType,
@@ -119,5 +177,24 @@ func (s *server) ragPipelineDatasourcePluginPayload(spec ragPipelineDatasourcePr
 				},
 			},
 		},
+	}
+}
+
+func (s *server) isRAGPipelineDatasourceAuthorized(workspaceID string, spec ragPipelineDatasourceProviderSpec) bool {
+	if spec.ProviderType == "local_file" {
+		return true
+	}
+	return len(s.store.ListWorkspaceDatasourceCredentials(workspaceID, spec.PluginID, spec.Provider)) > 0
+}
+
+func datasourceCredentialField(name, label, kind string, required bool, defaultValue any, description string) map[string]any {
+	return map[string]any{
+		"name":        name,
+		"label":       localizedText(label),
+		"description": localizedText(description),
+		"type":        kind,
+		"required":    required,
+		"default":     defaultValue,
+		"multiple":    false,
 	}
 }

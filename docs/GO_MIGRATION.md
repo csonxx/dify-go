@@ -215,6 +215,15 @@ The Go server keeps Dify's existing API prefixes so the frontend can continue ca
 - `GET /console/api/rag/pipeline/templates/{templateId}`
 - `PATCH|DELETE|POST /console/api/rag/pipeline/customized/templates/{templateId}`
 - `GET /console/api/rag/pipelines/datasource-plugins`
+- `GET /console/api/auth/plugin/datasource/list`
+- `GET /console/api/auth/plugin/datasource/default-list`
+- `GET|POST /console/api/auth/plugin/datasource/{pluginId}/{provider}`
+- `POST /console/api/auth/plugin/datasource/{pluginId}/{provider}/update`
+- `POST /console/api/auth/plugin/datasource/{pluginId}/{provider}/delete`
+- `POST /console/api/auth/plugin/datasource/{pluginId}/{provider}/default`
+- `POST|DELETE /console/api/auth/plugin/datasource/{pluginId}/{provider}/custom-client`
+- `GET /console/api/oauth/plugin/{pluginId}/{provider}/datasource/get-authorization-url`
+- `GET /console/api/oauth/plugin/{pluginId}/{provider}/datasource/callback`
 - `POST /console/api/rag/pipelines/imports`
 - `POST /console/api/rag/pipelines/imports/{importId}/confirm`
 - `GET /console/api/rag/pipelines/{pipelineId}/exports`
@@ -246,6 +255,8 @@ The Go server keeps Dify's existing API prefixes so the frontend can continue ca
 补充：RAG pipeline 的 `published/run` 现已接到 Go，支持 published preview、首次创建文档、以及基于 `original_document_id` 的文档重处理；运行请求会同时把 datasource 和 processing inputs 写回 dataset document 的 pipeline execution log，前端 create-from-pipeline 与 document settings 可以直接复用这条链路。
 
 补充：`GET /console/api/rag/pipelines/datasource-plugins` 现在不再返回空兼容数组，而是由 Go 直接提供内置 datasource catalog，已覆盖 `local_file / online_document / website_crawl / online_drive` 四类 RAG pipeline 数据源，并复用了上游常见的 `plugin_id / provider_name / datasource_name` 标识，方便前端 block selector 和后续 datasource auth 迁移继续对齐。
+
+补充：datasource auth 相关的 `list / default-list / credential CRUD / default / custom-client / oauth authorization-url / oauth callback` 也已经切到 Go。当前实现会把 datasource 凭证和自定义 OAuth client 配置保存在 workspace 本地状态里，并通过一个可回跳到前端 `oauth-callback` 页的模拟 OAuth 流程维持账号设置页和 create-from-pipeline 的授权交互。
 - `GET /console/api/datasets/retrieval-setting`
 - `GET /console/api/datasets/process-rule`
 - `POST /console/api/datasets/indexing-estimate`

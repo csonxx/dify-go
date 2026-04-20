@@ -131,6 +131,29 @@ type pipelineExecutionLogResponse struct {
 	DatasourceNodeID string         `json:"datasource_node_id"`
 }
 
+type datasourceAuthListResponse struct {
+	Result []map[string]any `json:"result"`
+}
+
+type datasourceCredentialResponse struct {
+	Credential map[string]any `json:"credential"`
+	Type       string         `json:"type"`
+	Name       string         `json:"name"`
+	ID         string         `json:"id"`
+	IsDefault  bool           `json:"is_default"`
+	AvatarURL  string         `json:"avatar_url"`
+}
+
+type datasourceCredentialListResponse struct {
+	Result []datasourceCredentialResponse `json:"result"`
+}
+
+type datasourceOAuthURLResponse struct {
+	AuthorizationURL string `json:"authorization_url"`
+	State            string `json:"state"`
+	ContextID        string `json:"context_id"`
+}
+
 type pipelineTemplateListResponse struct {
 	PipelineTemplates []struct {
 		ID             string         `json:"id"`
@@ -797,6 +820,173 @@ func TestCreateEmptyRAGPipelineDatasetAndDraftAliases(t *testing.T) {
 	}
 	if stringFromAny(processing.Variables[0]["variable"]) != "shared_query" || stringFromAny(processing.Variables[1]["variable"]) != "chunk_size" {
 		t.Fatalf("unexpected processing variables: %+v", processing.Variables)
+	}
+}
+
+func TestDatasourceAuthLifecycleAndOAuthCallback(t *testing.T) {
+	env := newServerTestEnv(t)
+	env.setupAndLogin()
+
+	authList := getJSON[datasourceAuthListResponse](env, "/console/api/auth/plugin/datasource/list", true, http.StatusOK)
+	if len(authList.Result) != 3 {
+		t.Fatalf("expected 3 datasource auth entries, got %+v", authList.Result)
+	}
+
+	firecrawl := findDatasourceAuthItem(t, authList.Result, "langgenius/firecrawl_datasource")
+	if len(objectListFromAny(firecrawl["credential_schema"])) != 1 {
+		t.Fatalf("expected firecrawl api key schema, got %+v", firecrawl)
+	}
+	if _, ok := firecrawl["oauth_schema"]; ok {
+		t.Fatalf("did not expect firecrawl oauth schema, got %+v", firecrawl["oauth_schema"])
+	}
+
+	postJSON[map[string]any](env, http.MethodPost, "/console/api/auth/plugin/datasource/langgenius/firecrawl_datasource/firecrawl", map[string]any{
+		"type": "api-key",
+		"name": "Crawler Primary",
+		"credentials": map[string]any{
+			"api_key": "firecrawl-secret",
+		},
+	}, true, http.StatusOK)
+
+	firecrawlCredentials := getJSON[datasourceCredentialListResponse](env, "/console/api/auth/plugin/datasource/langgenius/firecrawl_datasource/firecrawl", true, http.StatusOK)
+	if len(firecrawlCredentials.Result) != 1 {
+		t.Fatalf("expected single firecrawl credential, got %+v", firecrawlCredentials.Result)
+	}
+	firstCredential := firecrawlCredentials.Result[0]
+	if firstCredential.Name != "Crawler Primary" || firstCredential.Type != "api-key" || !firstCredential.IsDefault {
+		t.Fatalf("unexpected first firecrawl credential: %+v", firstCredential)
+	}
+	if stringFromAny(firstCredential.Credential["api_key"]) != hiddenSecretValue {
+		t.Fatalf("expected masked firecrawl api key, got %+v", firstCredential.Credential)
+	}
+
+	postJSON[map[string]any](env, http.MethodPost, "/console/api/auth/plugin/datasource/langgenius/firecrawl_datasource/firecrawl/update", map[string]any{
+		"credential_id": firstCredential.ID,
+		"name":          "Crawler Primary Renamed",
+		"credentials": map[string]any{
+			"api_key": hiddenSecretValue,
+		},
+	}, true, http.StatusOK)
+
+	firecrawlCredentials = getJSON[datasourceCredentialListResponse](env, "/console/api/auth/plugin/datasource/langgenius/firecrawl_datasource/firecrawl", true, http.StatusOK)
+	if firecrawlCredentials.Result[0].Name != "Crawler Primary Renamed" {
+		t.Fatalf("expected renamed firecrawl credential, got %+v", firecrawlCredentials.Result)
+	}
+
+	postJSON[map[string]any](env, http.MethodPost, "/console/api/auth/plugin/datasource/langgenius/firecrawl_datasource/firecrawl", map[string]any{
+		"type": "api-key",
+		"name": "Crawler Backup",
+		"credentials": map[string]any{
+			"api_key": "backup-secret",
+		},
+	}, true, http.StatusOK)
+
+	firecrawlCredentials = getJSON[datasourceCredentialListResponse](env, "/console/api/auth/plugin/datasource/langgenius/firecrawl_datasource/firecrawl", true, http.StatusOK)
+	if len(firecrawlCredentials.Result) != 2 {
+		t.Fatalf("expected two firecrawl credentials, got %+v", firecrawlCredentials.Result)
+	}
+
+	secondCredentialID := ""
+	for _, item := range firecrawlCredentials.Result {
+		if item.Name == "Crawler Backup" {
+			secondCredentialID = item.ID
+		}
+	}
+	if secondCredentialID == "" {
+		t.Fatalf("expected backup firecrawl credential in %+v", firecrawlCredentials.Result)
+	}
+
+	postJSON[map[string]any](env, http.MethodPost, "/console/api/auth/plugin/datasource/langgenius/firecrawl_datasource/firecrawl/default", map[string]any{
+		"id": secondCredentialID,
+	}, true, http.StatusOK)
+	postJSON[map[string]any](env, http.MethodPost, "/console/api/auth/plugin/datasource/langgenius/firecrawl_datasource/firecrawl/delete", map[string]any{
+		"credential_id": firstCredential.ID,
+	}, true, http.StatusOK)
+
+	firecrawlCredentials = getJSON[datasourceCredentialListResponse](env, "/console/api/auth/plugin/datasource/langgenius/firecrawl_datasource/firecrawl", true, http.StatusOK)
+	if len(firecrawlCredentials.Result) != 1 || firecrawlCredentials.Result[0].ID != secondCredentialID || !firecrawlCredentials.Result[0].IsDefault {
+		t.Fatalf("unexpected firecrawl credential state after default/delete: %+v", firecrawlCredentials.Result)
+	}
+
+	plugins := getJSON[[]map[string]any](env, "/console/api/rag/pipelines/datasource-plugins", true, http.StatusOK)
+	if !datasourcePluginAuthorized(t, plugins, "langgenius/firecrawl_datasource") {
+		t.Fatalf("expected firecrawl datasource plugin to become authorized: %+v", plugins)
+	}
+
+	postJSON[map[string]any](env, http.MethodPost, "/console/api/auth/plugin/datasource/langgenius/notion_datasource/notion_datasource/custom-client", map[string]any{
+		"client_params": map[string]any{
+			"client_id":     "notion-client",
+			"client_secret": "notion-secret",
+		},
+		"enable_oauth_custom_client": true,
+	}, true, http.StatusOK)
+
+	authList = getJSON[datasourceAuthListResponse](env, "/console/api/auth/plugin/datasource/list", true, http.StatusOK)
+	notion := findDatasourceAuthItem(t, authList.Result, "langgenius/notion_datasource")
+	notionOAuth := mapFromAny(notion["oauth_schema"])
+	if !ragPipelineBoolValue(notionOAuth["is_oauth_custom_client_enabled"]) {
+		t.Fatalf("expected notion custom oauth client to be enabled: %+v", notionOAuth)
+	}
+	notionClientParams := mapFromAny(notionOAuth["oauth_custom_client_params"])
+	if stringFromAny(notionClientParams["client_id"]) != "notion-client" {
+		t.Fatalf("unexpected notion oauth client params: %+v", notionClientParams)
+	}
+	if stringFromAny(notionClientParams["client_secret"]) != hiddenSecretValue {
+		t.Fatalf("expected masked notion client secret, got %+v", notionClientParams)
+	}
+
+	authorizationReq, err := http.NewRequest(http.MethodGet, env.server.URL+"/console/api/oauth/plugin/langgenius/notion_datasource/notion_datasource/datasource/get-authorization-url", nil)
+	if err != nil {
+		t.Fatalf("create datasource oauth authorization request: %v", err)
+	}
+	authorizationReq.Header.Set("Origin", "http://localhost")
+	authorizationResp := env.do(authorizationReq, http.StatusOK)
+	defer authorizationResp.Body.Close()
+
+	var oauthURL datasourceOAuthURLResponse
+	if err := json.NewDecoder(authorizationResp.Body).Decode(&oauthURL); err != nil {
+		t.Fatalf("decode datasource oauth url response: %v", err)
+	}
+	if oauthURL.AuthorizationURL == "" || !strings.Contains(oauthURL.AuthorizationURL, "/datasource/callback") {
+		t.Fatalf("unexpected datasource oauth authorization url: %+v", oauthURL)
+	}
+
+	callbackReq, err := http.NewRequest(http.MethodGet, oauthURL.AuthorizationURL, nil)
+	if err != nil {
+		t.Fatalf("create datasource oauth callback request: %v", err)
+	}
+	callbackReq.Header.Set("Origin", "http://localhost")
+	callbackResp := env.doNoRedirect(callbackReq, http.StatusFound)
+	defer callbackResp.Body.Close()
+	if location := callbackResp.Header.Get("Location"); !strings.HasPrefix(location, "http://localhost/oauth-callback") {
+		t.Fatalf("unexpected datasource oauth callback redirect: %s", location)
+	}
+
+	notionCredentials := getJSON[datasourceCredentialListResponse](env, "/console/api/auth/plugin/datasource/langgenius/notion_datasource/notion_datasource", true, http.StatusOK)
+	if len(notionCredentials.Result) != 1 || notionCredentials.Result[0].Type != "oauth2" {
+		t.Fatalf("expected notion oauth credential after callback, got %+v", notionCredentials.Result)
+	}
+
+	plugins = getJSON[[]map[string]any](env, "/console/api/rag/pipelines/datasource-plugins", true, http.StatusOK)
+	if !datasourcePluginAuthorized(t, plugins, "langgenius/notion_datasource") {
+		t.Fatalf("expected notion datasource plugin to become authorized: %+v", plugins)
+	}
+
+	deleteReq, err := http.NewRequest(http.MethodDelete, env.server.URL+"/console/api/auth/plugin/datasource/langgenius/notion_datasource/notion_datasource/custom-client", nil)
+	if err != nil {
+		t.Fatalf("create datasource oauth custom client delete request: %v", err)
+	}
+	deleteReq.Header.Set(csrfHeader, env.csrfToken())
+	env.do(deleteReq, http.StatusOK).Body.Close()
+
+	authList = getJSON[datasourceAuthListResponse](env, "/console/api/auth/plugin/datasource/list", true, http.StatusOK)
+	notion = findDatasourceAuthItem(t, authList.Result, "langgenius/notion_datasource")
+	notionOAuth = mapFromAny(notion["oauth_schema"])
+	if ragPipelineBoolValue(notionOAuth["is_oauth_custom_client_enabled"]) {
+		t.Fatalf("expected notion custom oauth client to be deleted: %+v", notionOAuth)
+	}
+	if len(mapFromAny(notionOAuth["oauth_custom_client_params"])) != 0 {
+		t.Fatalf("expected cleared notion oauth custom client params, got %+v", notionOAuth["oauth_custom_client_params"])
 	}
 }
 
@@ -1484,6 +1674,27 @@ func (e *serverTestEnv) do(req *http.Request, wantStatus int) *http.Response {
 	return resp
 }
 
+func (e *serverTestEnv) doNoRedirect(req *http.Request, wantStatus int) *http.Response {
+	e.t.Helper()
+
+	client := &http.Client{
+		Jar: e.client.Jar,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		e.t.Fatalf("do request without redirect %s %s: %v", req.Method, req.URL.String(), err)
+	}
+	if resp.StatusCode != wantStatus {
+		body, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		e.t.Fatalf("unexpected status for %s %s without redirect: got %d want %d body=%s", req.Method, req.URL.Path, resp.StatusCode, wantStatus, string(body))
+	}
+	return resp
+}
+
 func (e *serverTestEnv) csrfToken() string {
 	e.t.Helper()
 
@@ -1498,6 +1709,32 @@ func (e *serverTestEnv) csrfToken() string {
 	}
 	e.t.Fatal("csrf token cookie not found")
 	return ""
+}
+
+func findDatasourceAuthItem(t *testing.T, items []map[string]any, pluginID string) map[string]any {
+	t.Helper()
+
+	for _, item := range items {
+		if stringFromAny(item["plugin_id"]) == pluginID {
+			return item
+		}
+	}
+
+	t.Fatalf("expected datasource auth item %s in %+v", pluginID, items)
+	return nil
+}
+
+func datasourcePluginAuthorized(t *testing.T, items []map[string]any, pluginID string) bool {
+	t.Helper()
+
+	for _, item := range items {
+		if stringFromAny(item["plugin_id"]) == pluginID {
+			return ragPipelineBoolValue(item["is_authorized"])
+		}
+	}
+
+	t.Fatalf("expected datasource plugin %s in %+v", pluginID, items)
+	return false
 }
 
 func isNoContentStatus(status int) bool {

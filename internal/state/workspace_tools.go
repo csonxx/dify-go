@@ -8,15 +8,16 @@ import (
 )
 
 type WorkspaceToolSettings struct {
-	BuiltinProviders  []WorkspaceBuiltinToolProvider  `json:"builtin_providers,omitempty"`
-	APIProviders      []WorkspaceAPIToolProvider      `json:"api_providers,omitempty"`
-	WorkflowProviders []WorkspaceWorkflowToolProvider `json:"workflow_providers,omitempty"`
-	MCPProviders      []WorkspaceMCPToolProvider      `json:"mcp_providers,omitempty"`
-	Endpoints         []WorkspaceEndpoint             `json:"endpoints,omitempty"`
-	TriggerProviders  []WorkspaceTriggerProviderState `json:"trigger_providers,omitempty"`
-	Plugins           []WorkspacePluginInstallation   `json:"plugins,omitempty"`
-	PluginPreferences WorkspacePluginPreferences      `json:"plugin_preferences,omitempty"`
-	PluginTasks       []WorkspacePluginTask           `json:"plugin_tasks,omitempty"`
+	BuiltinProviders    []WorkspaceBuiltinToolProvider     `json:"builtin_providers,omitempty"`
+	APIProviders        []WorkspaceAPIToolProvider         `json:"api_providers,omitempty"`
+	WorkflowProviders   []WorkspaceWorkflowToolProvider    `json:"workflow_providers,omitempty"`
+	MCPProviders        []WorkspaceMCPToolProvider         `json:"mcp_providers,omitempty"`
+	DatasourceProviders []WorkspaceDatasourceProviderState `json:"datasource_providers,omitempty"`
+	Endpoints           []WorkspaceEndpoint                `json:"endpoints,omitempty"`
+	TriggerProviders    []WorkspaceTriggerProviderState    `json:"trigger_providers,omitempty"`
+	Plugins             []WorkspacePluginInstallation      `json:"plugins,omitempty"`
+	PluginPreferences   WorkspacePluginPreferences         `json:"plugin_preferences,omitempty"`
+	PluginTasks         []WorkspacePluginTask              `json:"plugin_tasks,omitempty"`
 }
 
 type WorkspaceBuiltinToolProvider struct {
@@ -219,6 +220,9 @@ func normalizeWorkspaceToolSettings(settings *WorkspaceToolSettings) {
 	if settings.MCPProviders == nil {
 		settings.MCPProviders = []WorkspaceMCPToolProvider{}
 	}
+	if settings.DatasourceProviders == nil {
+		settings.DatasourceProviders = []WorkspaceDatasourceProviderState{}
+	}
 	if settings.Endpoints == nil {
 		settings.Endpoints = []WorkspaceEndpoint{}
 	}
@@ -254,6 +258,9 @@ func normalizeWorkspaceToolSettings(settings *WorkspaceToolSettings) {
 	}
 	for i := range settings.MCPProviders {
 		normalizeWorkspaceMCPProvider(&settings.MCPProviders[i])
+	}
+	for i := range settings.DatasourceProviders {
+		normalizeWorkspaceDatasourceProviderState(&settings.DatasourceProviders[i])
 	}
 	for i := range settings.Endpoints {
 		normalizeWorkspaceEndpoint(&settings.Endpoints[i])
@@ -967,15 +974,16 @@ func (s *Store) UpdateMCPToolProviderTools(workspaceID, providerID string, tools
 
 func cloneWorkspaceToolSettings(src WorkspaceToolSettings) WorkspaceToolSettings {
 	dst := WorkspaceToolSettings{
-		BuiltinProviders:  make([]WorkspaceBuiltinToolProvider, len(src.BuiltinProviders)),
-		APIProviders:      make([]WorkspaceAPIToolProvider, len(src.APIProviders)),
-		WorkflowProviders: make([]WorkspaceWorkflowToolProvider, len(src.WorkflowProviders)),
-		MCPProviders:      make([]WorkspaceMCPToolProvider, len(src.MCPProviders)),
-		Endpoints:         make([]WorkspaceEndpoint, len(src.Endpoints)),
-		TriggerProviders:  make([]WorkspaceTriggerProviderState, len(src.TriggerProviders)),
-		Plugins:           make([]WorkspacePluginInstallation, len(src.Plugins)),
-		PluginPreferences: cloneWorkspacePluginPreferences(src.PluginPreferences),
-		PluginTasks:       make([]WorkspacePluginTask, len(src.PluginTasks)),
+		BuiltinProviders:    make([]WorkspaceBuiltinToolProvider, len(src.BuiltinProviders)),
+		APIProviders:        make([]WorkspaceAPIToolProvider, len(src.APIProviders)),
+		WorkflowProviders:   make([]WorkspaceWorkflowToolProvider, len(src.WorkflowProviders)),
+		MCPProviders:        make([]WorkspaceMCPToolProvider, len(src.MCPProviders)),
+		DatasourceProviders: make([]WorkspaceDatasourceProviderState, len(src.DatasourceProviders)),
+		Endpoints:           make([]WorkspaceEndpoint, len(src.Endpoints)),
+		TriggerProviders:    make([]WorkspaceTriggerProviderState, len(src.TriggerProviders)),
+		Plugins:             make([]WorkspacePluginInstallation, len(src.Plugins)),
+		PluginPreferences:   cloneWorkspacePluginPreferences(src.PluginPreferences),
+		PluginTasks:         make([]WorkspacePluginTask, len(src.PluginTasks)),
 	}
 	for i, item := range src.BuiltinProviders {
 		dst.BuiltinProviders[i] = cloneWorkspaceBuiltinToolProvider(item)
@@ -988,6 +996,9 @@ func cloneWorkspaceToolSettings(src WorkspaceToolSettings) WorkspaceToolSettings
 	}
 	for i, item := range src.MCPProviders {
 		dst.MCPProviders[i] = cloneWorkspaceMCPToolProvider(item)
+	}
+	for i, item := range src.DatasourceProviders {
+		dst.DatasourceProviders[i] = cloneWorkspaceDatasourceProviderState(item)
 	}
 	for i, item := range src.Endpoints {
 		dst.Endpoints[i] = cloneWorkspaceEndpoint(item)

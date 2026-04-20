@@ -337,7 +337,7 @@
 
 ## 阶段 5：RAG Pipeline
 
-状态：进行中（空白 dataset + workflow alias + DSL import/export + template/customized template + datasource catalog + published run 第四批已落地）
+状态：进行中（空白 dataset + workflow alias + DSL import/export + template/customized template + datasource catalog + datasource auth + published run 第五批已落地）
 
 范围：
 
@@ -378,6 +378,15 @@
 - [x] `/rag/pipeline/templates/{templateId}`
 - [x] `/rag/pipeline/customized/templates/{templateId}`
 - [x] `/rag/pipelines/datasource-plugins`
+- [x] `/auth/plugin/datasource/list`
+- [x] `/auth/plugin/datasource/default-list`
+- [x] `/auth/plugin/datasource/{pluginId}/{provider}`
+- [x] `/auth/plugin/datasource/{pluginId}/{provider}/update`
+- [x] `/auth/plugin/datasource/{pluginId}/{provider}/delete`
+- [x] `/auth/plugin/datasource/{pluginId}/{provider}/default`
+- [x] `/auth/plugin/datasource/{pluginId}/{provider}/custom-client`
+- [x] `/oauth/plugin/{pluginId}/{provider}/datasource/get-authorization-url`
+- [x] `/oauth/plugin/{pluginId}/{provider}/datasource/callback`
 - [x] `/rag/pipelines/imports`
 - [x] `/rag/pipelines/imports/{importId}/confirm`
 - [x] `/rag/pipelines/{pipelineId}/exports`
@@ -397,7 +406,8 @@
 
 - [ ] 继续把 published run 从当前兼容执行面推进到更贴近上游的真实 pipeline transform / batch job / node output 语义
 - [x] 把 datasource plugin 列表从当前空兼容响应推进到 Go 侧可直接驱动前端的内置 datasource catalog
-- [ ] 继续把 datasource plugin 发现从当前内置 catalog 推进到更贴近上游的 workspace plugin / datasource credential 发现语义
+- [x] 把 datasource auth 的列表、凭证 CRUD、默认项切换、自定义 OAuth client、授权回跳兼容链路迁到 Go
+- [ ] 继续把 datasource plugin / credential 发现从当前内置 catalog + workspace state 推进到更贴近上游的 workspace plugin 安装态、provider 发现与 credential 发现语义
 - [ ] 继续收敛 pipeline 与 dataset 之间的共享状态，让空白 dataset、publish 状态、execution log、文档处理流程完全共用 Go 模型
 
 补充：
@@ -408,6 +418,7 @@
 - Template 目录现在也已经落到 Go：内置 built-in 模板列表/详情由 Go 直接提供，customized template 支持发布、列表、详情、更新元信息、导出和删除。
 - Published run 现在已经支持 preview、首次创建文档、以及基于 `original_document_id` 的重处理，并且会把 `datasource_type / datasource_info / input_data / datasource_node_id` 落到 dataset document 的 pipeline execution log，前端 create-from-pipeline 和 document settings 都可以直接复用这条 Go 链路。
 - `/rag/pipelines/datasource-plugins` 现在会直接返回 Go 侧内置的 datasource catalog，已覆盖 `local_file / online_document / website_crawl / online_drive` 四类节点，前端 block selector 不再卡在空列表；后续再继续补 workspace plugin 安装态、credential 授权态和更完整的声明透传。
+- datasource auth 相关的 `list / default-list / credential CRUD / default / custom-client / oauth authorization-url / oauth callback` 也已经切到 Go，当前通过 workspace 本地状态保存 datasource 凭证，并用一个可回跳前端 `oauth-callback` 的模拟 OAuth 流程保持页面交互可用。
 
 ## 阶段 6：公共运行时 API
 
@@ -448,7 +459,7 @@
 - Email register 与 forgot-password
 - OAuth provider 管理
 - SSO 登录入口
-- Datasource auth 辅助接口
+- 通用 account OAuth / SSO 辅助接口
 - Compliance 与 change-email 流程
 
 为什么第七批做：

@@ -122,12 +122,13 @@ func (s *server) handleRAGPipelineEmptyDatasetCreate(w http.ResponseWriter, r *h
 }
 
 func (s *server) handleRAGPipelineDatasourcePlugins(w http.ResponseWriter, r *http.Request) {
-	if _, ok := s.currentUserWorkspace(r); !ok {
+	workspace, ok := s.currentUserWorkspace(r)
+	if !ok {
 		writeError(w, http.StatusNotFound, "workspace_not_found", "Workspace not found.")
 		return
 	}
 
-	writeJSON(w, http.StatusOK, s.ragPipelineDatasourcePlugins())
+	writeJSON(w, http.StatusOK, s.ragPipelineDatasourcePlugins(workspace.ID))
 }
 
 func (s *server) handleRAGPipelineDraftPreProcessingParameters(w http.ResponseWriter, r *http.Request) {
