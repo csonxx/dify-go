@@ -517,6 +517,10 @@ func (s *server) handleWorkflowOnlineUsers(w http.ResponseWriter, r *http.Reques
 }
 
 func (s *server) currentUserApp(r *http.Request) (state.App, bool) {
+	if resolvedApp, ok := r.Context().Value(resolvedAppContextKey).(state.App); ok && resolvedApp.ID != "" {
+		return resolvedApp, true
+	}
+
 	user := currentUser(r)
 	workspace, ok := s.store.UserWorkspace(user.ID)
 	if !ok {

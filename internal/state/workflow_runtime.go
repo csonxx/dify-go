@@ -197,7 +197,7 @@ func (s *Store) RestoreWorkflowVersion(appID, workspaceID, versionID string, use
 	draft.UpdatedAt = now.UTC().Unix()
 	draft.UpdatedBy = user.ID
 	draft.ToolPublished = app.WorkflowPublished != nil
-	draft.Hash = workflowHash(draft.Graph, draft.Features, draft.EnvironmentVariables, draft.ConversationVariables)
+	draft.Hash = workflowHash(draft.Graph, draft.Features, draft.EnvironmentVariables, draft.ConversationVariables, draft.RagPipelineVariables)
 	app.WorkflowDraft = &draft
 	app.UpdatedAt = draft.UpdatedAt
 	app.UpdatedBy = user.ID

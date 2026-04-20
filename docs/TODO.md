@@ -337,7 +337,7 @@
 
 ## 阶段 5：RAG Pipeline
 
-状态：待实现
+状态：进行中（空白 dataset + workflow alias 首批已落地）
 
 范围：
 
@@ -369,6 +369,26 @@
 
 - RAG pipeline 的编辑、发布、运行主链路不再依赖 Python。
 - 模板导入导出、执行日志、参数面板都能在 Go 侧提供。
+
+本轮已完成的子范围：
+
+- [x] `/rag/pipeline/empty-dataset`
+- [x] `/rag/pipelines/datasource-plugins`
+- [x] `/rag/pipelines/{pipelineId}/workflows/draft`
+- [x] `/rag/pipelines/{pipelineId}/workflows/publish`
+- [x] `/rag/pipelines/{pipelineId}/workflows`
+- [x] `/rag/pipelines/{pipelineId}/workflow-runs`
+- [x] `/rag/pipelines/{pipelineId}/workflows/draft/pre-processing/parameters`
+- [x] `/rag/pipelines/{pipelineId}/workflows/published/pre-processing/parameters`
+- [x] `/rag/pipelines/{pipelineId}/workflows/draft/processing/parameters`
+- [x] `/rag/pipelines/{pipelineId}/workflows/published/processing/parameters`
+
+本阶段剩余重点：
+
+- [ ] 把 `/rag/pipeline/dataset`、template/customized template、DSL import/export 主链路从 fallback 迁到 Go
+- [ ] 补齐 published run、pipeline execution log、publish as customized pipeline 等真正执行面能力
+- [ ] 把 datasource plugin 列表从当前空兼容响应推进到真实 workspace plugin / datasource 发现语义
+- [ ] 继续收敛 pipeline 与 dataset 之间的共享状态，让空白 dataset、publish 状态、execution log、文档处理流程完全共用 Go 模型
 
 ## 阶段 6：公共运行时 API
 

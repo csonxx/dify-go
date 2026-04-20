@@ -36,7 +36,7 @@ func (s *Store) GetPublishedWorkflow(appID, workspaceID string) (WorkflowState, 
 	return WorkflowState{}, false, true
 }
 
-func (s *Store) SyncWorkflowDraft(appID, workspaceID string, user User, graph, features map[string]any, environmentVariables, conversationVariables []map[string]any, hash string, now time.Time) (WorkflowState, error) {
+func (s *Store) SyncWorkflowDraft(appID, workspaceID string, user User, graph, features map[string]any, environmentVariables, conversationVariables, ragPipelineVariables []map[string]any, hash string, now time.Time) (WorkflowState, error) {
 	return s.mutateWorkflow(appID, workspaceID, now, func(app *App) error {
 		if app.Workflow == nil {
 			return fmt.Errorf("workflow is not enabled for this app")
@@ -62,10 +62,11 @@ func (s *Store) SyncWorkflowDraft(appID, workspaceID string, user User, graph, f
 		draft.Features = cloneMap(features)
 		draft.EnvironmentVariables = cloneObjectList(environmentVariables)
 		draft.ConversationVariables = cloneObjectList(conversationVariables)
+		draft.RagPipelineVariables = cloneObjectList(ragPipelineVariables)
 		draft.UpdatedAt = now.UTC().Unix()
 		draft.UpdatedBy = user.ID
 		draft.ToolPublished = app.WorkflowPublished != nil
-		draft.Hash = workflowHash(draft.Graph, draft.Features, draft.EnvironmentVariables, draft.ConversationVariables)
+		draft.Hash = workflowHash(draft.Graph, draft.Features, draft.EnvironmentVariables, draft.ConversationVariables, draft.RagPipelineVariables)
 		app.WorkflowDraft = draft
 		if app.Workflow != nil {
 			app.Workflow.UpdatedAt = draft.UpdatedAt
@@ -79,7 +80,7 @@ func (s *Store) UpdateWorkflowEnvironmentVariables(appID, workspaceID string, us
 	return s.mutateWorkflow(appID, workspaceID, now, func(app *App) error {
 		draft := ensureWorkflowDraft(app, user, now)
 		draft.EnvironmentVariables = cloneObjectList(environmentVariables)
-		draft.Hash = workflowHash(draft.Graph, draft.Features, draft.EnvironmentVariables, draft.ConversationVariables)
+		draft.Hash = workflowHash(draft.Graph, draft.Features, draft.EnvironmentVariables, draft.ConversationVariables, draft.RagPipelineVariables)
 		app.WorkflowDraft = draft
 		return nil
 	})
@@ -89,7 +90,7 @@ func (s *Store) UpdateWorkflowConversationVariables(appID, workspaceID string, u
 	return s.mutateWorkflow(appID, workspaceID, now, func(app *App) error {
 		draft := ensureWorkflowDraft(app, user, now)
 		draft.ConversationVariables = cloneObjectList(conversationVariables)
-		draft.Hash = workflowHash(draft.Graph, draft.Features, draft.EnvironmentVariables, draft.ConversationVariables)
+		draft.Hash = workflowHash(draft.Graph, draft.Features, draft.EnvironmentVariables, draft.ConversationVariables, draft.RagPipelineVariables)
 		app.WorkflowDraft = draft
 		return nil
 	})
@@ -99,7 +100,7 @@ func (s *Store) UpdateWorkflowFeatures(appID, workspaceID string, user User, fea
 	return s.mutateWorkflow(appID, workspaceID, now, func(app *App) error {
 		draft := ensureWorkflowDraft(app, user, now)
 		draft.Features = cloneMap(features)
-		draft.Hash = workflowHash(draft.Graph, draft.Features, draft.EnvironmentVariables, draft.ConversationVariables)
+		draft.Hash = workflowHash(draft.Graph, draft.Features, draft.EnvironmentVariables, draft.ConversationVariables, draft.RagPipelineVariables)
 		app.WorkflowDraft = draft
 		return nil
 	})
@@ -142,7 +143,7 @@ func (s *Store) PublishWorkflow(appID, workspaceID string, user User, markedName
 	published.UpdatedBy = user.ID
 	published.ToolPublished = true
 	published.Version = now.UTC().Format(time.RFC3339)
-	published.Hash = workflowHash(published.Graph, published.Features, published.EnvironmentVariables, published.ConversationVariables)
+	published.Hash = workflowHash(published.Graph, published.Features, published.EnvironmentVariables, published.ConversationVariables, published.RagPipelineVariables)
 	app.WorkflowPublished = &published
 	app.WorkflowVersions = append([]WorkflowState{cloneWorkflowState(published)}, app.WorkflowVersions...)
 	if len(app.WorkflowVersions) > 100 {
@@ -151,7 +152,7 @@ func (s *Store) PublishWorkflow(appID, workspaceID string, user User, markedName
 
 	draft := cloneWorkflowState(*app.WorkflowDraft)
 	draft.ToolPublished = true
-	draft.Hash = workflowHash(draft.Graph, draft.Features, draft.EnvironmentVariables, draft.ConversationVariables)
+	draft.Hash = workflowHash(draft.Graph, draft.Features, draft.EnvironmentVariables, draft.ConversationVariables, draft.RagPipelineVariables)
 	app.WorkflowDraft = &draft
 
 	app.UpdatedAt = now.UTC().Unix()
@@ -218,6 +219,7 @@ func ensureWorkflowDraft(app *App, user User, now time.Time) *WorkflowState {
 		UpdatedBy:             user.ID,
 		EnvironmentVariables:  []map[string]any{},
 		ConversationVariables: []map[string]any{},
+		RagPipelineVariables:  []map[string]any{},
 		Version:               "draft",
 	}
 }
@@ -229,12 +231,13 @@ func stringValueFromWorkflow(workflow *Workflow) string {
 	return workflow.ID
 }
 
-func workflowHash(graph, features map[string]any, env, conv []map[string]any) string {
+func workflowHash(graph, features map[string]any, env, conv, rag []map[string]any) string {
 	payload := map[string]any{
 		"graph":                  graph,
 		"features":               features,
 		"environment_variables":  env,
 		"conversation_variables": conv,
+		"rag_pipeline_variables": rag,
 	}
 	data, err := json.Marshal(payload)
 	if err != nil {
@@ -257,6 +260,7 @@ func cloneWorkflowState(src WorkflowState) WorkflowState {
 		ToolPublished:         src.ToolPublished,
 		EnvironmentVariables:  cloneObjectList(src.EnvironmentVariables),
 		ConversationVariables: cloneObjectList(src.ConversationVariables),
+		RagPipelineVariables:  cloneObjectList(src.RagPipelineVariables),
 		Version:               src.Version,
 		MarkedName:            src.MarkedName,
 		MarkedComment:         src.MarkedComment,

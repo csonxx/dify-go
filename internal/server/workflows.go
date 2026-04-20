@@ -45,6 +45,7 @@ func (s *server) handleWorkflowDraftSync(w http.ResponseWriter, r *http.Request)
 		Features              map[string]any   `json:"features"`
 		EnvironmentVariables  []map[string]any `json:"environment_variables"`
 		ConversationVariables []map[string]any `json:"conversation_variables"`
+		RagPipelineVariables  []map[string]any `json:"rag_pipeline_variables"`
 		Hash                  string           `json:"hash"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
@@ -52,7 +53,7 @@ func (s *server) handleWorkflowDraftSync(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	workflow, err := s.store.SyncWorkflowDraft(app.ID, app.WorkspaceID, currentUser(r), payload.Graph, payload.Features, payload.EnvironmentVariables, payload.ConversationVariables, payload.Hash, time.Now())
+	workflow, err := s.store.SyncWorkflowDraft(app.ID, app.WorkspaceID, currentUser(r), payload.Graph, payload.Features, payload.EnvironmentVariables, payload.ConversationVariables, payload.RagPipelineVariables, payload.Hash, time.Now())
 	if err != nil {
 		if err.Error() == "draft_workflow_not_sync" {
 			writeError(w, http.StatusConflict, "draft_workflow_not_sync", "Draft workflow is out of sync.")
@@ -310,6 +311,7 @@ func (s *server) workflowResponse(workflow state.WorkflowState) map[string]any {
 		"tool_published":         workflow.ToolPublished,
 		"environment_variables":  workflow.EnvironmentVariables,
 		"conversation_variables": workflow.ConversationVariables,
+		"rag_pipeline_variables": workflow.RagPipelineVariables,
 		"version":                workflow.Version,
 		"marked_name":            workflow.MarkedName,
 		"marked_comment":         workflow.MarkedComment,

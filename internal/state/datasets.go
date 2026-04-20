@@ -11,8 +11,10 @@ import (
 )
 
 const (
+	datasetPermissionOnlyMe         = "only_me"
 	datasetPermissionAllTeamMembers = "all_team_members"
 	datasetRuntimeModeGeneral       = "general"
+	datasetRuntimeModeRAGPipeline   = "rag_pipeline"
 	datasetProviderLocal            = "local"
 	datasetProviderExternal         = "external"
 	documentIndexingStatusCompleted = "completed"
@@ -832,6 +834,11 @@ func (s *Store) DeleteDataset(datasetID, workspaceID string) (Dataset, error) {
 	}
 	removed := cloneDataset(s.state.Datasets[index])
 	s.state.Datasets = append(s.state.Datasets[:index], s.state.Datasets[index+1:]...)
+	if removed.PipelineID != "" {
+		if appIndex := s.findAppIndexLocked(removed.PipelineID, workspaceID); appIndex >= 0 {
+			s.state.Apps = append(s.state.Apps[:appIndex], s.state.Apps[appIndex+1:]...)
+		}
+	}
 	if err := s.saveLocked(); err != nil {
 		return Dataset{}, err
 	}

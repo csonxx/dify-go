@@ -39,6 +39,32 @@ type datasetCreateResponse struct {
 	ID string `json:"id"`
 }
 
+type ragPipelineDatasetResponse struct {
+	ID                string `json:"id"`
+	PipelineID        string `json:"pipeline_id"`
+	RuntimeMode       string `json:"runtime_mode"`
+	Permission        string `json:"permission"`
+	DocForm           string `json:"doc_form"`
+	IndexingTechnique string `json:"indexing_technique"`
+	IsPublished       bool   `json:"is_published"`
+}
+
+type workflowDraftResponse struct {
+	ID                   string           `json:"id"`
+	Hash                 string           `json:"hash"`
+	RagPipelineVariables []map[string]any `json:"rag_pipeline_variables"`
+}
+
+type workflowSyncResponse struct {
+	Result    string `json:"result"`
+	UpdatedAt int64  `json:"updated_at"`
+	Hash      string `json:"hash"`
+}
+
+type ragPipelineParametersResponse struct {
+	Variables []map[string]any `json:"variables"`
+}
+
 type externalKnowledgeAPIResponse struct {
 	ID       string `json:"id"`
 	Settings struct {
@@ -557,6 +583,128 @@ func TestExternalDatasetHitTestingValidatesQuery(t *testing.T) {
 	queryRecords := getJSON[datasetQueriesResponse](env, "/console/api/datasets/"+dataset.ID+"/queries?page=1&limit=20", true, http.StatusOK)
 	if len(queryRecords.Data) != 0 {
 		t.Fatalf("expected no stored query records after validation failures, got %+v", queryRecords.Data)
+	}
+}
+
+func TestCreateEmptyRAGPipelineDatasetAndDraftAliases(t *testing.T) {
+	env := newServerTestEnv(t)
+	env.setupAndLogin()
+
+	plugins := getJSON[[]any](env, "/console/api/rag/pipelines/datasource-plugins", true, http.StatusOK)
+	if len(plugins) != 0 {
+		t.Fatalf("expected empty datasource plugin list, got %+v", plugins)
+	}
+
+	dataset := postJSON[ragPipelineDatasetResponse](env, http.MethodPost, "/console/api/rag/pipeline/empty-dataset", nil, true, http.StatusCreated)
+	if dataset.ID == "" || dataset.PipelineID == "" {
+		t.Fatalf("expected dataset and pipeline ids, got %+v", dataset)
+	}
+	if dataset.RuntimeMode != "rag_pipeline" {
+		t.Fatalf("unexpected runtime mode: %+v", dataset)
+	}
+	if dataset.Permission != "only_me" {
+		t.Fatalf("unexpected permission: %+v", dataset)
+	}
+	if dataset.DocForm != "text_model" || dataset.IndexingTechnique != "high_quality" {
+		t.Fatalf("unexpected dataset defaults: %+v", dataset)
+	}
+
+	missingDraft := getJSON[errorResponse](env, "/console/api/rag/pipelines/"+dataset.PipelineID+"/workflows/draft", true, http.StatusNotFound)
+	if missingDraft.Code != "draft_workflow_not_exist" {
+		t.Fatalf("unexpected missing draft response: %+v", missingDraft)
+	}
+
+	sync := postJSON[workflowSyncResponse](env, http.MethodPost, "/console/api/rag/pipelines/"+dataset.PipelineID+"/workflows/draft", map[string]any{
+		"graph": map[string]any{
+			"nodes": []map[string]any{
+				{"id": "source-node", "data": map[string]any{"title": "Source"}},
+				{"id": "process-node", "data": map[string]any{"title": "Process"}},
+			},
+			"edges":    []any{},
+			"viewport": map[string]any{"x": 0, "y": 0, "zoom": 1},
+		},
+		"features": map[string]any{"opening_statement": "hello"},
+		"environment_variables": []map[string]any{
+			{"id": "env-limit", "name": "limit", "value_type": "number", "value": 5},
+		},
+		"conversation_variables": []map[string]any{
+			{"id": "conv-mode", "name": "mode", "value_type": "string", "value": "draft"},
+		},
+		"rag_pipeline_variables": []map[string]any{
+			{"belong_to_node_id": "shared", "label": "Shared Query", "variable": "shared_query", "type": "text-input", "required": true},
+			{"belong_to_node_id": "source-node", "label": "Source URL", "variable": "source_url", "type": "text-input", "required": true},
+			{"belong_to_node_id": "process-node", "label": "Chunk Size", "variable": "chunk_size", "type": "number", "required": false},
+		},
+	}, true, http.StatusOK)
+	if sync.Result != "success" || sync.Hash == "" || sync.UpdatedAt == 0 {
+		t.Fatalf("unexpected draft sync response: %+v", sync)
+	}
+
+	draft := getJSON[workflowDraftResponse](env, "/console/api/rag/pipelines/"+dataset.PipelineID+"/workflows/draft", true, http.StatusOK)
+	if draft.Hash == "" || len(draft.RagPipelineVariables) != 3 {
+		t.Fatalf("unexpected draft response: %+v", draft)
+	}
+
+	preProcessing := getJSON[ragPipelineParametersResponse](env, "/console/api/rag/pipelines/"+dataset.PipelineID+"/workflows/draft/pre-processing/parameters?node_id=source-node", true, http.StatusOK)
+	if len(preProcessing.Variables) != 2 {
+		t.Fatalf("expected shared + source-node parameters, got %+v", preProcessing.Variables)
+	}
+	if stringFromAny(preProcessing.Variables[0]["variable"]) != "shared_query" || stringFromAny(preProcessing.Variables[1]["variable"]) != "source_url" {
+		t.Fatalf("unexpected pre-processing variables: %+v", preProcessing.Variables)
+	}
+
+	processing := getJSON[ragPipelineParametersResponse](env, "/console/api/rag/pipelines/"+dataset.PipelineID+"/workflows/draft/processing/parameters?node_id=process-node", true, http.StatusOK)
+	if len(processing.Variables) != 2 {
+		t.Fatalf("expected shared + process-node parameters, got %+v", processing.Variables)
+	}
+	if stringFromAny(processing.Variables[0]["variable"]) != "shared_query" || stringFromAny(processing.Variables[1]["variable"]) != "chunk_size" {
+		t.Fatalf("unexpected processing variables: %+v", processing.Variables)
+	}
+}
+
+func TestRAGPipelinePublishReflectsDatasetStateAndDeleteCleansUpPipeline(t *testing.T) {
+	env := newServerTestEnv(t)
+	env.setupAndLogin()
+
+	dataset := postJSON[ragPipelineDatasetResponse](env, http.MethodPost, "/console/api/rag/pipeline/empty-dataset", nil, true, http.StatusCreated)
+	postJSON[workflowSyncResponse](env, http.MethodPost, "/console/api/rag/pipelines/"+dataset.PipelineID+"/workflows/draft", map[string]any{
+		"graph": map[string]any{
+			"nodes":    []map[string]any{{"id": "source-node", "data": map[string]any{"title": "Source"}}},
+			"edges":    []any{},
+			"viewport": map[string]any{"x": 0, "y": 0, "zoom": 1},
+		},
+		"features": map[string]any{},
+		"rag_pipeline_variables": []map[string]any{
+			{"belong_to_node_id": "shared", "label": "Shared Query", "variable": "shared_query", "type": "text-input", "required": true},
+			{"belong_to_node_id": "source-node", "label": "Source URL", "variable": "source_url", "type": "text-input", "required": true},
+		},
+	}, true, http.StatusOK)
+
+	postJSON[map[string]any](env, http.MethodPost, "/console/api/rag/pipelines/"+dataset.PipelineID+"/workflows/publish", map[string]any{
+		"marked_name":    "v1",
+		"marked_comment": "publish for integration test",
+	}, true, http.StatusOK)
+
+	published := getJSON[workflowDraftResponse](env, "/console/api/rag/pipelines/"+dataset.PipelineID+"/workflows/publish", true, http.StatusOK)
+	if len(published.RagPipelineVariables) != 2 {
+		t.Fatalf("unexpected published workflow response: %+v", published)
+	}
+
+	detail := getJSON[ragPipelineDatasetResponse](env, "/console/api/datasets/"+dataset.ID, true, http.StatusOK)
+	if !detail.IsPublished {
+		t.Fatalf("expected dataset detail to reflect published pipeline, got %+v", detail)
+	}
+
+	publishedParams := getJSON[ragPipelineParametersResponse](env, "/console/api/rag/pipelines/"+dataset.PipelineID+"/workflows/published/pre-processing/parameters?node_id=source-node", true, http.StatusOK)
+	if len(publishedParams.Variables) != 2 {
+		t.Fatalf("expected published parameters to include shared + node variables, got %+v", publishedParams.Variables)
+	}
+
+	postJSON[ragPipelineDatasetResponse](env, http.MethodDelete, "/console/api/datasets/"+dataset.ID, nil, true, http.StatusOK)
+
+	missingPipeline := getJSON[errorResponse](env, "/console/api/rag/pipelines/"+dataset.PipelineID+"/workflows/publish", true, http.StatusNotFound)
+	if missingPipeline.Code != "app_not_found" {
+		t.Fatalf("unexpected missing pipeline response after delete: %+v", missingPipeline)
 	}
 }
 

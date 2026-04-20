@@ -27,6 +27,7 @@ type WorkflowState struct {
 	ToolPublished         bool             `json:"tool_published"`
 	EnvironmentVariables  []map[string]any `json:"environment_variables"`
 	ConversationVariables []map[string]any `json:"conversation_variables"`
+	RagPipelineVariables  []map[string]any `json:"rag_pipeline_variables"`
 	Version               string           `json:"version"`
 	MarkedName            string           `json:"marked_name"`
 	MarkedComment         string           `json:"marked_comment"`
@@ -386,7 +387,7 @@ func (s *Store) CopyApp(id, workspaceID string, owner User, input CopyAppInput, 
 		draft.UpdatedAt = draft.CreatedAt
 		draft.UpdatedBy = owner.ID
 		draft.ToolPublished = original.WorkflowPublished != nil
-		draft.Hash = workflowHash(draft.Graph, draft.Features, draft.EnvironmentVariables, draft.ConversationVariables)
+		draft.Hash = workflowHash(draft.Graph, draft.Features, draft.EnvironmentVariables, draft.ConversationVariables, draft.RagPipelineVariables)
 		app.WorkflowDraft = &draft
 	}
 	if original.WorkflowPublished != nil {
@@ -396,7 +397,7 @@ func (s *Store) CopyApp(id, workspaceID string, owner User, input CopyAppInput, 
 		published.CreatedBy = owner.ID
 		published.UpdatedAt = published.CreatedAt
 		published.UpdatedBy = owner.ID
-		published.Hash = workflowHash(published.Graph, published.Features, published.EnvironmentVariables, published.ConversationVariables)
+		published.Hash = workflowHash(published.Graph, published.Features, published.EnvironmentVariables, published.ConversationVariables, published.RagPipelineVariables)
 		app.WorkflowPublished = &published
 	}
 	if len(original.WorkflowVersions) > 0 {

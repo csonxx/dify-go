@@ -832,6 +832,13 @@ func (s *server) datasetResponse(dataset state.Dataset) map[string]any {
 		}
 	}
 
+	isPublished := dataset.IsPublished
+	if dataset.PipelineID != "" {
+		if app, ok := s.store.GetApp(dataset.PipelineID, dataset.WorkspaceID); ok {
+			isPublished = app.WorkflowPublished != nil
+		}
+	}
+
 	return map[string]any{
 		"id":                        dataset.ID,
 		"name":                      dataset.Name,
@@ -875,7 +882,7 @@ func (s *server) datasetResponse(dataset state.Dataset) map[string]any {
 		"doc_metadata":           datasetMetadataDefinitionPayload(dataset.MetadataFields),
 		"keyword_number":         len(dataset.MetadataFields),
 		"pipeline_id":            nullIfEmpty(dataset.PipelineID),
-		"is_published":           dataset.IsPublished,
+		"is_published":           isPublished,
 		"runtime_mode":           firstNonEmpty(dataset.RuntimeMode, "general"),
 		"enable_api":             dataset.EnableAPI,
 		"is_multimodal":          dataset.IsMultimodal,

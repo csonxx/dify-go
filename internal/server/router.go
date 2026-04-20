@@ -28,6 +28,7 @@ const (
 type ctxKey string
 
 const userContextKey ctxKey = "user"
+const resolvedAppContextKey ctxKey = "resolved_app"
 
 type server struct {
 	cfg      config.Config
@@ -109,6 +110,7 @@ func (s *server) consoleRoutes() http.Handler {
 		s.mountWorkspaceToolRoutes(r)
 		s.mountWorkspaceExtensionRoutes(r)
 		s.mountWorkspacePluginRoutes(r)
+		s.mountRAGPipelineRoutes(r)
 		r.Get("/files/upload", s.handleUploadConfig)
 		r.Post("/files/upload", s.handleFileUpload)
 		r.Get("/files/support-type", s.handleFileSupportTypes)

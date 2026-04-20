@@ -209,6 +209,26 @@ The Go server keeps Dify's existing API prefixes so the frontend can continue ca
 - `GET /console/api/apps/{id}/workflow-runs/{runId}`
 - `GET /console/api/apps/{id}/workflow-runs/{runId}/node-executions`
 - `POST /console/api/apps/{id}/workflow-runs/tasks/{taskId}/stop`
+- `POST /console/api/rag/pipeline/empty-dataset`
+- `GET /console/api/rag/pipelines/datasource-plugins`
+- `GET|POST /console/api/rag/pipelines/{pipelineId}/workflows/draft`
+- `GET /console/api/rag/pipelines/{pipelineId}/workflows/default-workflow-block-configs`
+- `GET /console/api/rag/pipelines/{pipelineId}/workflows/default-workflow-block-configs/{blockType}`
+- `GET|POST /console/api/rag/pipelines/{pipelineId}/workflows/publish`
+- `GET /console/api/rag/pipelines/{pipelineId}/workflows`
+- `PATCH /console/api/rag/pipelines/{pipelineId}/workflows/{versionId}`
+- `DELETE /console/api/rag/pipelines/{pipelineId}/workflows/{versionId}`
+- `POST /console/api/rag/pipelines/{pipelineId}/workflows/{versionId}/restore`
+- `GET /console/api/rag/pipelines/{pipelineId}/workflows/draft/pre-processing/parameters`
+- `GET /console/api/rag/pipelines/{pipelineId}/workflows/published/pre-processing/parameters`
+- `GET /console/api/rag/pipelines/{pipelineId}/workflows/draft/processing/parameters`
+- `GET /console/api/rag/pipelines/{pipelineId}/workflows/published/processing/parameters`
+- `GET /console/api/rag/pipelines/{pipelineId}/workflow-runs`
+- `GET /console/api/rag/pipelines/{pipelineId}/workflow-runs/{runId}`
+- `GET /console/api/rag/pipelines/{pipelineId}/workflow-runs/{runId}/node-executions`
+- `POST /console/api/rag/pipelines/{pipelineId}/workflow-runs/tasks/{taskId}/stop`
+
+说明：这一批 route 会先把 `pipelineId` 解析到 Go 侧的 workflow app，再复用既有 workflow draft/publish/version/run 处理器；同时新增 `rag_pipeline_variables` 的持久化与参数过滤，空白 pipeline dataset 删除时也会同步回收绑定的 workflow app。
 - `GET /console/api/datasets/retrieval-setting`
 - `GET /console/api/datasets/process-rule`
 - `POST /console/api/datasets/indexing-estimate`
