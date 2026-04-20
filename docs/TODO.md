@@ -332,6 +332,7 @@
   当前已经支持 console/public 本地上传、`remote-files/upload`、以及 hit-testing 记录里的 `attachment_ids -> image_query -> file_info/source_url` 回写链路
 - [ ] 继续压缩知识库详情页剩余 fallback，优先补 provider-specific external retrieval 和 remote file 行为
 - [ ] 为 dataset metadata / segments / child chunks 增加更系统的集成测试覆盖
+  当前已经补上首批 Go HTTP 回归测试，覆盖 uploads、metadata field 更新、segment / child chunk 生命周期、batch import 和 hit-testing attachment query 记录
 
 ## 阶段 5：RAG Pipeline
 
