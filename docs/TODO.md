@@ -63,7 +63,7 @@
 
 ## 阶段 2：工作区扩展能力
 
-状态：进行中
+状态：已完成（兼容版）
 
 范围：
 
@@ -124,12 +124,33 @@
 - [x] `/workspaces/current/tool-provider/mcp/update/{providerId}`
 - [x] `/workspaces/current/agent-providers`
 - [x] `/workspaces/current/agent-provider/{agentProvider}`
+- [x] `/workspaces/current/endpoints/create`
+- [x] `/workspaces/current/endpoints/list`
+- [x] `/workspaces/current/endpoints/list/plugin`
+- [x] `/workspaces/current/endpoints/delete`
+- [x] `/workspaces/current/endpoints/update`
+- [x] `/workspaces/current/endpoints/enable`
+- [x] `/workspaces/current/endpoints/disable`
+- [x] `/workspaces/current/triggers`
+- [x] `/workspaces/current/trigger-provider/{provider}/icon`
+- [x] `/workspaces/current/trigger-provider/{provider}/info`
+- [x] `/workspaces/current/trigger-provider/{provider}/subscriptions/list`
+- [x] `/workspaces/current/trigger-provider/{provider}/subscriptions/builder/create`
+- [x] `/workspaces/current/trigger-provider/{provider}/subscriptions/builder/{subscriptionBuilderId}`
+- [x] `/workspaces/current/trigger-provider/{provider}/subscriptions/builder/update/{subscriptionBuilderId}`
+- [x] `/workspaces/current/trigger-provider/{provider}/subscriptions/builder/verify-and-update/{subscriptionBuilderId}`
+- [x] `/workspaces/current/trigger-provider/{provider}/subscriptions/builder/logs/{subscriptionBuilderId}`
+- [x] `/workspaces/current/trigger-provider/{provider}/subscriptions/builder/build/{subscriptionBuilderId}`
+- [x] `/workspaces/current/trigger-provider/{subscriptionId}/subscriptions/update`
+- [x] `/workspaces/current/trigger-provider/{subscriptionId}/subscriptions/delete`
+- [x] `/workspaces/current/trigger-provider/{provider}/oauth/client`
+- [x] `/workspaces/current/trigger-provider/{provider}/subscriptions/oauth/authorize`
+- [x] `/workspaces/current/trigger-provider/{provider}/subscriptions/verify/{subscriptionId}`
 
 本阶段剩余重点：
 
-- [ ] `/workspaces/current/endpoints/*`
-- [ ] `/workspaces/current/trigger-provider/*`
 - [ ] 更完整的 built-in/provider catalog 与真实 MCP/trigger/plugin 语义对齐
+- [ ] 更贴近真实插件运行时的 endpoint / trigger 执行语义、回调安全校验和 provider-specific 行为
 
 ## 阶段 3：插件平台
 

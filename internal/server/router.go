@@ -73,7 +73,7 @@ func New(cfg config.Config) (http.Handler, error) {
 	r.Mount("/files", s.compatOnlyRoutes())
 	r.Mount("/inner/api", s.compatOnlyRoutes())
 	r.Mount("/mcp", s.compatOnlyRoutes())
-	r.Mount("/trigger", s.compatOnlyRoutes())
+	r.Mount("/trigger", s.triggerRoutes())
 
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, "not_found", fmt.Sprintf("route %s was not found", r.URL.Path))
@@ -106,6 +106,7 @@ func (s *server) consoleRoutes() http.Handler {
 		r.Get("/workspaces/current/permission", s.handleWorkspacePermission)
 		s.mountWorkspaceModelRoutes(r)
 		s.mountWorkspaceToolRoutes(r)
+		s.mountWorkspaceExtensionRoutes(r)
 		r.Get("/files/upload", s.handleUploadConfig)
 		r.Get("/files/support-type", s.handleFileSupportTypes)
 		r.Get("/files/{fileID}/preview", s.handleFilePreview)

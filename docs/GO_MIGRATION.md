@@ -80,6 +80,28 @@ The Go server keeps Dify's existing API prefixes so the frontend can continue ca
 - `GET /console/api/workspaces/current/tool-provider/mcp/update/{providerId}`
 - `GET /console/api/workspaces/current/agent-providers`
 - `GET /console/api/workspaces/current/agent-provider/{agentProvider}`
+- `POST /console/api/workspaces/current/endpoints/create`
+- `GET /console/api/workspaces/current/endpoints/list`
+- `GET /console/api/workspaces/current/endpoints/list/plugin`
+- `POST /console/api/workspaces/current/endpoints/delete`
+- `POST /console/api/workspaces/current/endpoints/update`
+- `POST /console/api/workspaces/current/endpoints/enable`
+- `POST /console/api/workspaces/current/endpoints/disable`
+- `GET /console/api/workspaces/current/triggers`
+- `GET /console/api/workspaces/current/trigger-provider/{provider}/icon`
+- `GET /console/api/workspaces/current/trigger-provider/{provider}/info`
+- `GET /console/api/workspaces/current/trigger-provider/{provider}/subscriptions/list`
+- `POST /console/api/workspaces/current/trigger-provider/{provider}/subscriptions/builder/create`
+- `GET /console/api/workspaces/current/trigger-provider/{provider}/subscriptions/builder/{subscriptionBuilderId}`
+- `POST /console/api/workspaces/current/trigger-provider/{provider}/subscriptions/builder/update/{subscriptionBuilderId}`
+- `POST /console/api/workspaces/current/trigger-provider/{provider}/subscriptions/builder/verify-and-update/{subscriptionBuilderId}`
+- `GET /console/api/workspaces/current/trigger-provider/{provider}/subscriptions/builder/logs/{subscriptionBuilderId}`
+- `POST /console/api/workspaces/current/trigger-provider/{provider}/subscriptions/builder/build/{subscriptionBuilderId}`
+- `POST /console/api/workspaces/current/trigger-provider/{subscriptionId}/subscriptions/update`
+- `POST /console/api/workspaces/current/trigger-provider/{subscriptionId}/subscriptions/delete`
+- `GET|POST|DELETE /console/api/workspaces/current/trigger-provider/{provider}/oauth/client`
+- `GET /console/api/workspaces/current/trigger-provider/{provider}/subscriptions/oauth/authorize`
+- `POST /console/api/workspaces/current/trigger-provider/{provider}/subscriptions/verify/{subscriptionId}`
 - `GET /console/api/apps`
 - `POST /console/api/apps`
 - `GET /console/api/apps/{id}`
@@ -159,6 +181,9 @@ The Go server keeps Dify's existing API prefixes so the frontend can continue ca
 - `GET /api/system-features`
 - `GET /api/login/status`
 - `POST /api/logout`
+- `ANY /trigger/builders/{builderId}`
+- `ANY /trigger/subscriptions/{subscriptionId}`
+- `ANY /trigger/endpoints/{hookId}`
 
 ## Compatibility Mode
 

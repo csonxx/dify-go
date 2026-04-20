@@ -12,6 +12,8 @@ type WorkspaceToolSettings struct {
 	APIProviders      []WorkspaceAPIToolProvider      `json:"api_providers,omitempty"`
 	WorkflowProviders []WorkspaceWorkflowToolProvider `json:"workflow_providers,omitempty"`
 	MCPProviders      []WorkspaceMCPToolProvider      `json:"mcp_providers,omitempty"`
+	Endpoints         []WorkspaceEndpoint             `json:"endpoints,omitempty"`
+	TriggerProviders  []WorkspaceTriggerProviderState `json:"trigger_providers,omitempty"`
 }
 
 type WorkspaceBuiltinToolProvider struct {
@@ -214,6 +216,12 @@ func normalizeWorkspaceToolSettings(settings *WorkspaceToolSettings) {
 	if settings.MCPProviders == nil {
 		settings.MCPProviders = []WorkspaceMCPToolProvider{}
 	}
+	if settings.Endpoints == nil {
+		settings.Endpoints = []WorkspaceEndpoint{}
+	}
+	if settings.TriggerProviders == nil {
+		settings.TriggerProviders = []WorkspaceTriggerProviderState{}
+	}
 	for i := range settings.BuiltinProviders {
 		if settings.BuiltinProviders[i].Credentials == nil {
 			settings.BuiltinProviders[i].Credentials = map[string]any{}
@@ -237,6 +245,12 @@ func normalizeWorkspaceToolSettings(settings *WorkspaceToolSettings) {
 	}
 	for i := range settings.MCPProviders {
 		normalizeWorkspaceMCPProvider(&settings.MCPProviders[i])
+	}
+	for i := range settings.Endpoints {
+		normalizeWorkspaceEndpoint(&settings.Endpoints[i])
+	}
+	for i := range settings.TriggerProviders {
+		normalizeWorkspaceTriggerProviderState(&settings.TriggerProviders[i])
 	}
 }
 
@@ -941,6 +955,8 @@ func cloneWorkspaceToolSettings(src WorkspaceToolSettings) WorkspaceToolSettings
 		APIProviders:      make([]WorkspaceAPIToolProvider, len(src.APIProviders)),
 		WorkflowProviders: make([]WorkspaceWorkflowToolProvider, len(src.WorkflowProviders)),
 		MCPProviders:      make([]WorkspaceMCPToolProvider, len(src.MCPProviders)),
+		Endpoints:         make([]WorkspaceEndpoint, len(src.Endpoints)),
+		TriggerProviders:  make([]WorkspaceTriggerProviderState, len(src.TriggerProviders)),
 	}
 	for i, item := range src.BuiltinProviders {
 		dst.BuiltinProviders[i] = cloneWorkspaceBuiltinToolProvider(item)
@@ -953,6 +969,12 @@ func cloneWorkspaceToolSettings(src WorkspaceToolSettings) WorkspaceToolSettings
 	}
 	for i, item := range src.MCPProviders {
 		dst.MCPProviders[i] = cloneWorkspaceMCPToolProvider(item)
+	}
+	for i, item := range src.Endpoints {
+		dst.Endpoints[i] = cloneWorkspaceEndpoint(item)
+	}
+	for i, item := range src.TriggerProviders {
+		dst.TriggerProviders[i] = cloneWorkspaceTriggerProviderState(item)
 	}
 	return dst
 }
