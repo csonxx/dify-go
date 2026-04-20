@@ -143,60 +143,61 @@ type DatasetSegmentation struct {
 }
 
 type DatasetDocument struct {
-	ID                   string              `json:"id"`
-	Batch                string              `json:"batch"`
-	Position             int                 `json:"position"`
-	DatasetID            string              `json:"dataset_id"`
-	DataSourceType       string              `json:"data_source_type"`
-	DataSourceInfo       map[string]any      `json:"data_source_info"`
-	DatasetProcessRuleID string              `json:"dataset_process_rule_id"`
-	Name                 string              `json:"name"`
-	CreatedFrom          string              `json:"created_from"`
-	CreatedBy            string              `json:"created_by"`
-	CreatedAt            int64               `json:"created_at"`
-	IndexingStatus       string              `json:"indexing_status"`
-	DisplayStatus        string              `json:"display_status"`
-	CompletedSegments    int                 `json:"completed_segments"`
-	TotalSegments        int                 `json:"total_segments"`
-	DocForm              string              `json:"doc_form"`
-	DocLanguage          string              `json:"doc_language"`
-	SummaryIndexStatus   string              `json:"summary_index_status"`
-	Enabled              bool                `json:"enabled"`
-	WordCount            int                 `json:"word_count"`
-	Error                string              `json:"error"`
-	Archived             bool                `json:"archived"`
-	UpdatedAt            int64               `json:"updated_at"`
-	HitCount             int                 `json:"hit_count"`
-	DataSourceDetailDict map[string]any      `json:"data_source_detail_dict"`
-	DocMetadata          map[string]string   `json:"doc_metadata"`
-	MetadataValues       map[string]string   `json:"metadata_values"`
-	DatasetProcessRule   DatasetProcessRule  `json:"dataset_process_rule"`
-	DocumentProcessRule  DatasetProcessRule  `json:"document_process_rule"`
-	CreatedAPIRequestID  string              `json:"created_api_request_id"`
-	ProcessingStartedAt  int64               `json:"processing_started_at"`
-	ParsingCompletedAt   int64               `json:"parsing_completed_at"`
-	CleaningCompletedAt  int64               `json:"cleaning_completed_at"`
-	SplittingCompletedAt int64               `json:"splitting_completed_at"`
-	Tokens               int                 `json:"tokens"`
-	IndexingLatency      int64               `json:"indexing_latency"`
-	CompletedAt          int64               `json:"completed_at"`
-	PausedBy             string              `json:"paused_by"`
-	PausedAt             int64               `json:"paused_at"`
-	StoppedAt            int64               `json:"stopped_at"`
-	DisabledAt           int64               `json:"disabled_at"`
-	DisabledBy           string              `json:"disabled_by"`
-	ArchivedReason       string              `json:"archived_reason"`
-	ArchivedBy           string              `json:"archived_by"`
-	ArchivedAt           int64               `json:"archived_at"`
-	DocType              string              `json:"doc_type"`
-	SegmentCount         int                 `json:"segment_count"`
-	Content              string              `json:"content"`
-	SignContent          string              `json:"sign_content"`
-	Keywords             []string            `json:"keywords"`
-	Summary              string              `json:"summary"`
-	Attachments          []DatasetAttachment `json:"attachments"`
-	ChildChunks          []DatasetChildChunk `json:"child_chunks"`
-	Segments             []DatasetSegment    `json:"segments"`
+	ID                   string                      `json:"id"`
+	Batch                string                      `json:"batch"`
+	Position             int                         `json:"position"`
+	DatasetID            string                      `json:"dataset_id"`
+	DataSourceType       string                      `json:"data_source_type"`
+	DataSourceInfo       map[string]any              `json:"data_source_info"`
+	DatasetProcessRuleID string                      `json:"dataset_process_rule_id"`
+	Name                 string                      `json:"name"`
+	CreatedFrom          string                      `json:"created_from"`
+	CreatedBy            string                      `json:"created_by"`
+	CreatedAt            int64                       `json:"created_at"`
+	IndexingStatus       string                      `json:"indexing_status"`
+	DisplayStatus        string                      `json:"display_status"`
+	CompletedSegments    int                         `json:"completed_segments"`
+	TotalSegments        int                         `json:"total_segments"`
+	DocForm              string                      `json:"doc_form"`
+	DocLanguage          string                      `json:"doc_language"`
+	SummaryIndexStatus   string                      `json:"summary_index_status"`
+	Enabled              bool                        `json:"enabled"`
+	WordCount            int                         `json:"word_count"`
+	Error                string                      `json:"error"`
+	Archived             bool                        `json:"archived"`
+	UpdatedAt            int64                       `json:"updated_at"`
+	HitCount             int                         `json:"hit_count"`
+	DataSourceDetailDict map[string]any              `json:"data_source_detail_dict"`
+	DocMetadata          map[string]string           `json:"doc_metadata"`
+	MetadataValues       map[string]string           `json:"metadata_values"`
+	DatasetProcessRule   DatasetProcessRule          `json:"dataset_process_rule"`
+	DocumentProcessRule  DatasetProcessRule          `json:"document_process_rule"`
+	CreatedAPIRequestID  string                      `json:"created_api_request_id"`
+	ProcessingStartedAt  int64                       `json:"processing_started_at"`
+	ParsingCompletedAt   int64                       `json:"parsing_completed_at"`
+	CleaningCompletedAt  int64                       `json:"cleaning_completed_at"`
+	SplittingCompletedAt int64                       `json:"splitting_completed_at"`
+	Tokens               int                         `json:"tokens"`
+	IndexingLatency      int64                       `json:"indexing_latency"`
+	CompletedAt          int64                       `json:"completed_at"`
+	PausedBy             string                      `json:"paused_by"`
+	PausedAt             int64                       `json:"paused_at"`
+	StoppedAt            int64                       `json:"stopped_at"`
+	DisabledAt           int64                       `json:"disabled_at"`
+	DisabledBy           string                      `json:"disabled_by"`
+	ArchivedReason       string                      `json:"archived_reason"`
+	ArchivedBy           string                      `json:"archived_by"`
+	ArchivedAt           int64                       `json:"archived_at"`
+	DocType              string                      `json:"doc_type"`
+	SegmentCount         int                         `json:"segment_count"`
+	Content              string                      `json:"content"`
+	SignContent          string                      `json:"sign_content"`
+	Keywords             []string                    `json:"keywords"`
+	Summary              string                      `json:"summary"`
+	Attachments          []DatasetAttachment         `json:"attachments"`
+	ChildChunks          []DatasetChildChunk         `json:"child_chunks"`
+	Segments             []DatasetSegment            `json:"segments"`
+	PipelineExecutionLog DatasetPipelineExecutionLog `json:"pipeline_execution_log"`
 }
 
 type DatasetAttachment struct {
@@ -411,6 +412,7 @@ func normalizeDatasetDocument(document *DatasetDocument) {
 	for i := range document.Segments {
 		normalizeDatasetSegment(&document.Segments[i], document)
 	}
+	normalizeDatasetPipelineExecutionLog(&document.PipelineExecutionLog, *document)
 	syncDatasetDocumentFromSegments(document)
 }
 

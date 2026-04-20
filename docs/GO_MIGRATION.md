@@ -238,6 +238,9 @@ The Go server keeps Dify's existing API prefixes so the frontend can continue ca
 - `POST /console/api/datasets/{datasetId}/documents/generate-summary`
 - `GET /console/api/datasets/{datasetId}/documents/{documentId}`
 - `GET /console/api/datasets/{datasetId}/documents/{documentId}/download`
+- `GET /console/api/datasets/{datasetId}/documents/{documentId}/pipeline-execution-log`
+- `GET /console/api/datasets/{datasetId}/documents/{documentId}/notion/sync`
+- `GET /console/api/datasets/{datasetId}/documents/{documentId}/website-sync`
 - `PUT /console/api/datasets/{datasetId}/documents/{documentId}/metadata`
 - `GET /console/api/datasets/{datasetId}/documents/{documentId}/indexing-status`
 - `POST /console/api/datasets/{datasetId}/documents/{documentId}/rename`
@@ -263,6 +266,8 @@ The Go server keeps Dify's existing API prefixes so the frontend can continue ca
 说明：dataset 第二批迁移已经把 metadata、segment、child chunk 和 batch import 状态轮询接入 Go 状态文件，并通过真实 HTTP 冒烟验证了创建知识库、metadata CRUD、文档 metadata 更新、segment CRUD、child chunk CRUD 与 batch import 状态查询。
 
 补充：本轮继续把 external knowledge API CRUD、external dataset 创建、单文档下载和批量 zip 下载迁到 Go，并验证了 external API 绑定关系会随着更新/删除同步到 dataset 状态。
+
+补充：dataset 文档也已经具备 pipeline execution log 兼容状态，并通过真实 HTTP 冒烟验证了 local file / website / notion 三类 datasource 的 execution log 返回，以及 notion / website 的 sync 动作。
 - `GET /console/api/files/upload`
 - `GET /console/api/files/support-type`
 - `GET /console/api/files/{id}/preview`
