@@ -105,6 +105,7 @@ func (s *server) consoleRoutes() http.Handler {
 		r.Get("/workspaces", s.handleWorkspaces)
 		r.Get("/workspaces/current/permission", s.handleWorkspacePermission)
 		s.mountWorkspaceModelRoutes(r)
+		s.mountWorkspaceToolRoutes(r)
 		r.Get("/files/upload", s.handleUploadConfig)
 		r.Get("/files/support-type", s.handleFileSupportTypes)
 		r.Get("/files/{fileID}/preview", s.handleFilePreview)

@@ -158,8 +158,25 @@ flowchart LR
 - API Key
 - workflow draft/version/runtime
 - workspace model provider 配置
+- workspace tool provider、workflow tool、custom API tool、MCP provider 配置
 
 在迁移阶段，明确的状态模型比“最终形态的存储架构”更重要。
+
+## 5.5 Workspace 扩展能力状态
+
+第二阶段开始后，`internal/state` 里的 `Workspace` 不再只保存 model settings，还会把工作区级扩展能力放到独立的 `tool_settings` 里。
+
+当前已经落地的子域包括：
+
+- built-in tool provider 凭证状态
+- custom API tool provider 定义与 schema
+- workflow as tool provider 定义
+- MCP provider 配置、授权状态和已同步工具列表
+
+这样做有两个直接收益：
+
+- `tool-providers`、`tools/*` 这类聚合接口可以完全由 Go 侧自举，不再依赖 Python 查询工作区扩展状态。
+- workflow tool 和 MCP 这类前端强依赖“列表 + 详情 + CRUD + 授权状态”的能力，能够围绕同一份工作区状态做一致读写。
 
 ## 6. 请求处理流程
 
@@ -254,6 +271,18 @@ flowchart LR
 - 跨业务域关联最终会需要更强的存储模型
 
 这些都是真问题，但应该在迁移覆盖率起来之后再系统解决。
+
+## 8.4 工作区扩展状态为什么单独建模
+
+Tools、workflow-as-tool、MCP、agent strategy 这些能力表面上是不同页面，实质上都属于“工作区级扩展目录”。
+
+这批能力有几个共同点：
+
+- 前端会先拉 provider 列表，再按类型拉 tools，再进入单 provider 详情页。
+- 大多数页面同时依赖“配置状态”和“可消费的工具定义”。
+- 它们都更适合先做工作区本地状态聚合，再逐步替换成真实后端实现。
+
+所以当前 Go 侧没有把这些接口拆成彼此完全独立的临时实现，而是先统一落到 `Workspace.ToolSettings` 这层，再由 `internal/server/workspace_tools.go` 负责把状态转换成前端期待的数据结构。
 
 ## 9. 认证与 Session 设计
 

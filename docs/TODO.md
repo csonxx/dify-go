@@ -63,7 +63,7 @@
 
 ## 阶段 2：工作区扩展能力
 
-状态：待实现
+状态：进行中
 
 范围：
 
@@ -92,6 +92,44 @@
 - 工具选择和 provider 管理面板不再依赖 Python。
 - 插件 endpoint 管理可用。
 - 初始支持的 trigger provider 可以完成配置和订阅流程。
+
+本轮已完成的子范围：
+
+- [x] `/workspaces/current/tool-providers`
+- [x] `/workspaces/current/tools/builtin`
+- [x] `/workspaces/current/tools/api`
+- [x] `/workspaces/current/tools/workflow`
+- [x] `/workspaces/current/tools/mcp`
+- [x] `/workspaces/current/tool-provider/builtin/{provider}/tools`
+- [x] `/workspaces/current/tool-provider/builtin/{provider}/credentials_schema`
+- [x] `/workspaces/current/tool-provider/builtin/{provider}/credentials`
+- [x] `/workspaces/current/tool-provider/builtin/{provider}/update`
+- [x] `/workspaces/current/tool-provider/builtin/{provider}/delete`
+- [x] `/workspaces/current/tool-provider/api/add`
+- [x] `/workspaces/current/tool-provider/api/remote`
+- [x] `/workspaces/current/tool-provider/api/tools`
+- [x] `/workspaces/current/tool-provider/api/update`
+- [x] `/workspaces/current/tool-provider/api/delete`
+- [x] `/workspaces/current/tool-provider/api/get`
+- [x] `/workspaces/current/tool-provider/api/schema`
+- [x] `/workspaces/current/tool-provider/api/test/pre`
+- [x] `/workspaces/current/tool-provider/workflow/create`
+- [x] `/workspaces/current/tool-provider/workflow/update`
+- [x] `/workspaces/current/tool-provider/workflow/delete`
+- [x] `/workspaces/current/tool-provider/workflow/get`
+- [x] `/workspaces/current/tool-provider/workflow/tools`
+- [x] `/workspaces/current/tool-provider/mcp`
+- [x] `/workspaces/current/tool-provider/mcp/auth`
+- [x] `/workspaces/current/tool-provider/mcp/tools/{providerId}`
+- [x] `/workspaces/current/tool-provider/mcp/update/{providerId}`
+- [x] `/workspaces/current/agent-providers`
+- [x] `/workspaces/current/agent-provider/{agentProvider}`
+
+本阶段剩余重点：
+
+- [ ] `/workspaces/current/endpoints/*`
+- [ ] `/workspaces/current/trigger-provider/*`
+- [ ] 更完整的 built-in/provider catalog 与真实 MCP/trigger/plugin 语义对齐
 
 ## 阶段 3：插件平台
 

@@ -38,6 +38,7 @@ type Workspace struct {
 	TrialCreditsUsed    int                    `json:"trial_credits_used"`
 	NextCreditResetDate int64                  `json:"next_credit_reset_date"`
 	ModelSettings       WorkspaceModelSettings `json:"model_settings,omitempty"`
+	ToolSettings        WorkspaceToolSettings  `json:"tool_settings,omitempty"`
 }
 
 type State struct {
@@ -92,6 +93,7 @@ func Open(path string) (*Store, error) {
 	}
 	for i := range store.state.Workspaces {
 		normalizeWorkspaceModelSettings(&store.state.Workspaces[i].ModelSettings)
+		normalizeWorkspaceToolSettings(&store.state.Workspaces[i].ToolSettings)
 	}
 	if store.state.Apps == nil {
 		store.state.Apps = []App{}
