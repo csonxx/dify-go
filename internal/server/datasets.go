@@ -21,6 +21,8 @@ func (s *server) mountDatasetRoutes(r chi.Router) {
 	r.Post("/datasets/api-keys", s.handleDatasetAPIKeyCreate)
 	r.Delete("/datasets/api-keys/{keyID}", s.handleDatasetAPIKeyDelete)
 	r.Get("/datasets/external-knowledge-api", s.handleDatasetExternalKnowledgeAPIList)
+	r.Get("/datasets/metadata/built-in", s.handleDatasetBuiltInMetadataFields)
+	r.Get("/datasets/batch_import_status/{jobID}", s.handleDatasetBatchImportStatus)
 	r.Get("/datasets", s.handleDatasetList)
 	r.Post("/datasets", s.handleDatasetCreate)
 	r.Post("/datasets/init", s.handleDatasetInit)
@@ -32,16 +34,35 @@ func (s *server) mountDatasetRoutes(r chi.Router) {
 		r.Get("/related-apps", s.handleDatasetRelatedApps)
 		r.Post("/api-keys/enable", s.handleDatasetAPIEnable)
 		r.Post("/api-keys/disable", s.handleDatasetAPIDisable)
+		r.Get("/metadata", s.handleDatasetMetadataList)
+		r.Post("/metadata", s.handleDatasetMetadataCreate)
+		r.Patch("/metadata/{metadataID}", s.handleDatasetMetadataRename)
+		r.Delete("/metadata/{metadataID}", s.handleDatasetMetadataDelete)
+		r.Post("/metadata/built-in/enable", s.handleDatasetBuiltInMetadataEnable)
+		r.Post("/metadata/built-in/disable", s.handleDatasetBuiltInMetadataDisable)
 		r.Get("/documents", s.handleDatasetDocumentList)
 		r.Post("/documents", s.handleDatasetDocumentCreate)
 		r.Delete("/documents", s.handleDatasetDocumentDelete)
+		r.Post("/documents/metadata", s.handleDatasetDocumentMetadataBatchUpdate)
 		r.Patch("/documents/status/{action}/batch", s.handleDatasetDocumentBatchAction)
 		r.Post("/documents/generate-summary", s.handleDatasetDocumentGenerateSummary)
 		r.Get("/documents/{documentID}", s.handleDatasetDocumentDetail)
+		r.Put("/documents/{documentID}/metadata", s.handleDatasetDocumentMetadataUpdate)
 		r.Get("/documents/{documentID}/indexing-status", s.handleDatasetDocumentIndexingStatus)
 		r.Post("/documents/{documentID}/rename", s.handleDatasetDocumentRename)
 		r.Patch("/documents/{documentID}/processing/pause", s.handleDatasetDocumentPause)
 		r.Patch("/documents/{documentID}/processing/resume", s.handleDatasetDocumentResume)
+		r.Get("/documents/{documentID}/segments", s.handleDatasetSegmentList)
+		r.Delete("/documents/{documentID}/segments", s.handleDatasetSegmentDelete)
+		r.Post("/documents/{documentID}/segments/batch_import", s.handleDatasetSegmentBatchImport)
+		r.Post("/documents/{documentID}/segment", s.handleDatasetSegmentCreate)
+		r.Patch("/documents/{documentID}/segment/enable", s.handleDatasetSegmentEnable)
+		r.Patch("/documents/{documentID}/segment/disable", s.handleDatasetSegmentDisable)
+		r.Patch("/documents/{documentID}/segments/{segmentID}", s.handleDatasetSegmentUpdate)
+		r.Get("/documents/{documentID}/segments/{segmentID}/child_chunks", s.handleDatasetChildChunkList)
+		r.Post("/documents/{documentID}/segments/{segmentID}/child_chunks", s.handleDatasetChildChunkCreate)
+		r.Patch("/documents/{documentID}/segments/{segmentID}/child_chunks/{childChunkID}", s.handleDatasetChildChunkUpdate)
+		r.Delete("/documents/{documentID}/segments/{segmentID}/child_chunks/{childChunkID}", s.handleDatasetChildChunkDelete)
 		r.Get("/batch/{batchID}/indexing-status", s.handleDatasetBatchIndexingStatus)
 		r.Get("/auto-disable-logs", s.handleDatasetAutoDisableLogs)
 		r.Get("/queries", s.handleDatasetQueries)
@@ -291,7 +312,7 @@ func (s *server) handleDatasetInit(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, map[string]any{
 		"dataset":   s.datasetResponse(updatedDataset),
 		"batch":     batchID,
-		"documents": s.datasetDocumentListPayload(documents),
+		"documents": s.datasetDocumentListPayload(updatedDataset, documents),
 	})
 }
 
@@ -417,7 +438,7 @@ func (s *server) handleDatasetDocumentList(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
-		"data":     s.datasetDocumentListPayload(page.Data),
+		"data":     s.datasetDocumentListPayload(dataset, page.Data),
 		"has_more": page.HasMore,
 		"limit":    page.Limit,
 		"page":     page.Page,
@@ -453,7 +474,7 @@ func (s *server) handleDatasetDocumentCreate(w http.ResponseWriter, r *http.Requ
 	writeJSON(w, http.StatusCreated, map[string]any{
 		"dataset":   s.datasetResponse(updatedDataset),
 		"batch":     batchID,
-		"documents": s.datasetDocumentListPayload(documents),
+		"documents": s.datasetDocumentListPayload(updatedDataset, documents),
 	})
 }
 
@@ -495,7 +516,7 @@ func (s *server) handleDatasetDocumentDetail(w http.ResponseWriter, r *http.Requ
 		writeError(w, http.StatusNotFound, "document_not_found", "Document not found.")
 		return
 	}
-	writeJSON(w, http.StatusOK, s.datasetDocumentDetailResponse(dataset, document))
+	writeJSON(w, http.StatusOK, s.datasetDocumentDetailResponse(dataset, document, strings.TrimSpace(r.URL.Query().Get("metadata"))))
 }
 
 func (s *server) handleDatasetDocumentIndexingStatus(w http.ResponseWriter, r *http.Request) {
@@ -688,7 +709,7 @@ func (s *server) handleDatasetExternalHitTesting(w http.ResponseWriter, r *http.
 				"title":   title,
 				"score":   0.9,
 				"metadata": map[string]any{
-					"x-amz-bedrock-kb-source-uri":   endpoint,
+					"x-amz-bedrock-kb-source-uri":     endpoint,
 					"x-amz-bedrock-kb-data-source-id": firstNonEmpty(dataset.ExternalKnowledgeInfo.ExternalKnowledgeID, dataset.ID),
 				},
 			},
@@ -757,33 +778,33 @@ func (s *server) datasetResponse(dataset state.Dataset) map[string]any {
 	}
 
 	return map[string]any{
-		"id":                       dataset.ID,
-		"name":                     dataset.Name,
-		"indexing_status":          aggregateDatasetIndexingStatus(dataset),
-		"icon_info":                datasetIconInfoPayload(dataset.IconInfo),
-		"description":              dataset.Description,
-		"permission":               dataset.Permission,
-		"data_source_type":         nullIfEmpty(dataset.DataSourceType),
-		"indexing_technique":       nullIfEmpty(dataset.IndexingTechnique),
-		"author_name":              dataset.AuthorName,
-		"created_by":               dataset.CreatedBy,
-		"created_at":               dataset.CreatedAt,
-		"updated_by":               dataset.UpdatedBy,
-		"updated_at":               dataset.UpdatedAt,
-		"app_count":                s.store.DatasetUseCount(dataset.WorkspaceID, dataset.ID),
-		"doc_form":                 nullIfEmpty(dataset.DocForm),
-		"document_count":           totalDocuments,
-		"total_document_count":     totalDocuments,
+		"id":                        dataset.ID,
+		"name":                      dataset.Name,
+		"indexing_status":           aggregateDatasetIndexingStatus(dataset),
+		"icon_info":                 datasetIconInfoPayload(dataset.IconInfo),
+		"description":               dataset.Description,
+		"permission":                dataset.Permission,
+		"data_source_type":          nullIfEmpty(dataset.DataSourceType),
+		"indexing_technique":        nullIfEmpty(dataset.IndexingTechnique),
+		"author_name":               dataset.AuthorName,
+		"created_by":                dataset.CreatedBy,
+		"created_at":                dataset.CreatedAt,
+		"updated_by":                dataset.UpdatedBy,
+		"updated_at":                dataset.UpdatedAt,
+		"app_count":                 s.store.DatasetUseCount(dataset.WorkspaceID, dataset.ID),
+		"doc_form":                  nullIfEmpty(dataset.DocForm),
+		"document_count":            totalDocuments,
+		"total_document_count":      totalDocuments,
 		"total_available_documents": totalAvailableDocuments,
-		"word_count":               wordCount,
-		"provider":                 firstNonEmpty(dataset.Provider, "local"),
-		"embedding_model":          dataset.EmbeddingModel,
-		"embedding_model_provider": dataset.EmbeddingModelProvider,
-		"embedding_available":      dataset.EmbeddingAvailable,
-		"retrieval_model_dict":     datasetRetrievalModelPayload(dataset.RetrievalModel),
-		"retrieval_model":          datasetRetrievalModelPayload(dataset.RetrievalModel),
-		"tags":                     []any{},
-		"partial_member_list":      dataset.PartialMemberList,
+		"word_count":                wordCount,
+		"provider":                  firstNonEmpty(dataset.Provider, "local"),
+		"embedding_model":           dataset.EmbeddingModel,
+		"embedding_model_provider":  dataset.EmbeddingModelProvider,
+		"embedding_available":       dataset.EmbeddingAvailable,
+		"retrieval_model_dict":      datasetRetrievalModelPayload(dataset.RetrievalModel),
+		"retrieval_model":           datasetRetrievalModelPayload(dataset.RetrievalModel),
+		"tags":                      []any{},
+		"partial_member_list":       dataset.PartialMemberList,
 		"external_knowledge_info": map[string]any{
 			"external_knowledge_id":           nullIfEmpty(dataset.ExternalKnowledgeInfo.ExternalKnowledgeID),
 			"external_knowledge_api_id":       nullIfEmpty(dataset.ExternalKnowledgeInfo.ExternalKnowledgeAPIID),
@@ -796,8 +817,8 @@ func (s *server) datasetResponse(dataset state.Dataset) map[string]any {
 			"score_threshold_enabled": dataset.ExternalRetrievalModel.ScoreThresholdEnabled,
 		},
 		"built_in_field_enabled": dataset.BuiltInFieldEnabled,
-		"doc_metadata":           []any{},
-		"keyword_number":         0,
+		"doc_metadata":           datasetMetadataDefinitionPayload(dataset.MetadataFields),
+		"keyword_number":         len(dataset.MetadataFields),
 		"pipeline_id":            nullIfEmpty(dataset.PipelineID),
 		"is_published":           dataset.IsPublished,
 		"runtime_mode":           firstNonEmpty(dataset.RuntimeMode, "general"),
@@ -812,7 +833,7 @@ func (s *server) datasetResponse(dataset state.Dataset) map[string]any {
 	}
 }
 
-func (s *server) datasetDocumentListPayload(documents []state.DatasetDocument) []map[string]any {
+func (s *server) datasetDocumentListPayload(dataset state.Dataset, documents []state.DatasetDocument) []map[string]any {
 	data := make([]map[string]any, 0, len(documents))
 	for _, document := range documents {
 		data = append(data, map[string]any{
@@ -841,14 +862,14 @@ func (s *server) datasetDocumentListPayload(documents []state.DatasetDocument) [
 			"updated_at":              document.UpdatedAt,
 			"hit_count":               document.HitCount,
 			"data_source_detail_dict": cloneJSONObject(document.DataSourceDetailDict),
-			"doc_metadata":            cloneJSONObject(stringMapToAny(document.DocMetadata)),
+			"doc_metadata":            datasetDocumentMetadataListPayload(dataset, document, false),
 		})
 	}
 	return data
 }
 
-func (s *server) datasetDocumentDetailResponse(_ state.Dataset, document state.DatasetDocument) map[string]any {
-	response := s.datasetDocumentListPayload([]state.DatasetDocument{document})[0]
+func (s *server) datasetDocumentDetailResponse(dataset state.Dataset, document state.DatasetDocument, metadataMode string) map[string]any {
+	response := s.datasetDocumentListPayload(dataset, []state.DatasetDocument{document})[0]
 	response["created_api_request_id"] = document.CreatedAPIRequestID
 	response["processing_started_at"] = document.ProcessingStartedAt
 	response["parsing_completed_at"] = document.ParsingCompletedAt
@@ -867,25 +888,32 @@ func (s *server) datasetDocumentDetailResponse(_ state.Dataset, document state.D
 	response["archived_at"] = nullableInt64(document.ArchivedAt)
 	response["doc_type"] = nullIfEmpty(document.DocType)
 	response["segment_count"] = document.SegmentCount
+	response["average_segment_length"] = datasetAverageSegmentLength(document)
 	response["dataset_process_rule"] = datasetProcessRulePayload(document.DatasetProcessRule)
 	response["document_process_rule"] = datasetProcessRulePayload(document.DocumentProcessRule)
+	switch metadataMode {
+	case "only":
+		response["doc_metadata"] = datasetDocumentMetadataListPayload(dataset, document, true)
+	default:
+		response["doc_metadata"] = cloneJSONObject(stringMapToAny(document.DocMetadata))
+	}
 	return response
 }
 
 func (s *server) datasetDocumentIndexingStatusResponse(document state.DatasetDocument) map[string]any {
 	return map[string]any{
-		"id":                  document.ID,
-		"indexing_status":     document.IndexingStatus,
-		"processing_started_at": document.ProcessingStartedAt,
-		"parsing_completed_at": document.ParsingCompletedAt,
-		"cleaning_completed_at": document.CleaningCompletedAt,
+		"id":                     document.ID,
+		"indexing_status":        document.IndexingStatus,
+		"processing_started_at":  document.ProcessingStartedAt,
+		"parsing_completed_at":   document.ParsingCompletedAt,
+		"cleaning_completed_at":  document.CleaningCompletedAt,
 		"splitting_completed_at": document.SplittingCompletedAt,
-		"completed_at":         nullableInt64(document.CompletedAt),
-		"paused_at":            nullableInt64(document.PausedAt),
-		"error":                nullIfEmpty(document.Error),
-		"stopped_at":           nullableInt64(document.StoppedAt),
-		"completed_segments":   document.CompletedSegments,
-		"total_segments":       document.TotalSegments,
+		"completed_at":           nullableInt64(document.CompletedAt),
+		"paused_at":              nullableInt64(document.PausedAt),
+		"error":                  nullIfEmpty(document.Error),
+		"stopped_at":             nullableInt64(document.StoppedAt),
+		"completed_segments":     document.CompletedSegments,
+		"total_segments":         document.TotalSegments,
 	}
 }
 
@@ -900,8 +928,8 @@ func datasetIconInfoPayload(icon state.DatasetIconInfo) map[string]any {
 
 func datasetRetrievalModelPayload(model state.DatasetRetrievalModel) map[string]any {
 	return map[string]any{
-		"search_method":          firstNonEmpty(model.SearchMethod, "semantic_search"),
-		"reranking_enable":       model.RerankingEnable,
+		"search_method":    firstNonEmpty(model.SearchMethod, "semantic_search"),
+		"reranking_enable": model.RerankingEnable,
 		"reranking_model": map[string]any{
 			"reranking_provider_name": nullIfEmpty(model.RerankingModel.ProviderName),
 			"reranking_model_name":    nullIfEmpty(model.RerankingModel.ModelName),
@@ -1153,30 +1181,30 @@ func datasetHitResults(dataset state.Dataset, query string) []map[string]any {
 		document := item.document
 		results = append(results, map[string]any{
 			"segment": map[string]any{
-				"id":             "seg_" + document.ID,
-				"document":       map[string]any{"id": document.ID, "data_source_type": document.DataSourceType, "name": document.Name, "doc_type": firstNonEmpty(document.DocType, "others")},
-				"content":        document.Content,
-				"sign_content":   document.SignContent,
-				"position":       i + 1,
-				"word_count":     document.WordCount,
-				"tokens":         document.Tokens,
-				"keywords":       document.Keywords,
-				"hit_count":      document.HitCount,
+				"id":              "seg_" + document.ID,
+				"document":        map[string]any{"id": document.ID, "data_source_type": document.DataSourceType, "name": document.Name, "doc_type": firstNonEmpty(document.DocType, "others")},
+				"content":         document.Content,
+				"sign_content":    document.SignContent,
+				"position":        i + 1,
+				"word_count":      document.WordCount,
+				"tokens":          document.Tokens,
+				"keywords":        document.Keywords,
+				"hit_count":       document.HitCount,
 				"index_node_hash": document.ID,
-				"answer":         "",
+				"answer":          "",
 			},
 			"content": map[string]any{
-				"id":             "seg_" + document.ID,
-				"document":       map[string]any{"id": document.ID, "data_source_type": document.DataSourceType, "name": document.Name, "doc_type": firstNonEmpty(document.DocType, "others")},
-				"content":        document.Content,
-				"sign_content":   document.SignContent,
-				"position":       i + 1,
-				"word_count":     document.WordCount,
-				"tokens":         document.Tokens,
-				"keywords":       document.Keywords,
-				"hit_count":      document.HitCount,
+				"id":              "seg_" + document.ID,
+				"document":        map[string]any{"id": document.ID, "data_source_type": document.DataSourceType, "name": document.Name, "doc_type": firstNonEmpty(document.DocType, "others")},
+				"content":         document.Content,
+				"sign_content":    document.SignContent,
+				"position":        i + 1,
+				"word_count":      document.WordCount,
+				"tokens":          document.Tokens,
+				"keywords":        document.Keywords,
+				"hit_count":       document.HitCount,
 				"index_node_hash": document.ID,
-				"answer":         "",
+				"answer":          "",
 			},
 			"score": item.score,
 			"tsne_position": map[string]any{

@@ -225,7 +225,7 @@
 
 ## 阶段 4：知识库与 Dataset 主链路
 
-状态：进行中（基础主链路首批已落地）
+状态：进行中（主链路与 metadata/segment 第二批已落地）
 
 范围：
 
@@ -279,14 +279,30 @@
 - [x] `/datasets/{datasetId}/api-keys/enable`
 - [x] `/datasets/{datasetId}/api-keys/disable`
 - [x] `/datasets/{datasetId}/documents`
+- [x] `/datasets/{datasetId}/documents/metadata`
 - [x] `/datasets/{datasetId}/documents/status/{action}/batch`
 - [x] `/datasets/{datasetId}/documents/{documentId}`
+- [x] `/datasets/{datasetId}/documents/{documentId}/metadata`
 - [x] `/datasets/{datasetId}/documents/{documentId}/indexing-status`
 - [x] `/datasets/{datasetId}/documents/{documentId}/rename`
 - [x] `/datasets/{datasetId}/documents/{documentId}/processing/pause`
 - [x] `/datasets/{datasetId}/documents/{documentId}/processing/resume`
+- [x] `/datasets/{datasetId}/documents/{documentId}/segments`
+- [x] `/datasets/{datasetId}/documents/{documentId}/segment`
+- [x] `/datasets/{datasetId}/documents/{documentId}/segment/enable`
+- [x] `/datasets/{datasetId}/documents/{documentId}/segment/disable`
+- [x] `/datasets/{datasetId}/documents/{documentId}/segments/{segmentId}`
+- [x] `/datasets/{datasetId}/documents/{documentId}/segments/{segmentId}/child_chunks`
+- [x] `/datasets/{datasetId}/documents/{documentId}/segments/{segmentId}/child_chunks/{childChunkId}`
+- [x] `/datasets/{datasetId}/documents/{documentId}/segments/batch_import`
 - [x] `/datasets/{datasetId}/batch/{batchId}/indexing-status`
+- [x] `/datasets/batch_import_status/{jobId}`
 - [x] `/datasets/{datasetId}/auto-disable-logs`
+- [x] `/datasets/metadata/built-in`
+- [x] `/datasets/{datasetId}/metadata`
+- [x] `/datasets/{datasetId}/metadata/{metadataId}`
+- [x] `/datasets/{datasetId}/metadata/built-in/enable`
+- [x] `/datasets/{datasetId}/metadata/built-in/disable`
 - [x] `/datasets/{datasetId}/queries`
 - [x] `/datasets/{datasetId}/error-docs`
 - [x] `/datasets/{datasetId}/hit-testing`
@@ -296,10 +312,10 @@
 
 本阶段剩余重点：
 
-- [ ] 把 metadata、segments、child chunk、document detail 深水区接口完整迁进 Go
 - [ ] 把文档上传/下载、外部知识库、external API knowledge 等链路从兼容壳推进到真实语义
 - [ ] 收敛 dataset service API、索引状态流转、命中测试记录与后续 pipeline 之间的共享模型
-- [ ] 继续把知识库页面的前端 fallback 面压缩到可见且可枚举
+- [ ] 继续压缩知识库详情页剩余 fallback，优先补 `/documents/{id}/download`、外部知识源与更贴近真实的批量导入/附件语义
+- [ ] 为 dataset metadata / segments / child chunks 增加更系统的集成测试覆盖
 
 ## 阶段 5：RAG Pipeline
 

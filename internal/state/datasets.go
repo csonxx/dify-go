@@ -23,40 +23,55 @@ const (
 	documentDisplayStatusEnabled    = "enabled"
 	documentDisplayStatusDisabled   = "disabled"
 	documentDisplayStatusArchived   = "archived"
+	metadataTypeString              = "string"
+	metadataTypeNumber              = "number"
+	metadataTypeTime                = "time"
+	childChunkTypeAutomatic         = "automatic"
+	childChunkTypeCustomized        = "customized"
+	segmentStatusWaiting            = "waiting"
+	segmentStatusCompleted          = "completed"
+	segmentStatusError              = "error"
+	segmentStatusIndexing           = "indexing"
+	batchImportStatusWaiting        = "waiting"
+	batchImportStatusProcessing     = "processing"
+	batchImportStatusCompleted      = "completed"
+	batchImportStatusFailed         = "error"
 )
 
 type Dataset struct {
-	ID                    string                        `json:"id"`
-	WorkspaceID           string                        `json:"workspace_id"`
-	Name                  string                        `json:"name"`
-	Description           string                        `json:"description"`
-	Permission            string                        `json:"permission"`
-	DataSourceType        string                        `json:"data_source_type"`
-	IndexingTechnique     string                        `json:"indexing_technique"`
-	AuthorName            string                        `json:"author_name"`
-	CreatedBy             string                        `json:"created_by"`
-	UpdatedBy             string                        `json:"updated_by"`
-	CreatedAt             int64                         `json:"created_at"`
-	UpdatedAt             int64                         `json:"updated_at"`
-	DocForm               string                        `json:"doc_form"`
-	Provider              string                        `json:"provider"`
-	EmbeddingModel        string                        `json:"embedding_model"`
-	EmbeddingModelProvider string                       `json:"embedding_model_provider"`
-	EmbeddingAvailable    bool                          `json:"embedding_available"`
-	IconInfo              DatasetIconInfo               `json:"icon_info"`
-	RetrievalModel        DatasetRetrievalModel         `json:"retrieval_model"`
-	ExternalKnowledgeInfo DatasetExternalKnowledgeInfo  `json:"external_knowledge_info"`
+	ID                     string                        `json:"id"`
+	WorkspaceID            string                        `json:"workspace_id"`
+	Name                   string                        `json:"name"`
+	Description            string                        `json:"description"`
+	Permission             string                        `json:"permission"`
+	DataSourceType         string                        `json:"data_source_type"`
+	IndexingTechnique      string                        `json:"indexing_technique"`
+	AuthorName             string                        `json:"author_name"`
+	CreatedBy              string                        `json:"created_by"`
+	UpdatedBy              string                        `json:"updated_by"`
+	CreatedAt              int64                         `json:"created_at"`
+	UpdatedAt              int64                         `json:"updated_at"`
+	DocForm                string                        `json:"doc_form"`
+	Provider               string                        `json:"provider"`
+	EmbeddingModel         string                        `json:"embedding_model"`
+	EmbeddingModelProvider string                        `json:"embedding_model_provider"`
+	EmbeddingAvailable     bool                          `json:"embedding_available"`
+	IconInfo               DatasetIconInfo               `json:"icon_info"`
+	RetrievalModel         DatasetRetrievalModel         `json:"retrieval_model"`
+	ExternalKnowledgeInfo  DatasetExternalKnowledgeInfo  `json:"external_knowledge_info"`
 	ExternalRetrievalModel DatasetExternalRetrievalModel `json:"external_retrieval_model"`
-	BuiltInFieldEnabled   bool                          `json:"built_in_field_enabled"`
-	PartialMemberList     []string                      `json:"partial_member_list"`
-	RuntimeMode           string                        `json:"runtime_mode"`
-	EnableAPI             bool                          `json:"enable_api"`
-	IsPublished           bool                          `json:"is_published"`
-	IsMultimodal          bool                          `json:"is_multimodal"`
-	SummaryIndexSetting   DatasetSummaryIndexSetting    `json:"summary_index_setting"`
-	PipelineID            string                        `json:"pipeline_id"`
-	Documents             []DatasetDocument             `json:"documents"`
-	Queries               []DatasetQueryRecord          `json:"queries"`
+	BuiltInFieldEnabled    bool                          `json:"built_in_field_enabled"`
+	PartialMemberList      []string                      `json:"partial_member_list"`
+	RuntimeMode            string                        `json:"runtime_mode"`
+	EnableAPI              bool                          `json:"enable_api"`
+	IsPublished            bool                          `json:"is_published"`
+	IsMultimodal           bool                          `json:"is_multimodal"`
+	SummaryIndexSetting    DatasetSummaryIndexSetting    `json:"summary_index_setting"`
+	PipelineID             string                        `json:"pipeline_id"`
+	MetadataFields         []DatasetMetadataField        `json:"metadata_fields"`
+	BatchImportJobs        []DatasetBatchImportJob       `json:"batch_import_jobs"`
+	Documents              []DatasetDocument             `json:"documents"`
+	Queries                []DatasetQueryRecord          `json:"queries"`
 }
 
 type DatasetIconInfo struct {
@@ -67,14 +82,14 @@ type DatasetIconInfo struct {
 }
 
 type DatasetRetrievalModel struct {
-	SearchMethod          string                 `json:"search_method"`
-	RerankingEnable       bool                   `json:"reranking_enable"`
-	RerankingModel        DatasetProviderModel   `json:"reranking_model"`
-	TopK                  int                    `json:"top_k"`
-	ScoreThresholdEnabled bool                   `json:"score_threshold_enabled"`
-	ScoreThreshold        float64                `json:"score_threshold"`
-	RerankingMode         string                 `json:"reranking_mode,omitempty"`
-	Weights               map[string]any         `json:"weights,omitempty"`
+	SearchMethod          string               `json:"search_method"`
+	RerankingEnable       bool                 `json:"reranking_enable"`
+	RerankingModel        DatasetProviderModel `json:"reranking_model"`
+	TopK                  int                  `json:"top_k"`
+	ScoreThresholdEnabled bool                 `json:"score_threshold_enabled"`
+	ScoreThreshold        float64              `json:"score_threshold"`
+	RerankingMode         string               `json:"reranking_mode,omitempty"`
+	Weights               map[string]any       `json:"weights,omitempty"`
 }
 
 type DatasetProviderModel struct {
@@ -109,10 +124,10 @@ type DatasetProcessRule struct {
 }
 
 type DatasetProcessRuleSettings struct {
-	PreProcessingRules []DatasetPreProcessingRule `json:"pre_processing_rules"`
-	Segmentation       DatasetSegmentation        `json:"segmentation"`
-	ParentMode         string                     `json:"parent_mode"`
-	SubchunkSegmentation DatasetSegmentation      `json:"subchunk_segmentation"`
+	PreProcessingRules   []DatasetPreProcessingRule `json:"pre_processing_rules"`
+	Segmentation         DatasetSegmentation        `json:"segmentation"`
+	ParentMode           string                     `json:"parent_mode"`
+	SubchunkSegmentation DatasetSegmentation        `json:"subchunk_segmentation"`
 }
 
 type DatasetPreProcessingRule struct {
@@ -127,58 +142,60 @@ type DatasetSegmentation struct {
 }
 
 type DatasetDocument struct {
-	ID                  string                 `json:"id"`
-	Batch               string                 `json:"batch"`
-	Position            int                    `json:"position"`
-	DatasetID           string                 `json:"dataset_id"`
-	DataSourceType      string                 `json:"data_source_type"`
-	DataSourceInfo      map[string]any         `json:"data_source_info"`
-	DatasetProcessRuleID string                `json:"dataset_process_rule_id"`
-	Name                string                 `json:"name"`
-	CreatedFrom         string                 `json:"created_from"`
-	CreatedBy           string                 `json:"created_by"`
-	CreatedAt           int64                  `json:"created_at"`
-	IndexingStatus      string                 `json:"indexing_status"`
-	DisplayStatus       string                 `json:"display_status"`
-	CompletedSegments   int                    `json:"completed_segments"`
-	TotalSegments       int                    `json:"total_segments"`
-	DocForm             string                 `json:"doc_form"`
-	DocLanguage         string                 `json:"doc_language"`
-	SummaryIndexStatus  string                 `json:"summary_index_status"`
-	Enabled             bool                   `json:"enabled"`
-	WordCount           int                    `json:"word_count"`
-	Error               string                 `json:"error"`
-	Archived            bool                   `json:"archived"`
-	UpdatedAt           int64                  `json:"updated_at"`
-	HitCount            int                    `json:"hit_count"`
-	DataSourceDetailDict map[string]any        `json:"data_source_detail_dict"`
-	DocMetadata         map[string]string      `json:"doc_metadata"`
-	DatasetProcessRule  DatasetProcessRule     `json:"dataset_process_rule"`
-	DocumentProcessRule DatasetProcessRule     `json:"document_process_rule"`
-	CreatedAPIRequestID string                 `json:"created_api_request_id"`
-	ProcessingStartedAt int64                  `json:"processing_started_at"`
-	ParsingCompletedAt  int64                  `json:"parsing_completed_at"`
-	CleaningCompletedAt int64                  `json:"cleaning_completed_at"`
-	SplittingCompletedAt int64                 `json:"splitting_completed_at"`
-	Tokens              int                    `json:"tokens"`
-	IndexingLatency     int64                  `json:"indexing_latency"`
-	CompletedAt         int64                  `json:"completed_at"`
-	PausedBy            string                 `json:"paused_by"`
-	PausedAt            int64                  `json:"paused_at"`
-	StoppedAt           int64                  `json:"stopped_at"`
-	DisabledAt          int64                  `json:"disabled_at"`
-	DisabledBy          string                 `json:"disabled_by"`
-	ArchivedReason      string                 `json:"archived_reason"`
-	ArchivedBy          string                 `json:"archived_by"`
-	ArchivedAt          int64                  `json:"archived_at"`
-	DocType             string                 `json:"doc_type"`
-	SegmentCount        int                    `json:"segment_count"`
-	Content             string                 `json:"content"`
-	SignContent         string                 `json:"sign_content"`
-	Keywords            []string               `json:"keywords"`
-	Summary             string                 `json:"summary"`
-	Attachments         []DatasetAttachment    `json:"attachments"`
-	ChildChunks         []DatasetChildChunk    `json:"child_chunks"`
+	ID                   string              `json:"id"`
+	Batch                string              `json:"batch"`
+	Position             int                 `json:"position"`
+	DatasetID            string              `json:"dataset_id"`
+	DataSourceType       string              `json:"data_source_type"`
+	DataSourceInfo       map[string]any      `json:"data_source_info"`
+	DatasetProcessRuleID string              `json:"dataset_process_rule_id"`
+	Name                 string              `json:"name"`
+	CreatedFrom          string              `json:"created_from"`
+	CreatedBy            string              `json:"created_by"`
+	CreatedAt            int64               `json:"created_at"`
+	IndexingStatus       string              `json:"indexing_status"`
+	DisplayStatus        string              `json:"display_status"`
+	CompletedSegments    int                 `json:"completed_segments"`
+	TotalSegments        int                 `json:"total_segments"`
+	DocForm              string              `json:"doc_form"`
+	DocLanguage          string              `json:"doc_language"`
+	SummaryIndexStatus   string              `json:"summary_index_status"`
+	Enabled              bool                `json:"enabled"`
+	WordCount            int                 `json:"word_count"`
+	Error                string              `json:"error"`
+	Archived             bool                `json:"archived"`
+	UpdatedAt            int64               `json:"updated_at"`
+	HitCount             int                 `json:"hit_count"`
+	DataSourceDetailDict map[string]any      `json:"data_source_detail_dict"`
+	DocMetadata          map[string]string   `json:"doc_metadata"`
+	MetadataValues       map[string]string   `json:"metadata_values"`
+	DatasetProcessRule   DatasetProcessRule  `json:"dataset_process_rule"`
+	DocumentProcessRule  DatasetProcessRule  `json:"document_process_rule"`
+	CreatedAPIRequestID  string              `json:"created_api_request_id"`
+	ProcessingStartedAt  int64               `json:"processing_started_at"`
+	ParsingCompletedAt   int64               `json:"parsing_completed_at"`
+	CleaningCompletedAt  int64               `json:"cleaning_completed_at"`
+	SplittingCompletedAt int64               `json:"splitting_completed_at"`
+	Tokens               int                 `json:"tokens"`
+	IndexingLatency      int64               `json:"indexing_latency"`
+	CompletedAt          int64               `json:"completed_at"`
+	PausedBy             string              `json:"paused_by"`
+	PausedAt             int64               `json:"paused_at"`
+	StoppedAt            int64               `json:"stopped_at"`
+	DisabledAt           int64               `json:"disabled_at"`
+	DisabledBy           string              `json:"disabled_by"`
+	ArchivedReason       string              `json:"archived_reason"`
+	ArchivedBy           string              `json:"archived_by"`
+	ArchivedAt           int64               `json:"archived_at"`
+	DocType              string              `json:"doc_type"`
+	SegmentCount         int                 `json:"segment_count"`
+	Content              string              `json:"content"`
+	SignContent          string              `json:"sign_content"`
+	Keywords             []string            `json:"keywords"`
+	Summary              string              `json:"summary"`
+	Attachments          []DatasetAttachment `json:"attachments"`
+	ChildChunks          []DatasetChildChunk `json:"child_chunks"`
+	Segments             []DatasetSegment    `json:"segments"`
 }
 
 type DatasetAttachment struct {
@@ -191,10 +208,59 @@ type DatasetAttachment struct {
 }
 
 type DatasetChildChunk struct {
-	ID       string  `json:"id"`
-	Content  string  `json:"content"`
-	Position int     `json:"position"`
-	Score    float64 `json:"score"`
+	ID        string  `json:"id"`
+	SegmentID string  `json:"segment_id"`
+	Content   string  `json:"content"`
+	Position  int     `json:"position"`
+	Score     float64 `json:"score"`
+	WordCount int     `json:"word_count"`
+	CreatedAt int64   `json:"created_at"`
+	UpdatedAt int64   `json:"updated_at"`
+	Type      string  `json:"type"`
+}
+
+type DatasetMetadataField struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+	Type string `json:"type"`
+}
+
+type DatasetBatchImportJob struct {
+	ID         string `json:"id"`
+	DatasetID  string `json:"dataset_id"`
+	DocumentID string `json:"document_id"`
+	Status     string `json:"status"`
+	CreatedAt  int64  `json:"created_at"`
+	UpdatedAt  int64  `json:"updated_at"`
+}
+
+type DatasetSegment struct {
+	ID            string              `json:"id"`
+	Position      int                 `json:"position"`
+	DocumentID    string              `json:"document_id"`
+	Content       string              `json:"content"`
+	SignContent   string              `json:"sign_content"`
+	WordCount     int                 `json:"word_count"`
+	Tokens        int                 `json:"tokens"`
+	Keywords      []string            `json:"keywords"`
+	IndexNodeID   string              `json:"index_node_id"`
+	IndexNodeHash string              `json:"index_node_hash"`
+	HitCount      int                 `json:"hit_count"`
+	Enabled       bool                `json:"enabled"`
+	DisabledAt    int64               `json:"disabled_at"`
+	DisabledBy    string              `json:"disabled_by"`
+	Status        string              `json:"status"`
+	CreatedBy     string              `json:"created_by"`
+	CreatedAt     int64               `json:"created_at"`
+	IndexingAt    int64               `json:"indexing_at"`
+	CompletedAt   int64               `json:"completed_at"`
+	Error         string              `json:"error"`
+	StoppedAt     int64               `json:"stopped_at"`
+	Answer        string              `json:"answer"`
+	Summary       string              `json:"summary"`
+	ChildChunks   []DatasetChildChunk `json:"child_chunks"`
+	UpdatedAt     int64               `json:"updated_at"`
+	Attachments   []DatasetAttachment `json:"attachments"`
 }
 
 type DatasetQueryRecord struct {
@@ -282,6 +348,15 @@ func normalizeDataset(dataset *Dataset) {
 	if dataset.PartialMemberList == nil {
 		dataset.PartialMemberList = []string{}
 	}
+	if dataset.MetadataFields == nil {
+		dataset.MetadataFields = []DatasetMetadataField{}
+	}
+	for i := range dataset.MetadataFields {
+		normalizeDatasetMetadataField(&dataset.MetadataFields[i])
+	}
+	if dataset.BatchImportJobs == nil {
+		dataset.BatchImportJobs = []DatasetBatchImportJob{}
+	}
 	if dataset.Documents == nil {
 		dataset.Documents = []DatasetDocument{}
 	}
@@ -311,6 +386,9 @@ func normalizeDatasetDocument(document *DatasetDocument) {
 	if document.DocMetadata == nil {
 		document.DocMetadata = map[string]string{}
 	}
+	if document.MetadataValues == nil {
+		document.MetadataValues = map[string]string{}
+	}
 	if document.Keywords == nil {
 		document.Keywords = []string{}
 	}
@@ -319,6 +397,95 @@ func normalizeDatasetDocument(document *DatasetDocument) {
 	}
 	if document.ChildChunks == nil {
 		document.ChildChunks = []DatasetChildChunk{}
+	}
+	for i := range document.ChildChunks {
+		normalizeDatasetChildChunk(&document.ChildChunks[i], document.ID)
+	}
+	if document.Segments == nil {
+		document.Segments = []DatasetSegment{}
+	}
+	if len(document.Segments) == 0 && (document.Content != "" || len(document.ChildChunks) > 0 || len(document.Attachments) > 0) {
+		document.Segments = []DatasetSegment{datasetSegmentFromDocument(*document)}
+	}
+	for i := range document.Segments {
+		normalizeDatasetSegment(&document.Segments[i], document)
+	}
+	syncDatasetDocumentFromSegments(document)
+}
+
+func normalizeDatasetMetadataField(field *DatasetMetadataField) {
+	field.Name = strings.TrimSpace(field.Name)
+	switch strings.TrimSpace(field.Type) {
+	case metadataTypeNumber, metadataTypeTime:
+		field.Type = strings.TrimSpace(field.Type)
+	default:
+		field.Type = metadataTypeString
+	}
+}
+
+func normalizeDatasetChildChunk(chunk *DatasetChildChunk, segmentID string) {
+	chunk.SegmentID = firstNonEmpty(chunk.SegmentID, segmentID)
+	chunk.Content = strings.TrimSpace(chunk.Content)
+	if chunk.Position <= 0 {
+		chunk.Position = 1
+	}
+	if chunk.WordCount <= 0 {
+		chunk.WordCount = max(estimateWordCount(chunk.Content), 1)
+	}
+	if chunk.Type == "" {
+		chunk.Type = childChunkTypeAutomatic
+	}
+}
+
+func normalizeDatasetSegment(segment *DatasetSegment, document *DatasetDocument) {
+	segment.DocumentID = firstNonEmpty(segment.DocumentID, document.ID)
+	if segment.Position <= 0 {
+		segment.Position = 1
+	}
+	if segment.SignContent == "" {
+		segment.SignContent = segment.Content
+	}
+	if segment.WordCount <= 0 {
+		segment.WordCount = max(estimateWordCount(segment.Content), 1)
+	}
+	if segment.Tokens <= 0 {
+		segment.Tokens = estimateTokenCount(segment.Content)
+	}
+	if segment.Keywords == nil {
+		segment.Keywords = []string{}
+	}
+	if segment.Attachments == nil {
+		segment.Attachments = []DatasetAttachment{}
+	}
+	if segment.ChildChunks == nil {
+		segment.ChildChunks = []DatasetChildChunk{}
+	}
+	for i := range segment.ChildChunks {
+		normalizeDatasetChildChunk(&segment.ChildChunks[i], segment.ID)
+	}
+	if segment.Status == "" {
+		segment.Status = segmentStatusCompleted
+	}
+	if segment.CreatedBy == "" {
+		segment.CreatedBy = document.CreatedBy
+	}
+	if segment.CreatedAt == 0 {
+		segment.CreatedAt = firstNonZeroInt64(document.CreatedAt, document.UpdatedAt)
+	}
+	if segment.IndexingAt == 0 {
+		segment.IndexingAt = firstNonZeroInt64(document.ProcessingStartedAt, segment.CreatedAt)
+	}
+	if segment.CompletedAt == 0 && segment.Status == segmentStatusCompleted {
+		segment.CompletedAt = firstNonZeroInt64(document.CompletedAt, document.UpdatedAt, segment.CreatedAt)
+	}
+	if segment.UpdatedAt == 0 {
+		segment.UpdatedAt = firstNonZeroInt64(document.UpdatedAt, segment.CreatedAt)
+	}
+	if segment.IndexNodeID == "" {
+		segment.IndexNodeID = generateID("node")
+	}
+	if segment.IndexNodeHash == "" {
+		segment.IndexNodeHash = firstNonEmpty(segment.ID, document.ID)
 	}
 }
 
@@ -507,6 +674,8 @@ func (s *Store) CreateDataset(workspaceID string, user User, input CreateDataset
 		BuiltInFieldEnabled:    false,
 		PartialMemberList:      []string{},
 		RuntimeMode:            datasetRuntimeModeGeneral,
+		MetadataFields:         []DatasetMetadataField{},
+		BatchImportJobs:        []DatasetBatchImportJob{},
 		Documents:              []DatasetDocument{},
 		Queries:                []DatasetQueryRecord{},
 	}
@@ -814,6 +983,7 @@ func (s *Store) CreateDatasetDocuments(datasetID, workspaceID string, user User,
 			HitCount:             0,
 			DataSourceDetailDict: cloneMap(spec.DataSourceDetailDict),
 			DocMetadata:          map[string]string{},
+			MetadataValues:       map[string]string{},
 			DatasetProcessRule:   processRule,
 			DocumentProcessRule:  processRule,
 			CreatedAPIRequestID:  generateID("req"),
@@ -832,6 +1002,7 @@ func (s *Store) CreateDatasetDocuments(datasetID, workspaceID string, user User,
 			Summary:              firstNonEmpty(spec.Summary, "Go migration compatible dataset document"),
 			Attachments:          cloneDatasetAttachmentList(spec.Attachments),
 			ChildChunks:          cloneDatasetChildChunkList(spec.ChildChunks),
+			Segments:             []DatasetSegment{},
 		}
 		normalizeDatasetDocument(&document)
 		dataset.Documents = append(dataset.Documents, document)
@@ -1277,14 +1448,14 @@ func valueContainsString(value any, target string) bool {
 }
 
 type datasetDocumentSpec struct {
-	Name                string
-	Content             string
-	Summary             string
-	Keywords            []string
-	DataSourceInfo      map[string]any
+	Name                 string
+	Content              string
+	Summary              string
+	Keywords             []string
+	DataSourceInfo       map[string]any
 	DataSourceDetailDict map[string]any
-	Attachments         []DatasetAttachment
-	ChildChunks         []DatasetChildChunk
+	Attachments          []DatasetAttachment
+	ChildChunks          []DatasetChildChunk
 }
 
 func datasetDocumentSpecs(dataSourceType string, dataSource map[string]any, user User, timestamp int64, batchID string) []datasetDocumentSpec {
@@ -1365,12 +1536,12 @@ func notionDocumentSpecs(infoList map[string]any, user User, batchID string) []d
 					"credential_id": credentialID,
 					"workspace_id":  workspaceID,
 					"page": map[string]any{
-						"page_id":           pageID,
-						"page_name":         name,
-						"type":              pageType,
-						"parent_id":         "",
-						"page_icon":         stringValue(pageMap["page_icon"], ""),
-						"last_edited_time":  "",
+						"page_id":          pageID,
+						"page_name":        name,
+						"type":             pageType,
+						"parent_id":        "",
+						"page_icon":        stringValue(pageMap["page_icon"], ""),
+						"last_edited_time": "",
 					},
 					"job_id": batchID,
 				},

@@ -216,6 +216,8 @@ The Go server keeps Dify's existing API prefixes so the frontend can continue ca
 - `GET|POST /console/api/datasets/api-keys`
 - `DELETE /console/api/datasets/api-keys/{keyId}`
 - `GET /console/api/datasets/external-knowledge-api`
+- `GET /console/api/datasets/metadata/built-in`
+- `GET /console/api/datasets/batch_import_status/{jobId}`
 - `GET|POST /console/api/datasets`
 - `POST /console/api/datasets/init`
 - `GET|PATCH|DELETE /console/api/datasets/{datasetId}`
@@ -223,14 +225,28 @@ The Go server keeps Dify's existing API prefixes so the frontend can continue ca
 - `GET /console/api/datasets/{datasetId}/related-apps`
 - `POST /console/api/datasets/{datasetId}/api-keys/enable`
 - `POST /console/api/datasets/{datasetId}/api-keys/disable`
+- `GET|POST /console/api/datasets/{datasetId}/metadata`
+- `PATCH|DELETE /console/api/datasets/{datasetId}/metadata/{metadataId}`
+- `POST /console/api/datasets/{datasetId}/metadata/built-in/enable`
+- `POST /console/api/datasets/{datasetId}/metadata/built-in/disable`
 - `GET|POST|DELETE /console/api/datasets/{datasetId}/documents`
+- `POST /console/api/datasets/{datasetId}/documents/metadata`
 - `PATCH /console/api/datasets/{datasetId}/documents/status/{action}/batch`
 - `POST /console/api/datasets/{datasetId}/documents/generate-summary`
 - `GET /console/api/datasets/{datasetId}/documents/{documentId}`
+- `PUT /console/api/datasets/{datasetId}/documents/{documentId}/metadata`
 - `GET /console/api/datasets/{datasetId}/documents/{documentId}/indexing-status`
 - `POST /console/api/datasets/{datasetId}/documents/{documentId}/rename`
 - `PATCH /console/api/datasets/{datasetId}/documents/{documentId}/processing/pause`
 - `PATCH /console/api/datasets/{datasetId}/documents/{documentId}/processing/resume`
+- `GET|DELETE /console/api/datasets/{datasetId}/documents/{documentId}/segments`
+- `POST /console/api/datasets/{datasetId}/documents/{documentId}/segment`
+- `PATCH /console/api/datasets/{datasetId}/documents/{documentId}/segment/enable`
+- `PATCH /console/api/datasets/{datasetId}/documents/{documentId}/segment/disable`
+- `PATCH /console/api/datasets/{datasetId}/documents/{documentId}/segments/{segmentId}`
+- `GET|POST /console/api/datasets/{datasetId}/documents/{documentId}/segments/{segmentId}/child_chunks`
+- `PATCH|DELETE /console/api/datasets/{datasetId}/documents/{documentId}/segments/{segmentId}/child_chunks/{childChunkId}`
+- `POST /console/api/datasets/{datasetId}/documents/{documentId}/segments/batch_import`
 - `GET /console/api/datasets/{datasetId}/batch/{batchId}/indexing-status`
 - `GET /console/api/datasets/{datasetId}/auto-disable-logs`
 - `GET /console/api/datasets/{datasetId}/queries`
@@ -238,6 +254,8 @@ The Go server keeps Dify's existing API prefixes so the frontend can continue ca
 - `POST /console/api/datasets/{datasetId}/hit-testing`
 - `POST /console/api/datasets/{datasetId}/external-hit-testing`
 - `POST /console/api/datasets/{datasetId}/retry`
+
+说明：dataset 第二批迁移已经把 metadata、segment、child chunk 和 batch import 状态轮询接入 Go 状态文件，并通过真实 HTTP 冒烟验证了创建知识库、metadata CRUD、文档 metadata 更新、segment CRUD、child chunk CRUD 与 batch import 状态查询。
 - `GET /console/api/files/upload`
 - `GET /console/api/files/support-type`
 - `GET /console/api/files/{id}/preview`
