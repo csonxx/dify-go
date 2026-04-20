@@ -1,11 +1,14 @@
 package server
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/go-chi/chi/v5"
 
@@ -684,7 +687,11 @@ func (s *server) handleDatasetHitTesting(w http.ResponseWriter, r *http.Request)
 		writeError(w, http.StatusBadRequest, "invalid_request", "Invalid JSON payload.")
 		return
 	}
-	query := strings.TrimSpace(payload.Query)
+	query, err := validateDatasetHitTestingQuery(payload.Query, true)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_request", err.Error())
+		return
+	}
 	queryItems := s.datasetHitTestingQueryItems(dataset.WorkspaceID, query, payload.AttachmentIDs)
 	if len(queryItems) == 0 {
 		writeError(w, http.StatusBadRequest, "invalid_request", "Query or attachment_ids is required.")
@@ -715,13 +722,39 @@ func (s *server) handleDatasetExternalHitTesting(w http.ResponseWriter, r *http.
 	}
 
 	var payload struct {
-		Query string `json:"query"`
+		Query                  string `json:"query"`
+		ExternalRetrievalModel *struct {
+			TopK                  *int     `json:"top_k"`
+			ScoreThreshold        *float64 `json:"score_threshold"`
+			ScoreThresholdEnabled *bool    `json:"score_threshold_enabled"`
+		} `json:"external_retrieval_model"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid_request", "Invalid JSON payload.")
 		return
 	}
-	query := strings.TrimSpace(payload.Query)
+	query, err := validateDatasetHitTestingQuery(payload.Query, false)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_request", err.Error())
+		return
+	}
+
+	if strings.TrimSpace(dataset.Provider) != "external" {
+		writeJSON(w, http.StatusOK, map[string]any{
+			"query": map[string]any{
+				"content": query,
+			},
+			"records": []map[string]any{},
+		})
+		return
+	}
+
+	model := resolveDatasetExternalHitTestingModel(dataset.ExternalRetrievalModel, payload.ExternalRetrievalModel)
+	records, err := s.fetchDatasetExternalHitTestingRecords(r, dataset, query, model)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_request", err.Error())
+		return
+	}
 
 	record := state.DatasetQueryRecord{
 		Source: "hit_testing",
@@ -731,23 +764,11 @@ func (s *server) handleDatasetExternalHitTesting(w http.ResponseWriter, r *http.
 	}
 	_ = s.store.AddDatasetQueryRecord(dataset.ID, dataset.WorkspaceID, record, currentUser(r), time.Now())
 
-	endpoint := firstNonEmpty(dataset.ExternalKnowledgeInfo.ExternalKnowledgeAPIEndpoint, "https://example.com/knowledge")
-	title := firstNonEmpty(dataset.ExternalKnowledgeInfo.ExternalKnowledgeAPIName, dataset.Name, "External Knowledge")
 	writeJSON(w, http.StatusOK, map[string]any{
 		"query": map[string]any{
 			"content": query,
 		},
-		"records": []map[string]any{
-			{
-				"content": fmt.Sprintf("External compatible result for query %q from %s.", query, title),
-				"title":   title,
-				"score":   0.9,
-				"metadata": map[string]any{
-					"x-amz-bedrock-kb-source-uri":     endpoint,
-					"x-amz-bedrock-kb-data-source-id": firstNonEmpty(dataset.ExternalKnowledgeInfo.ExternalKnowledgeID, dataset.ID),
-				},
-			},
-		},
+		"records": records,
 	})
 }
 
@@ -1249,6 +1270,172 @@ func datasetHitTestingSearchText(items []state.DatasetQueryItem) string {
 		}
 	}
 	return strings.Join(parts, " ")
+}
+
+func validateDatasetHitTestingQuery(raw string, allowEmpty bool) (string, error) {
+	query := strings.TrimSpace(raw)
+	if query == "" {
+		if allowEmpty {
+			return "", nil
+		}
+		return "", fmt.Errorf("Query is required.")
+	}
+	if utf8.RuneCountInString(query) > 250 {
+		return "", fmt.Errorf("Query cannot exceed 250 characters.")
+	}
+	return query, nil
+}
+
+func resolveDatasetExternalHitTestingModel(base state.DatasetExternalRetrievalModel, override *struct {
+	TopK                  *int     `json:"top_k"`
+	ScoreThreshold        *float64 `json:"score_threshold"`
+	ScoreThresholdEnabled *bool    `json:"score_threshold_enabled"`
+}) state.DatasetExternalRetrievalModel {
+	model := base
+	if model.TopK <= 0 {
+		model.TopK = 4
+	}
+	if model.ScoreThreshold == 0 {
+		model.ScoreThreshold = 0.5
+	}
+	if override == nil {
+		return model
+	}
+	if override.TopK != nil && *override.TopK > 0 {
+		model.TopK = *override.TopK
+	}
+	if override.ScoreThreshold != nil {
+		model.ScoreThreshold = *override.ScoreThreshold
+	}
+	if override.ScoreThresholdEnabled != nil {
+		model.ScoreThresholdEnabled = *override.ScoreThresholdEnabled
+	}
+	return model
+}
+
+func (s *server) fetchDatasetExternalHitTestingRecords(r *http.Request, dataset state.Dataset, query string, model state.DatasetExternalRetrievalModel) ([]map[string]any, error) {
+	apiID := strings.TrimSpace(dataset.ExternalKnowledgeInfo.ExternalKnowledgeAPIID)
+	if apiID == "" {
+		return nil, fmt.Errorf("External knowledge API is not configured.")
+	}
+
+	api, ok := s.store.GetExternalKnowledgeAPI(dataset.WorkspaceID, apiID)
+	if !ok {
+		return nil, fmt.Errorf("External knowledge API not found.")
+	}
+
+	endpoint := strings.TrimRight(strings.TrimSpace(api.Endpoint), "/")
+	if endpoint == "" {
+		return nil, fmt.Errorf("External knowledge API endpoint is required.")
+	}
+
+	knowledgeID := strings.TrimSpace(dataset.ExternalKnowledgeInfo.ExternalKnowledgeID)
+	if knowledgeID == "" {
+		return nil, fmt.Errorf("External knowledge ID is required.")
+	}
+
+	scoreThreshold := 0.0
+	if model.ScoreThresholdEnabled {
+		scoreThreshold = model.ScoreThreshold
+	}
+
+	requestPayload := map[string]any{
+		"retrieval_setting": map[string]any{
+			"top_k":           model.TopK,
+			"score_threshold": scoreThreshold,
+		},
+		"query":              escapeDatasetHitTestingSearchQuery(query),
+		"knowledge_id":       knowledgeID,
+		"metadata_condition": nil,
+	}
+
+	body, err := json.Marshal(requestPayload)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to build external retrieval request.")
+	}
+
+	req, err := http.NewRequestWithContext(r.Context(), http.MethodPost, endpoint+"/retrieval", bytes.NewReader(body))
+	if err != nil {
+		return nil, fmt.Errorf("Failed to create external retrieval request.")
+	}
+	req.Header.Set("Content-Type", "application/json")
+	if apiKey := strings.TrimSpace(api.APIKey); apiKey != "" {
+		req.Header.Set("Authorization", "Bearer "+apiKey)
+	}
+
+	resp, err := (&http.Client{Timeout: 15 * time.Second}).Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to retrieve from external knowledge API: %v", err)
+	}
+	defer resp.Body.Close()
+
+	responseBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to read external knowledge API response.")
+	}
+	if resp.StatusCode != http.StatusOK {
+		message := strings.TrimSpace(string(responseBody))
+		if message == "" {
+			message = fmt.Sprintf("External knowledge API returned status %d.", resp.StatusCode)
+		}
+		return nil, fmt.Errorf("%s", message)
+	}
+
+	var response struct {
+		Records []struct {
+			Content  string         `json:"content"`
+			Title    string         `json:"title"`
+			Score    *float64       `json:"score"`
+			Metadata map[string]any `json:"metadata"`
+		} `json:"records"`
+	}
+	if err := json.Unmarshal(responseBody, &response); err != nil {
+		return nil, fmt.Errorf("Invalid external knowledge API response.")
+	}
+
+	records := make([]map[string]any, 0, len(response.Records))
+	for _, item := range response.Records {
+		if model.ScoreThresholdEnabled && item.Score != nil && *item.Score < model.ScoreThreshold {
+			continue
+		}
+
+		record := map[string]any{
+			"content":  item.Content,
+			"title":    externalHitTestingRecordTitle(dataset, item.Title, item.Metadata),
+			"score":    nil,
+			"metadata": nil,
+		}
+		if item.Score != nil {
+			record["score"] = *item.Score
+		}
+		if len(item.Metadata) > 0 {
+			record["metadata"] = item.Metadata
+		}
+		records = append(records, record)
+		if len(records) >= model.TopK {
+			break
+		}
+	}
+
+	return records, nil
+}
+
+func escapeDatasetHitTestingSearchQuery(query string) string {
+	return strings.ReplaceAll(query, `"`, `\"`)
+}
+
+func externalHitTestingRecordTitle(dataset state.Dataset, title string, metadata map[string]any) string {
+	title = strings.TrimSpace(title)
+	if title != "" {
+		return title
+	}
+	if source := strings.TrimSpace(stringFromAny(metadata["x-amz-bedrock-kb-source-uri"])); source != "" {
+		return source
+	}
+	if source := strings.TrimSpace(stringFromAny(metadata["source"])); source != "" {
+		return source
+	}
+	return firstNonEmpty(dataset.ExternalKnowledgeInfo.ExternalKnowledgeAPIName, dataset.Name, "External Knowledge")
 }
 
 func datasetHitResults(dataset state.Dataset, query string) []map[string]any {

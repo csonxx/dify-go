@@ -270,6 +270,8 @@ The Go server keeps Dify's existing API prefixes so the frontend can continue ca
 补充：dataset 文档也已经具备 pipeline execution log 兼容状态，并通过真实 HTTP 冒烟验证了 local file / website / notion 三类 datasource 的 execution log 返回，以及 notion / website 的 sync 动作。
 
 补充：文件上传现在已经走 Go 侧持久化存储，支持 console/public 本地上传、`remote-files/upload` 远程拉取入库，以及知识库 hit-testing 里 `attachment_ids` 到 `image_query.file_info` 的查询记录回写。
+
+补充：`/datasets/{datasetId}/external-hit-testing` 现在会按上游 external knowledge API 契约调用已绑定的 `endpoint/retrieval`，透传 `knowledge_id`、`top_k` 和 `score_threshold`，并用 Go HTTP 集成测试校验请求头、请求体、query 校验和命中记录写回。
 - `POST /console/api/remote-files/upload`
 - `GET|POST /console/api/files/upload`
 - `GET /console/api/files/support-type`

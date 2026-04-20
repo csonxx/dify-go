@@ -39,6 +39,14 @@ type datasetCreateResponse struct {
 	ID string `json:"id"`
 }
 
+type externalKnowledgeAPIResponse struct {
+	ID       string `json:"id"`
+	Settings struct {
+		Endpoint string `json:"endpoint"`
+		APIKey   string `json:"api_key"`
+	} `json:"settings"`
+}
+
 type datasetDocumentCreateResponse struct {
 	Batch     string `json:"batch"`
 	Documents []struct {
@@ -115,6 +123,18 @@ type datasetHitTestingResponse struct {
 	} `json:"query"`
 }
 
+type externalDatasetHitTestingResponse struct {
+	Query struct {
+		Content string `json:"content"`
+	} `json:"query"`
+	Records []struct {
+		Content  string         `json:"content"`
+		Title    string         `json:"title"`
+		Score    float64        `json:"score"`
+		Metadata map[string]any `json:"metadata"`
+	} `json:"records"`
+}
+
 type datasetQueriesResponse struct {
 	Data []struct {
 		Queries []struct {
@@ -123,6 +143,12 @@ type datasetQueriesResponse struct {
 			FileInfo    *datasetAttachmentResponse `json:"file_info"`
 		} `json:"queries"`
 	} `json:"data"`
+}
+
+type errorResponse struct {
+	Code    string `json:"code"`
+	Message string `json:"message"`
+	Status  int    `json:"status"`
 }
 
 func TestUploadsAndDatasetHitTestingAttachmentQueries(t *testing.T) {
@@ -353,6 +379,184 @@ func TestDatasetMetadataSegmentsChildChunksAndBatchImportFlows(t *testing.T) {
 	segments := getJSON[datasetSegmentListResponse](env, "/console/api/datasets/"+dataset.ID+"/documents/"+documentID+"/segments?page=1&limit=20", true, http.StatusOK)
 	if segments.Total != 4 {
 		t.Fatalf("expected 4 segments after import, got %+v", segments)
+	}
+}
+
+func TestExternalDatasetHitTestingUsesExternalAPIContract(t *testing.T) {
+	env := newServerTestEnv(t)
+	env.setupAndLogin()
+
+	var gotAuth string
+	var gotPath string
+	var gotDecodeErr error
+	var gotRequest struct {
+		RetrievalSetting struct {
+			TopK           int     `json:"top_k"`
+			ScoreThreshold float64 `json:"score_threshold"`
+		} `json:"retrieval_setting"`
+		Query             string `json:"query"`
+		KnowledgeID       string `json:"knowledge_id"`
+		MetadataCondition any    `json:"metadata_condition"`
+	}
+
+	externalKnowledgeServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotPath = r.URL.Path
+		gotAuth = r.Header.Get("Authorization")
+		defer r.Body.Close()
+		gotDecodeErr = json.NewDecoder(r.Body).Decode(&gotRequest)
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"records": []map[string]any{
+				{
+					"content": "alpha guide primary result",
+					"title":   "alpha.md",
+					"score":   0.95,
+					"metadata": map[string]any{
+						"x-amz-bedrock-kb-source-uri": "s3://kb/alpha.md",
+					},
+				},
+				{
+					"content": "alpha guide secondary result",
+					"title":   "beta.md",
+					"score":   0.72,
+					"metadata": map[string]any{
+						"x-amz-bedrock-kb-source-uri": "s3://kb/beta.md",
+					},
+				},
+				{
+					"content": "alpha guide low score result",
+					"title":   "gamma.md",
+					"score":   0.41,
+					"metadata": map[string]any{
+						"x-amz-bedrock-kb-source-uri": "s3://kb/gamma.md",
+					},
+				},
+			},
+		})
+	}))
+	defer externalKnowledgeServer.Close()
+
+	api := postJSON[externalKnowledgeAPIResponse](env, http.MethodPost, "/console/api/datasets/external-knowledge-api", map[string]any{
+		"name":        "Mock External KB",
+		"description": "integration test",
+		"settings": map[string]any{
+			"endpoint": externalKnowledgeServer.URL,
+			"api_key":  "secret-token",
+		},
+	}, true, http.StatusCreated)
+	if api.ID == "" {
+		t.Fatal("expected external knowledge api id")
+	}
+
+	dataset := postJSON[datasetCreateResponse](env, http.MethodPost, "/console/api/datasets/external", map[string]any{
+		"name":                      "External Dataset",
+		"description":               "integration test",
+		"external_knowledge_id":     "kb-alpha",
+		"external_knowledge_api_id": api.ID,
+		"external_retrieval_model": map[string]any{
+			"top_k":                   4,
+			"score_threshold":         0.5,
+			"score_threshold_enabled": false,
+		},
+	}, true, http.StatusCreated)
+
+	hitResult := postJSON[externalDatasetHitTestingResponse](env, http.MethodPost, "/console/api/datasets/"+dataset.ID+"/external-hit-testing", map[string]any{
+		"query": `guide "alpha"`,
+		"external_retrieval_model": map[string]any{
+			"top_k":                   2,
+			"score_threshold":         0.7,
+			"score_threshold_enabled": true,
+		},
+	}, true, http.StatusOK)
+
+	if gotDecodeErr != nil {
+		t.Fatalf("decode external retrieval request: %v", gotDecodeErr)
+	}
+	if gotPath != "/retrieval" {
+		t.Fatalf("unexpected external retrieval path: %q", gotPath)
+	}
+	if gotAuth != "Bearer secret-token" {
+		t.Fatalf("unexpected authorization header: %q", gotAuth)
+	}
+	if gotRequest.KnowledgeID != "kb-alpha" {
+		t.Fatalf("unexpected knowledge id: %+v", gotRequest)
+	}
+	if gotRequest.Query != `guide \"alpha\"` {
+		t.Fatalf("unexpected escaped query: %q", gotRequest.Query)
+	}
+	if gotRequest.RetrievalSetting.TopK != 2 || gotRequest.RetrievalSetting.ScoreThreshold != 0.7 {
+		t.Fatalf("unexpected retrieval setting: %+v", gotRequest.RetrievalSetting)
+	}
+	if hitResult.Query.Content != `guide "alpha"` {
+		t.Fatalf("unexpected hit testing query: %+v", hitResult.Query)
+	}
+	if len(hitResult.Records) != 2 {
+		t.Fatalf("expected threshold + top_k to keep 2 records, got %+v", hitResult.Records)
+	}
+	if hitResult.Records[0].Title != "alpha.md" || hitResult.Records[1].Title != "beta.md" {
+		t.Fatalf("unexpected external hit testing records: %+v", hitResult.Records)
+	}
+	if hitResult.Records[0].Metadata["x-amz-bedrock-kb-source-uri"] != "s3://kb/alpha.md" {
+		t.Fatalf("unexpected metadata passthrough: %+v", hitResult.Records[0].Metadata)
+	}
+
+	queryRecords := getJSON[datasetQueriesResponse](env, "/console/api/datasets/"+dataset.ID+"/queries?page=1&limit=1", true, http.StatusOK)
+	if len(queryRecords.Data) != 1 || len(queryRecords.Data[0].Queries) != 1 {
+		t.Fatalf("unexpected query records: %+v", queryRecords.Data)
+	}
+	if queryRecords.Data[0].Queries[0].ContentType != "text_query" || queryRecords.Data[0].Queries[0].Content != `guide "alpha"` {
+		t.Fatalf("unexpected stored query record: %+v", queryRecords.Data[0].Queries[0])
+	}
+}
+
+func TestExternalDatasetHitTestingValidatesQuery(t *testing.T) {
+	env := newServerTestEnv(t)
+	env.setupAndLogin()
+
+	requests := 0
+	externalKnowledgeServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests++
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{"records": []any{}})
+	}))
+	defer externalKnowledgeServer.Close()
+
+	api := postJSON[externalKnowledgeAPIResponse](env, http.MethodPost, "/console/api/datasets/external-knowledge-api", map[string]any{
+		"name": "Validation External KB",
+		"settings": map[string]any{
+			"endpoint": externalKnowledgeServer.URL,
+			"api_key":  "secret-token",
+		},
+	}, true, http.StatusCreated)
+
+	dataset := postJSON[datasetCreateResponse](env, http.MethodPost, "/console/api/datasets/external", map[string]any{
+		"name":                      "External Validation Dataset",
+		"external_knowledge_id":     "kb-validation",
+		"external_knowledge_api_id": api.ID,
+	}, true, http.StatusCreated)
+
+	emptyQuery := postJSON[errorResponse](env, http.MethodPost, "/console/api/datasets/"+dataset.ID+"/external-hit-testing", map[string]any{
+		"query": "   ",
+	}, true, http.StatusBadRequest)
+	if emptyQuery.Message != "Query is required." {
+		t.Fatalf("unexpected empty query error: %+v", emptyQuery)
+	}
+
+	longQuery := postJSON[errorResponse](env, http.MethodPost, "/console/api/datasets/"+dataset.ID+"/external-hit-testing", map[string]any{
+		"query": strings.Repeat("a", 251),
+	}, true, http.StatusBadRequest)
+	if longQuery.Message != "Query cannot exceed 250 characters." {
+		t.Fatalf("unexpected long query error: %+v", longQuery)
+	}
+
+	if requests != 0 {
+		t.Fatalf("expected validation to fail before external request, got %d outbound requests", requests)
+	}
+
+	queryRecords := getJSON[datasetQueriesResponse](env, "/console/api/datasets/"+dataset.ID+"/queries?page=1&limit=20", true, http.StatusOK)
+	if len(queryRecords.Data) != 0 {
+		t.Fatalf("expected no stored query records after validation failures, got %+v", queryRecords.Data)
 	}
 }
 

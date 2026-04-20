@@ -328,11 +328,12 @@
 本阶段剩余重点：
 
 - [ ] 把批量导入、外部知识库命中链路继续从兼容壳推进到更贴近上游的真实语义
+  当前 `external-hit-testing` 已经按上游契约请求外部 `endpoint/retrieval`，会透传 `knowledge_id`、`top_k`、`score_threshold`，并补上 query 校验与 HTTP 集成测试
 - [ ] 收敛 dataset service API、索引状态流转、命中测试记录与后续 pipeline 之间的共享模型
   当前已经支持 console/public 本地上传、`remote-files/upload`、以及 hit-testing 记录里的 `attachment_ids -> image_query -> file_info/source_url` 回写链路
 - [ ] 继续压缩知识库详情页剩余 fallback，优先补 provider-specific external retrieval 和 remote file 行为
 - [ ] 为 dataset metadata / segments / child chunks 增加更系统的集成测试覆盖
-  当前已经补上首批 Go HTTP 回归测试，覆盖 uploads、metadata field 更新、segment / child chunk 生命周期、batch import 和 hit-testing attachment query 记录
+  当前已经补上首批 Go HTTP 回归测试，覆盖 uploads、metadata field 更新、segment / child chunk 生命周期、batch import、hit-testing attachment query 记录，以及 external-hit-testing 的外部 API 契约
 
 ## 阶段 5：RAG Pipeline
 
