@@ -116,6 +116,8 @@ The Go server keeps Dify's existing API prefixes so the frontend can continue ca
 - `POST /console/api/workspaces/current/plugin/install/marketplace`
 - `GET /console/api/workspaces/current/plugin/marketplace/pkg`
 - `GET /console/api/workspaces/current/plugin/fetch-manifest`
+
+说明：`upload/bundle` 当前已经支持从 bundle 压缩包内的 JSON / YAML 依赖声明恢复 `marketplace/github/package` 三类兼容依赖。
 - `GET /console/api/workspaces/current/plugin/tasks`
 - `GET /console/api/workspaces/current/plugin/tasks/{taskId}`
 - `POST /console/api/workspaces/current/plugin/tasks/{taskId}/delete`
@@ -149,6 +151,8 @@ The Go server keeps Dify's existing API prefixes so the frontend can continue ca
 - `POST /console/api/apps/{id}/api-enable`
 - `POST /console/api/apps/{id}/site`
 - `POST /console/api/apps/{id}/site/access-token-reset`
+
+说明：app / pipeline 的 `check-dependencies` 已经切到 Go，并会基于现有 app model config 与 workflow graph 提取插件依赖。
 - `GET /console/api/apps/{id}/trace`
 - `POST /console/api/apps/{id}/trace`
 - `GET /console/api/apps/{id}/trace-config`

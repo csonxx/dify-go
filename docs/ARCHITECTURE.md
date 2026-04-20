@@ -215,9 +215,11 @@ flowchart LR
 
 当前这层仍然保留明确边界：
 
-- upload / install / upgrade 还没有做到真实包解析、bundle 依赖拆解和失败回滚。
+- upload / install / upgrade 还没有做到完整的真实包解析和失败回滚。
+  当前已经能从 bundle 压缩包内的 JSON / YAML 依赖声明恢复 `marketplace/github/package` 三类兼容依赖，但还没有接入真实 plugin daemon 的 bundle 语义。
 - dynamic options、权限校验和插件运行时行为还是兼容实现，不等同于完整的生产语义。
-- app / pipeline 的 dependency check 已经迁到 Go，但当前返回的是稳定兼容结构，后续再接入真实 DSL 依赖分析。
+- app / pipeline 的 dependency check 已经迁到 Go，并且会基于现有 app model config 与 workflow graph 提取插件依赖。
+  后续还需要把这层提取逻辑继续对齐到真实 DSL import pipeline 与 daemon 侧依赖分析。
 
 ## 6. 请求处理流程
 

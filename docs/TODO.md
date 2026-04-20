@@ -219,7 +219,8 @@
 本阶段剩余重点：
 
 - [ ] 接入真实 plugin daemon / marketplace 元数据，而不是当前兼容版的本地推导 manifest
-- [ ] 让 upload/install/upgrade 语义进一步贴近真实包解析、bundle 依赖拆解和失败回滚
+- [ ] 继续把 upload/install/upgrade 语义推进到真实包解析、bundle 依赖拆解和失败回滚
+  当前已经支持从 bundle 压缩包内的 JSON/YAML 依赖声明做兼容解析，并且 app/pipeline dependency check 会从现有 app model config 与 workflow graph 中提取插件依赖
 - [ ] 把 dynamic options、权限校验、README/asset/icon 等接口从兼容占位继续收敛到真实插件运行时行为
 
 ## 阶段 4：知识库与 Dataset 主链路
