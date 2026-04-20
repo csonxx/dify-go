@@ -127,7 +127,7 @@ func (s *server) handleRAGPipelineDatasourcePlugins(w http.ResponseWriter, r *ht
 		return
 	}
 
-	writeJSON(w, http.StatusOK, []any{})
+	writeJSON(w, http.StatusOK, s.ragPipelineDatasourcePlugins())
 }
 
 func (s *server) handleRAGPipelineDraftPreProcessingParameters(w http.ResponseWriter, r *http.Request) {

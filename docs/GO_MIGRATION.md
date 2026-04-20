@@ -244,6 +244,8 @@ The Go server keeps Dify's existing API prefixes so the frontend can continue ca
 补充：pipeline template 目录也已经迁到 Go。内置 built-in 模板现在由 Go 直接提供稳定目录，customized template 支持从当前 pipeline 发布、列表/详情查询、元信息更新、DSL 导出和删除；这些能力通过新的 `pipeline_templates` 持久化切片保存在本地状态文件里。
 
 补充：RAG pipeline 的 `published/run` 现已接到 Go，支持 published preview、首次创建文档、以及基于 `original_document_id` 的文档重处理；运行请求会同时把 datasource 和 processing inputs 写回 dataset document 的 pipeline execution log，前端 create-from-pipeline 与 document settings 可以直接复用这条链路。
+
+补充：`GET /console/api/rag/pipelines/datasource-plugins` 现在不再返回空兼容数组，而是由 Go 直接提供内置 datasource catalog，已覆盖 `local_file / online_document / website_crawl / online_drive` 四类 RAG pipeline 数据源，并复用了上游常见的 `plugin_id / provider_name / datasource_name` 标识，方便前端 block selector 和后续 datasource auth 迁移继续对齐。
 - `GET /console/api/datasets/retrieval-setting`
 - `GET /console/api/datasets/process-rule`
 - `POST /console/api/datasets/indexing-estimate`

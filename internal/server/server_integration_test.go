@@ -678,10 +678,60 @@ func TestCreateEmptyRAGPipelineDatasetAndDraftAliases(t *testing.T) {
 	env := newServerTestEnv(t)
 	env.setupAndLogin()
 
-	plugins := getJSON[[]any](env, "/console/api/rag/pipelines/datasource-plugins", true, http.StatusOK)
-	if len(plugins) != 0 {
-		t.Fatalf("expected empty datasource plugin list, got %+v", plugins)
+	plugins := getJSON[[]map[string]any](env, "/console/api/rag/pipelines/datasource-plugins", true, http.StatusOK)
+	if len(plugins) != 4 {
+		t.Fatalf("expected 4 datasource plugins, got %+v", plugins)
 	}
+
+	assertDatasourcePlugin := func(pluginID, providerType, provider, datasourceName string, authorized bool) {
+		t.Helper()
+
+		for _, plugin := range plugins {
+			if stringFromAny(plugin["plugin_id"]) != pluginID {
+				continue
+			}
+
+			if stringFromAny(plugin["provider"]) != provider {
+				t.Fatalf("unexpected provider for %s: %+v", pluginID, plugin)
+			}
+			if ragPipelineBoolValue(plugin["is_authorized"]) != authorized {
+				t.Fatalf("unexpected authorization state for %s: %+v", pluginID, plugin)
+			}
+
+			declaration := mapFromAny(plugin["declaration"])
+			if stringFromAny(declaration["provider_type"]) != providerType {
+				t.Fatalf("unexpected provider type for %s: %+v", pluginID, declaration)
+			}
+
+			identity := mapFromAny(declaration["identity"])
+			if stringFromAny(identity["name"]) != provider {
+				t.Fatalf("unexpected provider identity for %s: %+v", pluginID, identity)
+			}
+			if stringFromAny(plugin["plugin_unique_identifier"]) == "" {
+				t.Fatalf("expected plugin unique identifier for %s: %+v", pluginID, plugin)
+			}
+
+			datasources := objectListFromAny(declaration["datasources"])
+			if len(datasources) != 1 {
+				t.Fatalf("expected single datasource entry for %s: %+v", pluginID, datasources)
+			}
+			datasourceIdentity := mapFromAny(datasources[0]["identity"])
+			if stringFromAny(datasourceIdentity["name"]) != datasourceName {
+				t.Fatalf("unexpected datasource name for %s: %+v", pluginID, datasourceIdentity)
+			}
+			if stringFromAny(datasourceIdentity["provider"]) != provider {
+				t.Fatalf("unexpected datasource provider for %s: %+v", pluginID, datasourceIdentity)
+			}
+			return
+		}
+
+		t.Fatalf("expected datasource plugin %s in %+v", pluginID, plugins)
+	}
+
+	assertDatasourcePlugin("langgenius/file", "local_file", "file", "local-file", true)
+	assertDatasourcePlugin("langgenius/notion_datasource", "online_document", "notion_datasource", "notion_datasource", false)
+	assertDatasourcePlugin("langgenius/firecrawl_datasource", "website_crawl", "firecrawl", "crawl", false)
+	assertDatasourcePlugin("langgenius/google_drive", "online_drive", "google_drive", "google_drive", false)
 
 	dataset := postJSON[ragPipelineDatasetResponse](env, http.MethodPost, "/console/api/rag/pipeline/empty-dataset", nil, true, http.StatusCreated)
 	if dataset.ID == "" || dataset.PipelineID == "" {

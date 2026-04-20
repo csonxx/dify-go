@@ -337,7 +337,7 @@
 
 ## 阶段 5：RAG Pipeline
 
-状态：进行中（空白 dataset + workflow alias + DSL import/export + template/customized template + published run 第四批已落地）
+状态：进行中（空白 dataset + workflow alias + DSL import/export + template/customized template + datasource catalog + published run 第四批已落地）
 
 范围：
 
@@ -396,7 +396,8 @@
 本阶段剩余重点：
 
 - [ ] 继续把 published run 从当前兼容执行面推进到更贴近上游的真实 pipeline transform / batch job / node output 语义
-- [ ] 把 datasource plugin 列表从当前空兼容响应推进到真实 workspace plugin / datasource 发现语义
+- [x] 把 datasource plugin 列表从当前空兼容响应推进到 Go 侧可直接驱动前端的内置 datasource catalog
+- [ ] 继续把 datasource plugin 发现从当前内置 catalog 推进到更贴近上游的 workspace plugin / datasource credential 发现语义
 - [ ] 继续收敛 pipeline 与 dataset 之间的共享状态，让空白 dataset、publish 状态、execution log、文档处理流程完全共用 Go 模型
 
 补充：
@@ -406,6 +407,7 @@
 - 如果 DSL 的 `knowledge-index` 节点里带了 `chunk_structure`、`indexing_technique`、`retrieval_model`、`embedding_model(_provider)`、`summary_index_setting`，会同步回写到 dataset 状态，确保前端 dataset/pipeline 面板看到的是同一份配置。
 - Template 目录现在也已经落到 Go：内置 built-in 模板列表/详情由 Go 直接提供，customized template 支持发布、列表、详情、更新元信息、导出和删除。
 - Published run 现在已经支持 preview、首次创建文档、以及基于 `original_document_id` 的重处理，并且会把 `datasource_type / datasource_info / input_data / datasource_node_id` 落到 dataset document 的 pipeline execution log，前端 create-from-pipeline 和 document settings 都可以直接复用这条 Go 链路。
+- `/rag/pipelines/datasource-plugins` 现在会直接返回 Go 侧内置的 datasource catalog，已覆盖 `local_file / online_document / website_crawl / online_drive` 四类节点，前端 block selector 不再卡在空列表；后续再继续补 workspace plugin 安装态、credential 授权态和更完整的声明透传。
 
 ## 阶段 6：公共运行时 API
 
