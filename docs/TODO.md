@@ -308,13 +308,16 @@
 - [x] `/datasets/{datasetId}/hit-testing`
 - [x] `/datasets/{datasetId}/external-hit-testing`
 - [x] `/datasets/{datasetId}/retry`
-- [x] `/datasets/external-knowledge-api`
+- [x] `/datasets/external`
+- [x] `/datasets/external-knowledge-api*`
+- [x] `/datasets/{datasetId}/documents/{documentId}/download`
+- [x] `/datasets/{datasetId}/documents/download-zip`
 
 本阶段剩余重点：
 
-- [ ] 把文档上传/下载、外部知识库、external API knowledge 等链路从兼容壳推进到真实语义
+- [ ] 把文档上传、批量导入、附件和外部知识库命中链路继续从兼容壳推进到更贴近上游的真实语义
 - [ ] 收敛 dataset service API、索引状态流转、命中测试记录与后续 pipeline 之间的共享模型
-- [ ] 继续压缩知识库详情页剩余 fallback，优先补 `/documents/{id}/download`、外部知识源与更贴近真实的批量导入/附件语义
+- [ ] 继续压缩知识库详情页剩余 fallback，优先补更贴近真实的附件、pipeline execution log 和 provider-specific external retrieval 行为
 - [ ] 为 dataset metadata / segments / child chunks 增加更系统的集成测试覆盖
 
 ## 阶段 5：RAG Pipeline

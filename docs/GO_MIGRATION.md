@@ -215,7 +215,10 @@ The Go server keeps Dify's existing API prefixes so the frontend can continue ca
 - `GET /console/api/datasets/api-base-info`
 - `GET|POST /console/api/datasets/api-keys`
 - `DELETE /console/api/datasets/api-keys/{keyId}`
-- `GET /console/api/datasets/external-knowledge-api`
+- `POST /console/api/datasets/external`
+- `GET|POST /console/api/datasets/external-knowledge-api`
+- `GET|PATCH|DELETE /console/api/datasets/external-knowledge-api/{apiId}`
+- `GET /console/api/datasets/external-knowledge-api/{apiId}/use-check`
 - `GET /console/api/datasets/metadata/built-in`
 - `GET /console/api/datasets/batch_import_status/{jobId}`
 - `GET|POST /console/api/datasets`
@@ -234,11 +237,13 @@ The Go server keeps Dify's existing API prefixes so the frontend can continue ca
 - `PATCH /console/api/datasets/{datasetId}/documents/status/{action}/batch`
 - `POST /console/api/datasets/{datasetId}/documents/generate-summary`
 - `GET /console/api/datasets/{datasetId}/documents/{documentId}`
+- `GET /console/api/datasets/{datasetId}/documents/{documentId}/download`
 - `PUT /console/api/datasets/{datasetId}/documents/{documentId}/metadata`
 - `GET /console/api/datasets/{datasetId}/documents/{documentId}/indexing-status`
 - `POST /console/api/datasets/{datasetId}/documents/{documentId}/rename`
 - `PATCH /console/api/datasets/{datasetId}/documents/{documentId}/processing/pause`
 - `PATCH /console/api/datasets/{datasetId}/documents/{documentId}/processing/resume`
+- `POST /console/api/datasets/{datasetId}/documents/download-zip`
 - `GET|DELETE /console/api/datasets/{datasetId}/documents/{documentId}/segments`
 - `POST /console/api/datasets/{datasetId}/documents/{documentId}/segment`
 - `PATCH /console/api/datasets/{datasetId}/documents/{documentId}/segment/enable`
@@ -256,6 +261,8 @@ The Go server keeps Dify's existing API prefixes so the frontend can continue ca
 - `POST /console/api/datasets/{datasetId}/retry`
 
 说明：dataset 第二批迁移已经把 metadata、segment、child chunk 和 batch import 状态轮询接入 Go 状态文件，并通过真实 HTTP 冒烟验证了创建知识库、metadata CRUD、文档 metadata 更新、segment CRUD、child chunk CRUD 与 batch import 状态查询。
+
+补充：本轮继续把 external knowledge API CRUD、external dataset 创建、单文档下载和批量 zip 下载迁到 Go，并验证了 external API 绑定关系会随着更新/删除同步到 dataset 状态。
 - `GET /console/api/files/upload`
 - `GET /console/api/files/support-type`
 - `GET /console/api/files/{id}/preview`

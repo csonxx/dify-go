@@ -42,13 +42,14 @@ type Workspace struct {
 }
 
 type State struct {
-	SetupCompleted bool        `json:"setup_completed"`
-	SetupAt        string      `json:"setup_at"`
-	Users          []User      `json:"users"`
-	Workspaces     []Workspace `json:"workspaces"`
-	Apps           []App       `json:"apps"`
-	Datasets       []Dataset   `json:"datasets"`
-	APIKeys        []APIKey    `json:"api_keys"`
+	SetupCompleted        bool                   `json:"setup_completed"`
+	SetupAt               string                 `json:"setup_at"`
+	Users                 []User                 `json:"users"`
+	Workspaces            []Workspace            `json:"workspaces"`
+	Apps                  []App                  `json:"apps"`
+	Datasets              []Dataset              `json:"datasets"`
+	ExternalKnowledgeAPIs []ExternalKnowledgeAPI `json:"external_knowledge_apis"`
+	APIKeys               []APIKey               `json:"api_keys"`
 }
 
 type Store struct {
@@ -61,11 +62,12 @@ func Open(path string) (*Store, error) {
 	store := &Store{
 		path: path,
 		state: State{
-			Users:      []User{},
-			Workspaces: []Workspace{},
-			Apps:       []App{},
-			Datasets:   []Dataset{},
-			APIKeys:    []APIKey{},
+			Users:                 []User{},
+			Workspaces:            []Workspace{},
+			Apps:                  []App{},
+			Datasets:              []Dataset{},
+			ExternalKnowledgeAPIs: []ExternalKnowledgeAPI{},
+			APIKeys:               []APIKey{},
 		},
 	}
 
@@ -105,6 +107,12 @@ func Open(path string) (*Store, error) {
 	}
 	for i := range store.state.Datasets {
 		normalizeDataset(&store.state.Datasets[i])
+	}
+	if store.state.ExternalKnowledgeAPIs == nil {
+		store.state.ExternalKnowledgeAPIs = []ExternalKnowledgeAPI{}
+	}
+	for i := range store.state.ExternalKnowledgeAPIs {
+		normalizeExternalKnowledgeAPI(&store.state.ExternalKnowledgeAPIs[i])
 	}
 	if store.state.APIKeys == nil {
 		store.state.APIKeys = []APIKey{}

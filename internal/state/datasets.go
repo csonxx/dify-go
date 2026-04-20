@@ -14,6 +14,7 @@ const (
 	datasetPermissionAllTeamMembers = "all_team_members"
 	datasetRuntimeModeGeneral       = "general"
 	datasetProviderLocal            = "local"
+	datasetProviderExternal         = "external"
 	documentIndexingStatusCompleted = "completed"
 	documentIndexingStatusPaused    = "paused"
 	documentIndexingStatusError     = "error"
@@ -712,6 +713,22 @@ func (s *Store) PatchDataset(datasetID, workspaceID string, patch map[string]any
 			dataset.Permission = strings.TrimSpace(permission)
 		}
 	}
+	if value, ok := patch["partial_member_list"]; ok {
+		members := make([]string, 0)
+		for _, item := range anySlice(value) {
+			switch typed := item.(type) {
+			case string:
+				if trimmed := strings.TrimSpace(typed); trimmed != "" {
+					members = append(members, trimmed)
+				}
+			case map[string]any:
+				if userID := strings.TrimSpace(stringValue(typed["user_id"], "")); userID != "" {
+					members = append(members, userID)
+				}
+			}
+		}
+		dataset.PartialMemberList = members
+	}
 	if value, ok := patch["indexing_technique"]; ok {
 		if technique, ok := value.(string); ok {
 			dataset.IndexingTechnique = strings.TrimSpace(technique)
@@ -735,6 +752,11 @@ func (s *Store) PatchDataset(datasetID, workspaceID string, patch map[string]any
 	if value, ok := patch["runtime_mode"]; ok {
 		if runtimeMode, ok := value.(string); ok && strings.TrimSpace(runtimeMode) != "" {
 			dataset.RuntimeMode = strings.TrimSpace(runtimeMode)
+		}
+	}
+	if value, ok := patch["provider"]; ok {
+		if provider, ok := value.(string); ok && strings.TrimSpace(provider) != "" {
+			dataset.Provider = strings.TrimSpace(provider)
 		}
 	}
 	if value, ok := patch["is_published"]; ok {
@@ -770,9 +792,23 @@ func (s *Store) PatchDataset(datasetID, workspaceID string, patch map[string]any
 	if value, ok := patch["summary_index_setting"]; ok {
 		dataset.SummaryIndexSetting = parseDatasetSummaryIndexSetting(value)
 	}
+	if value, ok := patch["external_knowledge_id"]; ok {
+		if externalKnowledgeID, ok := value.(string); ok {
+			dataset.ExternalKnowledgeInfo.ExternalKnowledgeID = strings.TrimSpace(externalKnowledgeID)
+		}
+	}
+	if value, ok := patch["external_knowledge_api_id"]; ok {
+		if externalKnowledgeAPIID, ok := value.(string); ok {
+			dataset.ExternalKnowledgeInfo.ExternalKnowledgeAPIID = strings.TrimSpace(externalKnowledgeAPIID)
+		}
+	}
+	if value, ok := patch["external_retrieval_model"]; ok {
+		dataset.ExternalRetrievalModel = parseDatasetExternalRetrievalModel(value)
+	}
 
 	dataset.IconInfo = normalizeDatasetIconInfo(dataset.IconInfo, dataset.Name)
 	dataset.RetrievalModel = normalizeDatasetRetrievalModel(dataset.RetrievalModel)
+	s.hydrateDatasetExternalKnowledgeInfoLocked(&dataset)
 	dataset.ExternalRetrievalModel = normalizeDatasetExternalRetrievalModel(dataset.ExternalRetrievalModel)
 	dataset.UpdatedAt = now.UTC().Unix()
 	dataset.UpdatedBy = user.ID
@@ -1726,6 +1762,24 @@ func parseDatasetSummaryIndexSetting(value any) DatasetSummaryIndexSetting {
 		setting.Enable = enabled
 	}
 	return setting
+}
+
+func parseDatasetExternalRetrievalModel(value any) DatasetExternalRetrievalModel {
+	model := normalizeDatasetExternalRetrievalModel(DatasetExternalRetrievalModel{})
+	item := mapStringAny(value)
+	if len(item) == 0 {
+		return model
+	}
+	if topK, ok := item["top_k"].(float64); ok && int(topK) > 0 {
+		model.TopK = int(topK)
+	}
+	if threshold, ok := item["score_threshold"].(float64); ok {
+		model.ScoreThreshold = threshold
+	}
+	if enabled, ok := item["score_threshold_enabled"].(bool); ok {
+		model.ScoreThresholdEnabled = enabled
+	}
+	return normalizeDatasetExternalRetrievalModel(model)
 }
 
 func cloneDataset(src Dataset) Dataset {

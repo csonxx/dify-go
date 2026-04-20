@@ -20,7 +20,17 @@ func (s *server) mountDatasetRoutes(r chi.Router) {
 	r.Get("/datasets/api-keys", s.handleDatasetAPIKeyList)
 	r.Post("/datasets/api-keys", s.handleDatasetAPIKeyCreate)
 	r.Delete("/datasets/api-keys/{keyID}", s.handleDatasetAPIKeyDelete)
-	r.Get("/datasets/external-knowledge-api", s.handleDatasetExternalKnowledgeAPIList)
+	r.Post("/datasets/external", s.handleDatasetExternalCreate)
+	r.Route("/datasets/external-knowledge-api", func(r chi.Router) {
+		r.Get("/", s.handleDatasetExternalKnowledgeAPIList)
+		r.Post("/", s.handleDatasetExternalKnowledgeAPICreate)
+		r.Route("/{apiID}", func(r chi.Router) {
+			r.Get("/", s.handleDatasetExternalKnowledgeAPIDetail)
+			r.Patch("/", s.handleDatasetExternalKnowledgeAPIUpdate)
+			r.Delete("/", s.handleDatasetExternalKnowledgeAPIDelete)
+			r.Get("/use-check", s.handleDatasetExternalKnowledgeAPIUseCheck)
+		})
+	})
 	r.Get("/datasets/metadata/built-in", s.handleDatasetBuiltInMetadataFields)
 	r.Get("/datasets/batch_import_status/{jobID}", s.handleDatasetBatchImportStatus)
 	r.Get("/datasets", s.handleDatasetList)
@@ -43,10 +53,12 @@ func (s *server) mountDatasetRoutes(r chi.Router) {
 		r.Get("/documents", s.handleDatasetDocumentList)
 		r.Post("/documents", s.handleDatasetDocumentCreate)
 		r.Delete("/documents", s.handleDatasetDocumentDelete)
+		r.Post("/documents/download-zip", s.handleDatasetDocumentDownloadZip)
 		r.Post("/documents/metadata", s.handleDatasetDocumentMetadataBatchUpdate)
 		r.Patch("/documents/status/{action}/batch", s.handleDatasetDocumentBatchAction)
 		r.Post("/documents/generate-summary", s.handleDatasetDocumentGenerateSummary)
 		r.Get("/documents/{documentID}", s.handleDatasetDocumentDetail)
+		r.Get("/documents/{documentID}/download", s.handleDatasetDocumentDownload)
 		r.Put("/documents/{documentID}/metadata", s.handleDatasetDocumentMetadataUpdate)
 		r.Get("/documents/{documentID}/indexing-status", s.handleDatasetDocumentIndexingStatus)
 		r.Post("/documents/{documentID}/rename", s.handleDatasetDocumentRename)
@@ -215,12 +227,27 @@ func (s *server) handleDatasetAPIKeyDelete(w http.ResponseWriter, r *http.Reques
 }
 
 func (s *server) handleDatasetExternalKnowledgeAPIList(w http.ResponseWriter, r *http.Request) {
+	workspace, ok := s.currentUserWorkspace(r)
+	if !ok {
+		writeError(w, http.StatusNotFound, "workspace_not_found", "Workspace not found.")
+		return
+	}
+
+	page := s.store.ListExternalKnowledgeAPIs(
+		workspace.ID,
+		intQuery(r, "page", 1),
+		intQuery(r, "limit", 20),
+	)
+	data := make([]map[string]any, 0, len(page.Data))
+	for _, item := range page.Data {
+		data = append(data, s.externalKnowledgeAPIResponse(item))
+	}
 	writeJSON(w, http.StatusOK, map[string]any{
-		"data":     []any{},
-		"has_more": false,
-		"limit":    20,
-		"page":     1,
-		"total":    0,
+		"data":     data,
+		"has_more": page.HasMore,
+		"limit":    page.Limit,
+		"page":     page.Page,
+		"total":    page.Total,
 	})
 }
 
