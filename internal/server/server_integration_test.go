@@ -87,6 +87,50 @@ type ragPipelineImportResponse struct {
 	Error              string `json:"error"`
 }
 
+type publishedPipelineRunPreviewResponse struct {
+	TaskIOD       string `json:"task_iod"`
+	WorkflowRunID string `json:"workflow_run_id"`
+	Data          struct {
+		ID          string         `json:"id"`
+		Status      string         `json:"status"`
+		CreatedAt   int64          `json:"created_at"`
+		ElapsedTime float64        `json:"elapsed_time"`
+		Error       string         `json:"error"`
+		FinishedAt  int64          `json:"finished_at"`
+		Outputs     map[string]any `json:"outputs"`
+		TotalSteps  int            `json:"total_steps"`
+		TotalTokens int            `json:"total_tokens"`
+		WorkflowID  string         `json:"workflow_id"`
+	} `json:"data"`
+}
+
+type publishedPipelineRunResponse struct {
+	Batch   string `json:"batch"`
+	Dataset struct {
+		ID             string `json:"id"`
+		Name           string `json:"name"`
+		Description    string `json:"description"`
+		ChunkStructure string `json:"chunk_structure"`
+	} `json:"dataset"`
+	Documents []struct {
+		ID             string         `json:"id"`
+		DataSourceInfo map[string]any `json:"data_source_info"`
+		DataSourceType string         `json:"data_source_type"`
+		Enable         bool           `json:"enable"`
+		Error          string         `json:"error"`
+		IndexingStatus string         `json:"indexing_status"`
+		Name           string         `json:"name"`
+		Position       int            `json:"position"`
+	} `json:"documents"`
+}
+
+type pipelineExecutionLogResponse struct {
+	DatasourceInfo   map[string]any `json:"datasource_info"`
+	DatasourceType   string         `json:"datasource_type"`
+	InputData        map[string]any `json:"input_data"`
+	DatasourceNodeID string         `json:"datasource_node_id"`
+}
+
 type pipelineTemplateListResponse struct {
 	PipelineTemplates []struct {
 		ID             string         `json:"id"`
@@ -1063,6 +1107,156 @@ func TestRAGPipelineCustomizedTemplateCRUD(t *testing.T) {
 	listAfterDelete := getJSON[pipelineTemplateListResponse](env, "/console/api/rag/pipeline/templates?type=customized", true, http.StatusOK)
 	if len(listAfterDelete.PipelineTemplates) != 0 {
 		t.Fatalf("expected customized templates to be deleted, got %+v", listAfterDelete.PipelineTemplates)
+	}
+}
+
+func TestRAGPipelinePublishedRunCreatePreviewAndReprocess(t *testing.T) {
+	env := newServerTestEnv(t)
+	env.setupAndLogin()
+
+	dataset := postJSON[ragPipelineDatasetResponse](env, http.MethodPost, "/console/api/rag/pipeline/empty-dataset", nil, true, http.StatusCreated)
+	postJSON[workflowSyncResponse](env, http.MethodPost, "/console/api/rag/pipelines/"+dataset.PipelineID+"/workflows/draft", map[string]any{
+		"graph": map[string]any{
+			"nodes": []map[string]any{
+				{
+					"id": "knowledge-node",
+					"data": map[string]any{
+						"title":                    "Knowledge Index",
+						"type":                     "knowledge-index",
+						"chunk_structure":          "hierarchical_model",
+						"indexing_technique":       "high_quality",
+						"embedding_model":          "text-embedding-3-large",
+						"embedding_model_provider": "openai",
+						"retrieval_model": map[string]any{
+							"search_method":           "semantic_search",
+							"top_k":                   4,
+							"score_threshold_enabled": false,
+							"score_threshold":         0.5,
+						},
+						"summary_index_setting": map[string]any{
+							"enable": false,
+						},
+					},
+				},
+			},
+			"edges":    []any{},
+			"viewport": map[string]any{"x": 0, "y": 0, "zoom": 1},
+		},
+	}, true, http.StatusOK)
+	postJSON[map[string]any](env, http.MethodPost, "/console/api/rag/pipelines/"+dataset.PipelineID+"/workflows/publish", map[string]any{
+		"marked_name": "published-v1",
+	}, true, http.StatusOK)
+
+	upload := env.uploadFile("/console/api/files/upload", true, "pipeline-source.md", "text/markdown", []byte("# Pipeline Source\n\nhello rag pipeline\n"))
+	previewPayload := map[string]any{
+		"pipeline_id":     dataset.PipelineID,
+		"inputs":          ragPipelineRunInputs("Chinese", 800, true),
+		"start_node_id":   "datasource-local-file",
+		"datasource_type": "local_file",
+		"datasource_info_list": []map[string]any{{
+			"related_id": upload.ID,
+			"name":       upload.Name,
+			"extension":  "md",
+		}},
+		"is_preview": true,
+	}
+
+	preview := postJSON[publishedPipelineRunPreviewResponse](env, http.MethodPost, "/console/api/rag/pipelines/"+dataset.PipelineID+"/workflows/published/run", previewPayload, true, http.StatusOK)
+	if preview.TaskIOD == "" || preview.WorkflowRunID == "" || preview.Data.WorkflowID == "" {
+		t.Fatalf("expected preview workflow ids, got %+v", preview)
+	}
+	if preview.Data.Status != "succeeded" {
+		t.Fatalf("unexpected preview run status: %+v", preview.Data)
+	}
+	if totalNodes, ok := preview.Data.Outputs["total_nodes"].(float64); !ok || int(totalNodes) != 1 {
+		t.Fatalf("unexpected preview outputs: %+v", preview.Data.Outputs)
+	}
+
+	createPayload := map[string]any{
+		"pipeline_id":     dataset.PipelineID,
+		"inputs":          ragPipelineRunInputs("Chinese", 800, true),
+		"start_node_id":   "datasource-local-file",
+		"datasource_type": "local_file",
+		"datasource_info_list": []map[string]any{{
+			"related_id": upload.ID,
+			"name":       upload.Name,
+			"extension":  "md",
+		}},
+		"is_preview": false,
+	}
+	created := postJSON[publishedPipelineRunResponse](env, http.MethodPost, "/console/api/rag/pipelines/"+dataset.PipelineID+"/workflows/published/run", createPayload, true, http.StatusOK)
+	if created.Batch == "" || created.Dataset.ID != dataset.ID {
+		t.Fatalf("unexpected published run create response: %+v", created)
+	}
+	if len(created.Documents) != 1 || created.Documents[0].ID == "" {
+		t.Fatalf("expected one created document, got %+v", created.Documents)
+	}
+	if created.Documents[0].DataSourceType != "local_file" || !created.Documents[0].Enable {
+		t.Fatalf("unexpected initial document payload: %+v", created.Documents[0])
+	}
+	if created.Documents[0].Position != 1 {
+		t.Fatalf("expected first created document position to be 1, got %+v", created.Documents[0])
+	}
+
+	documentID := created.Documents[0].ID
+	executionLog := getJSON[pipelineExecutionLogResponse](env, "/console/api/datasets/"+dataset.ID+"/documents/"+documentID+"/pipeline-execution-log", true, http.StatusOK)
+	if executionLog.DatasourceType != "local_file" || executionLog.DatasourceNodeID != "datasource-local-file" {
+		t.Fatalf("unexpected execution log metadata: %+v", executionLog)
+	}
+	if stringFromAny(executionLog.DatasourceInfo["related_id"]) != upload.ID {
+		t.Fatalf("expected execution log to store uploaded file id, got %+v", executionLog.DatasourceInfo)
+	}
+	if stringFromAny(executionLog.InputData["doc_language"]) != "Chinese" {
+		t.Fatalf("expected execution log to persist doc language, got %+v", executionLog.InputData)
+	}
+	if enabled, ok := executionLog.InputData["remove_extra_spaces"].(bool); !ok || !enabled {
+		t.Fatalf("expected execution log to persist preprocessing flags, got %+v", executionLog.InputData)
+	}
+
+	reprocessPayload := map[string]any{
+		"pipeline_id":     dataset.PipelineID,
+		"inputs":          ragPipelineRunInputs("Japanese", 640, false),
+		"start_node_id":   "datasource-local-file-reprocess",
+		"datasource_type": "local_file",
+		"datasource_info_list": []map[string]any{{
+			"related_id": upload.ID,
+			"name":       upload.Name,
+			"extension":  "md",
+		}},
+		"original_document_id": documentID,
+		"is_preview":           false,
+	}
+	reprocessed := postJSON[publishedPipelineRunResponse](env, http.MethodPost, "/console/api/rag/pipelines/"+dataset.PipelineID+"/workflows/published/run", reprocessPayload, true, http.StatusOK)
+	if len(reprocessed.Documents) != 1 || reprocessed.Documents[0].ID != documentID {
+		t.Fatalf("expected reprocess to update existing document, got %+v", reprocessed.Documents)
+	}
+
+	reprocessedLog := getJSON[pipelineExecutionLogResponse](env, "/console/api/datasets/"+dataset.ID+"/documents/"+documentID+"/pipeline-execution-log", true, http.StatusOK)
+	if reprocessedLog.DatasourceNodeID != "datasource-local-file-reprocess" {
+		t.Fatalf("expected reprocess node id to persist, got %+v", reprocessedLog)
+	}
+	if stringFromAny(reprocessedLog.InputData["doc_language"]) != "Japanese" {
+		t.Fatalf("expected reprocess to update input data, got %+v", reprocessedLog.InputData)
+	}
+	if enabled, ok := reprocessedLog.InputData["remove_extra_spaces"].(bool); !ok || enabled {
+		t.Fatalf("expected updated preprocessing flag, got %+v", reprocessedLog.InputData)
+	}
+}
+
+func ragPipelineRunInputs(language string, chunkSize int, removeExtraSpaces bool) map[string]any {
+	return map[string]any{
+		"separator":              "\n\n",
+		"chunk_size":             chunkSize,
+		"chunk_overlap":          20,
+		"subchunk_separator":     "\n",
+		"subchunk_chunk_size":    200,
+		"subchunk_chunk_overlap": 20,
+		"parent_mode":            "paragraph",
+		"doc_language":           language,
+		"doc_form":               "hierarchical_model",
+		"summary_index_enabled":  false,
+		"remove_extra_spaces":    removeExtraSpaces,
+		"remove_urls_emails":     false,
 	}
 }
 

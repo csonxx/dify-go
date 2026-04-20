@@ -231,6 +231,7 @@ The Go server keeps Dify's existing API prefixes so the frontend can continue ca
 - `GET /console/api/rag/pipelines/{pipelineId}/workflows/published/pre-processing/parameters`
 - `GET /console/api/rag/pipelines/{pipelineId}/workflows/draft/processing/parameters`
 - `GET /console/api/rag/pipelines/{pipelineId}/workflows/published/processing/parameters`
+- `POST /console/api/rag/pipelines/{pipelineId}/workflows/published/run`
 - `GET /console/api/rag/pipelines/{pipelineId}/workflow-runs`
 - `GET /console/api/rag/pipelines/{pipelineId}/workflow-runs/{runId}`
 - `GET /console/api/rag/pipelines/{pipelineId}/workflow-runs/{runId}/node-executions`
@@ -241,6 +242,8 @@ The Go server keeps Dify's existing API prefixes so the frontend can continue ca
 补充：RAG pipeline DSL 现在已经可以在 Go 侧完成导出、导入和“从 DSL 创建 dataset”。导入时会把 `workflow.graph/features/environment_variables/conversation_variables/rag_pipeline_variables` 回写到 Go workflow draft；如果 DSL 中的 `knowledge-index` 节点带了知识库配置，也会同步更新 dataset 的 `doc_form/indexing_technique/retrieval_model/embedding_model/summary_index_setting`。
 
 补充：pipeline template 目录也已经迁到 Go。内置 built-in 模板现在由 Go 直接提供稳定目录，customized template 支持从当前 pipeline 发布、列表/详情查询、元信息更新、DSL 导出和删除；这些能力通过新的 `pipeline_templates` 持久化切片保存在本地状态文件里。
+
+补充：RAG pipeline 的 `published/run` 现已接到 Go，支持 published preview、首次创建文档、以及基于 `original_document_id` 的文档重处理；运行请求会同时把 datasource 和 processing inputs 写回 dataset document 的 pipeline execution log，前端 create-from-pipeline 与 document settings 可以直接复用这条链路。
 - `GET /console/api/datasets/retrieval-setting`
 - `GET /console/api/datasets/process-rule`
 - `POST /console/api/datasets/indexing-estimate`
@@ -356,5 +359,5 @@ The frontend already defaults to:
 
 - The Go backend currently uses a lightweight file-backed bootstrap store at `var/state.json`.
 - Session storage is in-memory for now.
-- Dataset external retrieval、bulk import semantics，以及 RAG pipeline 的 template/customized template、published run 等深层执行语义仍在继续迁移。
+- Dataset external retrieval、bulk import semantics，以及 RAG pipeline 的 datasource plugin 发现、真实 transform/batch 执行语义仍在继续迁移。
 - Most remaining business routes are still pending migration and should either be proxied to the Python backend or implemented next by priority.

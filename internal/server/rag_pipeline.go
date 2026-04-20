@@ -58,6 +58,7 @@ func (s *server) mountRAGPipelineRoutes(r chi.Router) {
 		r.Get("/workflows/default-workflow-block-configs/{blockType}", s.handleWorkflowDefaultBlockConfig)
 		r.Get("/workflows/publish", s.handleWorkflowPublishedGet)
 		r.Post("/workflows/publish", s.handleWorkflowPublish)
+		r.Post("/workflows/published/run", s.handleRAGPipelinePublishedRun)
 		r.Get("/workflows/published/pre-processing/parameters", s.handleRAGPipelinePublishedPreProcessingParameters)
 		r.Get("/workflows/published/processing/parameters", s.handleRAGPipelinePublishedProcessingParameters)
 		r.Get("/workflows", s.handleWorkflowVersionList)

@@ -331,6 +331,7 @@ type CreateDatasetDocumentInput struct {
 	ProcessRule            DatasetProcessRule
 	SummaryIndexSetting    DatasetSummaryIndexSetting
 	CreatedFrom            string
+	PipelineExecutionLogs  []DatasetPipelineExecutionLog
 }
 
 type RelatedAppSummary struct {
@@ -1049,6 +1050,9 @@ func (s *Store) CreateDatasetDocuments(datasetID, workspaceID string, user User,
 			ChildChunks:          cloneDatasetChildChunkList(spec.ChildChunks),
 			Segments:             []DatasetSegment{},
 		}
+		if i < len(input.PipelineExecutionLogs) {
+			document.PipelineExecutionLog = cloneDatasetPipelineExecutionLog(input.PipelineExecutionLogs[i])
+		}
 		normalizeDatasetDocument(&document)
 		dataset.Documents = append(dataset.Documents, document)
 		created = append(created, cloneDatasetDocument(document))
@@ -1079,6 +1083,121 @@ func (s *Store) CreateDatasetDocuments(datasetID, workspaceID string, user User,
 		return "", nil, Dataset{}, err
 	}
 	return batchID, created, cloneDataset(dataset), nil
+}
+
+func (s *Store) UpdateDatasetDocumentFromInput(datasetID, workspaceID, documentID string, user User, input CreateDatasetDocumentInput, now time.Time) (string, DatasetDocument, Dataset, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	datasetIndex := s.findDatasetIndexLocked(datasetID, workspaceID)
+	if datasetIndex < 0 {
+		return "", DatasetDocument{}, Dataset{}, fmt.Errorf("dataset not found")
+	}
+	documentIndex := findDatasetDocumentIndexLocked(&s.state.Datasets[datasetIndex], documentID)
+	if documentIndex < 0 {
+		return "", DatasetDocument{}, Dataset{}, fmt.Errorf("document not found")
+	}
+
+	dataset := s.state.Datasets[datasetIndex]
+	existing := s.state.Datasets[datasetIndex].Documents[documentIndex]
+	timestamp := now.UTC().Unix()
+	batchID := generateID("batch")
+	processRule := normalizeDatasetProcessRule(input.ProcessRule)
+	if processRule.Mode == "" {
+		processRule = defaultDatasetProcessRule()
+	}
+	retrievalModel := normalizeDatasetRetrievalModel(input.RetrievalModel)
+
+	specs := s.datasetDocumentSpecsLocked(workspaceID, input.DataSourceType, input.DataSource, user, timestamp, batchID)
+	spec := datasetDocumentSpec{
+		Name:     existing.Name,
+		Content:  firstNonEmpty(existing.Content, existing.Name),
+		Summary:  existing.Summary,
+		Keywords: cloneStringSlice(existing.Keywords),
+	}
+	if len(specs) > 0 {
+		spec = specs[0]
+	}
+
+	content := firstNonEmpty(spec.Content, spec.Name, existing.Content, existing.Name)
+	existing.Batch = batchID
+	existing.DataSourceType = firstNonEmpty(input.DataSourceType, existing.DataSourceType, dataset.DataSourceType, "upload_file")
+	existing.DataSourceInfo = cloneMap(spec.DataSourceInfo)
+	existing.Name = firstNonEmpty(spec.Name, existing.Name)
+	existing.CreatedFrom = firstNonEmpty(input.CreatedFrom, existing.CreatedFrom, "web")
+	existing.IndexingStatus = documentIndexingStatusCompleted
+	existing.DisplayStatus = documentDisplayStatusAvailable
+	existing.CompletedSegments = 1
+	existing.TotalSegments = 1
+	existing.DocForm = firstNonEmpty(input.DocForm, dataset.DocForm, existing.DocForm, "text_model")
+	existing.DocLanguage = firstNonEmpty(input.DocLanguage, existing.DocLanguage, "English")
+	existing.SummaryIndexStatus = "completed"
+	existing.Enabled = true
+	existing.Error = ""
+	existing.Archived = false
+	existing.ArchivedReason = ""
+	existing.ArchivedBy = ""
+	existing.ArchivedAt = 0
+	existing.UpdatedAt = timestamp
+	existing.DataSourceDetailDict = cloneMap(spec.DataSourceDetailDict)
+	existing.DatasetProcessRule = processRule
+	existing.DocumentProcessRule = processRule
+	existing.CreatedAPIRequestID = generateID("req")
+	existing.ProcessingStartedAt = timestamp
+	existing.ParsingCompletedAt = timestamp
+	existing.CleaningCompletedAt = timestamp
+	existing.SplittingCompletedAt = timestamp
+	existing.IndexingLatency = 1
+	existing.CompletedAt = timestamp
+	existing.PausedBy = ""
+	existing.PausedAt = 0
+	existing.StoppedAt = 0
+	existing.DisabledAt = 0
+	existing.DisabledBy = ""
+	existing.DocType = "others"
+	existing.Content = content
+	existing.SignContent = content
+	existing.Keywords = cloneStringSlice(spec.Keywords)
+	existing.Summary = firstNonEmpty(spec.Summary, existing.Summary, "Go migration compatible dataset document")
+	existing.Attachments = cloneDatasetAttachmentList(spec.Attachments)
+	existing.ChildChunks = cloneDatasetChildChunkList(spec.ChildChunks)
+	existing.Segments = []DatasetSegment{}
+	existing.WordCount = max(estimateWordCount(content), 1)
+	existing.Tokens = estimateTokenCount(content)
+	existing.SegmentCount = 1
+	if len(input.PipelineExecutionLogs) > 0 {
+		existing.PipelineExecutionLog = cloneDatasetPipelineExecutionLog(input.PipelineExecutionLogs[0])
+	} else {
+		existing.PipelineExecutionLog = DatasetPipelineExecutionLog{}
+	}
+	normalizeDatasetDocument(&existing)
+	dataset.Documents[documentIndex] = existing
+
+	if input.DataSourceType != "" {
+		dataset.DataSourceType = input.DataSourceType
+	}
+	if input.IndexingTechnique != "" {
+		dataset.IndexingTechnique = input.IndexingTechnique
+	}
+	if input.DocForm != "" {
+		dataset.DocForm = input.DocForm
+	}
+	if input.EmbeddingModel != "" {
+		dataset.EmbeddingModel = input.EmbeddingModel
+	}
+	if input.EmbeddingModelProvider != "" {
+		dataset.EmbeddingModelProvider = input.EmbeddingModelProvider
+	}
+	dataset.RetrievalModel = retrievalModel
+	dataset.SummaryIndexSetting = input.SummaryIndexSetting
+	dataset.AuthorName = ownerDisplayName(user)
+	dataset.UpdatedAt = timestamp
+	dataset.UpdatedBy = user.ID
+	s.state.Datasets[datasetIndex] = dataset
+	if err := s.saveLocked(); err != nil {
+		return "", DatasetDocument{}, Dataset{}, err
+	}
+	return batchID, cloneDatasetDocument(existing), cloneDataset(dataset), nil
 }
 
 func (s *Store) RenameDatasetDocument(datasetID, workspaceID, documentID, name string, user User, now time.Time) error {
@@ -1505,14 +1624,102 @@ type datasetDocumentSpec struct {
 
 func (s *Store) datasetDocumentSpecsLocked(workspaceID, dataSourceType string, dataSource map[string]any, user User, timestamp int64, batchID string) []datasetDocumentSpec {
 	infoList := mapStringAny(dataSource["info_list"])
+	datasourceInfoList := mapSliceFromAny(infoList["datasource_info_list"])
 	switch strings.TrimSpace(dataSourceType) {
+	case "online_document":
+		if len(datasourceInfoList) > 0 {
+			return pipelineOnlineDocumentSpecs(datasourceInfoList, batchID)
+		}
+		return notionDocumentSpecs(infoList, user, batchID)
 	case "notion_import":
 		return notionDocumentSpecs(infoList, user, batchID)
 	case "website_crawl":
+		if len(datasourceInfoList) > 0 {
+			return pipelineWebsiteDocumentSpecs(datasourceInfoList, batchID)
+		}
 		return websiteDocumentSpecs(infoList)
+	case "online_drive":
+		return pipelineOnlineDriveDocumentSpecs(datasourceInfoList, batchID)
+	case "local_file":
+		if len(datasourceInfoList) > 0 {
+			return s.pipelineLocalFileDocumentSpecsLocked(workspaceID, datasourceInfoList, user, timestamp, batchID)
+		}
+		return s.fileDocumentSpecsLocked(workspaceID, infoList, user, timestamp, batchID)
 	default:
 		return s.fileDocumentSpecsLocked(workspaceID, infoList, user, timestamp, batchID)
 	}
+}
+
+func (s *Store) pipelineLocalFileDocumentSpecsLocked(workspaceID string, items []map[string]any, user User, timestamp int64, batchID string) []datasetDocumentSpec {
+	specs := make([]datasetDocumentSpec, 0, len(items))
+	for _, item := range items {
+		fileID := firstNonEmpty(stringValue(item["related_id"], ""), stringValue(item["id"], ""))
+		name := firstNonEmpty(stringValue(item["name"], ""), strings.TrimSpace(fileID), "upload-file")
+		size := int64FromAny(item["size"])
+		extension := firstNonEmpty(stringValue(item["extension"], ""), datasetFileExtension(name))
+		mimeType := firstNonEmpty(stringValue(item["mime_type"], ""), datasetMimeType(extension))
+		sourceURL := firstNonEmpty(stringValue(item["source_url"], ""), stringValue(item["url"], ""))
+
+		uploadedFile, hasUploadedFile := s.findUploadedFileLocked(workspaceID, fileID)
+		if hasUploadedFile {
+			name = firstNonEmpty(uploadedFile.Name, name)
+			size = uploadedFile.Size
+			extension = firstNonEmpty(uploadedFile.Extension, extension)
+			mimeType = firstNonEmpty(uploadedFile.MimeType, mimeType)
+			sourceURL = firstNonEmpty(uploadedFile.SourceURL, sourceURL)
+		}
+
+		uploadFilePayload := map[string]any{
+			"id":         fileID,
+			"name":       name,
+			"size":       size,
+			"mime_type":  mimeType,
+			"created_at": timestamp,
+			"created_by": user.ID,
+			"extension":  extension,
+			"source_url": sourceURL,
+		}
+		dataSourceInfo := cloneMap(item)
+		dataSourceInfo["related_id"] = fileID
+		dataSourceInfo["name"] = name
+		dataSourceInfo["size"] = size
+		dataSourceInfo["mime_type"] = mimeType
+		dataSourceInfo["extension"] = extension
+		dataSourceInfo["transfer_method"] = firstNonEmpty(stringValue(dataSourceInfo["transfer_method"], ""), "local_file")
+		dataSourceInfo["job_id"] = batchID
+		dataSourceInfo["upload_file_id"] = fileID
+		dataSourceInfo["upload_file"] = uploadFilePayload
+		if sourceURL != "" {
+			dataSourceInfo["url"] = sourceURL
+			dataSourceInfo["source_url"] = sourceURL
+		}
+
+		attachment := DatasetAttachment{
+			ID:        fileID,
+			Name:      name,
+			Size:      size,
+			Extension: extension,
+			MimeType:  mimeType,
+			SourceURL: sourceURL,
+		}
+		if hasUploadedFile {
+			attachment = datasetAttachmentFromUploadedFile(uploadedFile)
+		}
+
+		content := "Imported file " + name + " through dify-go dataset compatibility layer."
+		specs = append(specs, datasetDocumentSpec{
+			Name:           name,
+			Content:        content,
+			Summary:        "Compatible imported file document",
+			Keywords:       datasetDocumentKeywords(name, content),
+			DataSourceInfo: dataSourceInfo,
+			DataSourceDetailDict: map[string]any{
+				"upload_file": uploadFilePayload,
+			},
+			Attachments: []DatasetAttachment{attachment},
+		})
+	}
+	return specs
 }
 
 func (s *Store) fileDocumentSpecsLocked(workspaceID string, infoList map[string]any, user User, timestamp int64, batchID string) []datasetDocumentSpec {
@@ -1624,6 +1831,35 @@ func notionDocumentSpecs(infoList map[string]any, user User, batchID string) []d
 	return specs
 }
 
+func pipelineOnlineDocumentSpecs(items []map[string]any, batchID string) []datasetDocumentSpec {
+	specs := make([]datasetDocumentSpec, 0, len(items))
+	for _, item := range items {
+		info := cloneMap(item)
+		pageMap := mapStringAny(info["page"])
+		name := firstNonEmpty(stringValue(pageMap["page_name"], ""), "Notion Page")
+		pageID := stringValue(pageMap["page_id"], "")
+		pageType := firstNonEmpty(stringValue(pageMap["type"], ""), "page")
+		info["page"] = map[string]any{
+			"page_id":          pageID,
+			"page_name":        name,
+			"type":             pageType,
+			"parent_id":        stringValue(pageMap["parent_id"], ""),
+			"page_icon":        stringValue(pageMap["page_icon"], ""),
+			"last_edited_time": stringValue(pageMap["last_edited_time"], ""),
+		}
+		info["job_id"] = batchID
+		content := "Imported notion page " + name + " through dify-go dataset compatibility layer."
+		specs = append(specs, datasetDocumentSpec{
+			Name:           name,
+			Content:        content,
+			Summary:        "Compatible imported notion document",
+			Keywords:       datasetDocumentKeywords(name, content),
+			DataSourceInfo: info,
+		})
+	}
+	return specs
+}
+
 func websiteDocumentSpecs(infoList map[string]any) []datasetDocumentSpec {
 	info := mapStringAny(infoList["website_info_list"])
 	urls := stringSliceFromAny(info["urls"])
@@ -1646,6 +1882,48 @@ func websiteDocumentSpecs(infoList map[string]any) []datasetDocumentSpec {
 				"provider":    provider,
 				"job_id":      jobID,
 			},
+		})
+	}
+	return specs
+}
+
+func pipelineWebsiteDocumentSpecs(items []map[string]any, batchID string) []datasetDocumentSpec {
+	specs := make([]datasetDocumentSpec, 0, len(items))
+	for _, item := range items {
+		info := cloneMap(item)
+		rawURL := firstNonEmpty(stringValue(info["source_url"], ""), stringValue(info["url"], ""))
+		title := firstNonEmpty(stringValue(info["title"], ""), datasetDocumentNameFromURL(rawURL))
+		content := firstNonEmpty(stringValue(info["content"], ""), "Indexed website content from "+rawURL+" through dify-go dataset compatibility layer.")
+		info["title"] = title
+		info["source_url"] = rawURL
+		info["content"] = content
+		info["description"] = stringValue(info["description"], "")
+		info["job_id"] = batchID
+		specs = append(specs, datasetDocumentSpec{
+			Name:           title,
+			Content:        content,
+			Summary:        "Compatible indexed website document",
+			Keywords:       datasetDocumentKeywords(title, content),
+			DataSourceInfo: info,
+		})
+	}
+	return specs
+}
+
+func pipelineOnlineDriveDocumentSpecs(items []map[string]any, batchID string) []datasetDocumentSpec {
+	specs := make([]datasetDocumentSpec, 0, len(items))
+	for _, item := range items {
+		info := cloneMap(item)
+		name := firstNonEmpty(stringValue(info["name"], ""), "Online Drive File")
+		content := "Imported online drive file " + name + " through dify-go dataset compatibility layer."
+		info["name"] = name
+		info["job_id"] = batchID
+		specs = append(specs, datasetDocumentSpec{
+			Name:           name,
+			Content:        content,
+			Summary:        "Compatible imported online drive document",
+			Keywords:       datasetDocumentKeywords(name, content),
+			DataSourceInfo: info,
 		})
 	}
 	return specs
@@ -1754,6 +2032,36 @@ func stringSliceFromAny(value any) []string {
 		}
 	}
 	return out
+}
+
+func mapSliceFromAny(value any) []map[string]any {
+	items := anySlice(value)
+	out := make([]map[string]any, 0, len(items))
+	for _, item := range items {
+		entry := mapStringAny(item)
+		if len(entry) == 0 {
+			continue
+		}
+		out = append(out, entry)
+	}
+	return out
+}
+
+func int64FromAny(value any) int64 {
+	switch typed := value.(type) {
+	case int64:
+		return typed
+	case int:
+		return int64(typed)
+	case int32:
+		return int64(typed)
+	case float64:
+		return int64(typed)
+	case float32:
+		return int64(typed)
+	default:
+		return 0
+	}
 }
 
 func parseDatasetRetrievalModel(value any) DatasetRetrievalModel {
