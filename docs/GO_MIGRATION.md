@@ -209,6 +209,35 @@ The Go server keeps Dify's existing API prefixes so the frontend can continue ca
 - `GET /console/api/apps/{id}/workflow-runs/{runId}`
 - `GET /console/api/apps/{id}/workflow-runs/{runId}/node-executions`
 - `POST /console/api/apps/{id}/workflow-runs/tasks/{taskId}/stop`
+- `GET /console/api/datasets/retrieval-setting`
+- `GET /console/api/datasets/process-rule`
+- `POST /console/api/datasets/indexing-estimate`
+- `GET /console/api/datasets/api-base-info`
+- `GET|POST /console/api/datasets/api-keys`
+- `DELETE /console/api/datasets/api-keys/{keyId}`
+- `GET /console/api/datasets/external-knowledge-api`
+- `GET|POST /console/api/datasets`
+- `POST /console/api/datasets/init`
+- `GET|PATCH|DELETE /console/api/datasets/{datasetId}`
+- `GET /console/api/datasets/{datasetId}/use-check`
+- `GET /console/api/datasets/{datasetId}/related-apps`
+- `POST /console/api/datasets/{datasetId}/api-keys/enable`
+- `POST /console/api/datasets/{datasetId}/api-keys/disable`
+- `GET|POST|DELETE /console/api/datasets/{datasetId}/documents`
+- `PATCH /console/api/datasets/{datasetId}/documents/status/{action}/batch`
+- `POST /console/api/datasets/{datasetId}/documents/generate-summary`
+- `GET /console/api/datasets/{datasetId}/documents/{documentId}`
+- `GET /console/api/datasets/{datasetId}/documents/{documentId}/indexing-status`
+- `POST /console/api/datasets/{datasetId}/documents/{documentId}/rename`
+- `PATCH /console/api/datasets/{datasetId}/documents/{documentId}/processing/pause`
+- `PATCH /console/api/datasets/{datasetId}/documents/{documentId}/processing/resume`
+- `GET /console/api/datasets/{datasetId}/batch/{batchId}/indexing-status`
+- `GET /console/api/datasets/{datasetId}/auto-disable-logs`
+- `GET /console/api/datasets/{datasetId}/queries`
+- `GET /console/api/datasets/{datasetId}/error-docs`
+- `POST /console/api/datasets/{datasetId}/hit-testing`
+- `POST /console/api/datasets/{datasetId}/external-hit-testing`
+- `POST /console/api/datasets/{datasetId}/retry`
 - `GET /console/api/files/upload`
 - `GET /console/api/files/support-type`
 - `GET /console/api/files/{id}/preview`
@@ -255,4 +284,5 @@ The frontend already defaults to:
 
 - The Go backend currently uses a lightweight file-backed bootstrap store at `var/state.json`.
 - Session storage is in-memory for now.
-- Most business routes are still pending migration and should either be proxied to the Python backend or implemented next by priority.
+- Dataset metadata, segments, external knowledge base, and RAG pipeline deep-link semantics are still only partially migrated.
+- Most remaining business routes are still pending migration and should either be proxied to the Python backend or implemented next by priority.

@@ -18,8 +18,10 @@ type APIKey struct {
 }
 
 const (
-	apiKeyTypeApp = "app"
-	maxAppAPIKeys = 10
+	apiKeyTypeApp     = "app"
+	apiKeyTypeDataset = "dataset"
+	maxAppAPIKeys     = 10
+	maxDatasetAPIKeys = 10
 )
 
 func (s *Store) ListAppAPIKeys(appID, workspaceID string) ([]APIKey, error) {
@@ -94,6 +96,86 @@ func (s *Store) DeleteAppAPIKey(appID, workspaceID, keyID string) error {
 
 	for i, key := range s.state.APIKeys {
 		if key.Type == apiKeyTypeApp && key.ResourceID == appID && key.ID == keyID {
+			s.state.APIKeys = append(s.state.APIKeys[:i], s.state.APIKeys[i+1:]...)
+			return s.saveLocked()
+		}
+	}
+
+	return fmt.Errorf("api key not found")
+}
+
+func (s *Store) ListDatasetAPIKeys(workspaceID string) ([]APIKey, error) {
+	if workspaceID == "" {
+		return nil, fmt.Errorf("workspace not found")
+	}
+
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	keys := make([]APIKey, 0, len(s.state.APIKeys))
+	for _, key := range s.state.APIKeys {
+		if key.Type != apiKeyTypeDataset || key.ResourceID != workspaceID {
+			continue
+		}
+		keys = append(keys, key)
+	}
+
+	slices.SortFunc(keys, func(a, b APIKey) int {
+		if a.CreatedAt == b.CreatedAt {
+			return bcmp(a.ID, b.ID)
+		}
+		if a.CreatedAt > b.CreatedAt {
+			return -1
+		}
+		return 1
+	})
+
+	return keys, nil
+}
+
+func (s *Store) CreateDatasetAPIKey(workspaceID string, now time.Time) (APIKey, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.findWorkspaceIndexLocked(workspaceID) < 0 {
+		return APIKey{}, fmt.Errorf("workspace not found")
+	}
+
+	count := 0
+	for _, key := range s.state.APIKeys {
+		if key.Type == apiKeyTypeDataset && key.ResourceID == workspaceID {
+			count++
+		}
+	}
+	if count >= maxDatasetAPIKeys {
+		return APIKey{}, fmt.Errorf("cannot create more than %d dataset API keys for this workspace", maxDatasetAPIKeys)
+	}
+
+	key := APIKey{
+		ID:         generateID("dkey"),
+		Type:       apiKeyTypeDataset,
+		ResourceID: workspaceID,
+		Token:      generateAPIKeyToken("dataset-"),
+		CreatedAt:  now.UTC().Unix(),
+	}
+
+	s.state.APIKeys = append(s.state.APIKeys, key)
+	if err := s.saveLocked(); err != nil {
+		return APIKey{}, err
+	}
+	return key, nil
+}
+
+func (s *Store) DeleteDatasetAPIKey(workspaceID, keyID string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.findWorkspaceIndexLocked(workspaceID) < 0 {
+		return fmt.Errorf("workspace not found")
+	}
+
+	for i, key := range s.state.APIKeys {
+		if key.Type == apiKeyTypeDataset && key.ResourceID == workspaceID && key.ID == keyID {
 			s.state.APIKeys = append(s.state.APIKeys[:i], s.state.APIKeys[i+1:]...)
 			return s.saveLocked()
 		}

@@ -47,6 +47,7 @@ type State struct {
 	Users          []User      `json:"users"`
 	Workspaces     []Workspace `json:"workspaces"`
 	Apps           []App       `json:"apps"`
+	Datasets       []Dataset   `json:"datasets"`
 	APIKeys        []APIKey    `json:"api_keys"`
 }
 
@@ -63,6 +64,7 @@ func Open(path string) (*Store, error) {
 			Users:      []User{},
 			Workspaces: []Workspace{},
 			Apps:       []App{},
+			Datasets:   []Dataset{},
 			APIKeys:    []APIKey{},
 		},
 	}
@@ -97,6 +99,12 @@ func Open(path string) (*Store, error) {
 	}
 	if store.state.Apps == nil {
 		store.state.Apps = []App{}
+	}
+	if store.state.Datasets == nil {
+		store.state.Datasets = []Dataset{}
+	}
+	for i := range store.state.Datasets {
+		normalizeDataset(&store.state.Datasets[i])
 	}
 	if store.state.APIKeys == nil {
 		store.state.APIKeys = []APIKey{}

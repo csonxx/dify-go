@@ -225,7 +225,7 @@
 
 ## 阶段 4：知识库与 Dataset 主链路
 
-状态：待实现
+状态：进行中（基础主链路首批已落地）
 
 范围：
 
@@ -263,6 +263,43 @@
 - 知识库页面能在 Go 后端上完成创建、查看、管理。
 - 文档导入和索引状态由 Go 持久化。
 - Segments、metadata、hit testing 等能力在前端可用。
+
+本轮已完成的子范围：
+
+- [x] `/datasets`
+- [x] `/datasets/init`
+- [x] `/datasets/retrieval-setting`
+- [x] `/datasets/process-rule`
+- [x] `/datasets/indexing-estimate`
+- [x] `/datasets/api-base-info`
+- [x] `/datasets/api-keys`
+- [x] `/datasets/{datasetId}`
+- [x] `/datasets/{datasetId}/use-check`
+- [x] `/datasets/{datasetId}/related-apps`
+- [x] `/datasets/{datasetId}/api-keys/enable`
+- [x] `/datasets/{datasetId}/api-keys/disable`
+- [x] `/datasets/{datasetId}/documents`
+- [x] `/datasets/{datasetId}/documents/status/{action}/batch`
+- [x] `/datasets/{datasetId}/documents/{documentId}`
+- [x] `/datasets/{datasetId}/documents/{documentId}/indexing-status`
+- [x] `/datasets/{datasetId}/documents/{documentId}/rename`
+- [x] `/datasets/{datasetId}/documents/{documentId}/processing/pause`
+- [x] `/datasets/{datasetId}/documents/{documentId}/processing/resume`
+- [x] `/datasets/{datasetId}/batch/{batchId}/indexing-status`
+- [x] `/datasets/{datasetId}/auto-disable-logs`
+- [x] `/datasets/{datasetId}/queries`
+- [x] `/datasets/{datasetId}/error-docs`
+- [x] `/datasets/{datasetId}/hit-testing`
+- [x] `/datasets/{datasetId}/external-hit-testing`
+- [x] `/datasets/{datasetId}/retry`
+- [x] `/datasets/external-knowledge-api`
+
+本阶段剩余重点：
+
+- [ ] 把 metadata、segments、child chunk、document detail 深水区接口完整迁进 Go
+- [ ] 把文档上传/下载、外部知识库、external API knowledge 等链路从兼容壳推进到真实语义
+- [ ] 收敛 dataset service API、索引状态流转、命中测试记录与后续 pipeline 之间的共享模型
+- [ ] 继续把知识库页面的前端 fallback 面压缩到可见且可枚举
 
 ## 阶段 5：RAG Pipeline
 
@@ -383,12 +420,12 @@
 
 ## 下一步
 
-下一轮直接做“阶段 1：应用运营与日志”。
+下一轮继续做“阶段 4：知识库与 Dataset 主链路”的剩余深水区。
 
 推荐顺序：
 
-1. `annotations/count`
-2. `chat-conversations` 与 `completion-conversations`
-3. `workflow-app-logs`
-4. `workflow/{id}/pause-details`
-5. `apps/{id}/server` 与 `apps/{id}/server/refresh`
+1. `metadata*` 与 built-in metadata 开关
+2. `segments*` / `child_chunks*`
+3. 文档下载、重试、批量动作与更真实的索引状态流转
+4. `/datasets/external` 与 external knowledge base
+5. 为后续阶段 5 的 RAG pipeline 共享 dataset 状态做准备

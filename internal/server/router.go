@@ -101,6 +101,7 @@ func (s *server) consoleRoutes() http.Handler {
 		r.Get("/account/avatar", s.handleAccountAvatar)
 		r.Get("/workflow/{workflowRunID}/pause-details", s.handleWorkflowPauseDetails)
 		s.mountAppRoutes(r)
+		s.mountDatasetRoutes(r)
 		r.Post("/workspaces/current", s.handleCurrentWorkspace)
 		r.Get("/workspaces", s.handleWorkspaces)
 		r.Get("/workspaces/current/permission", s.handleWorkspacePermission)

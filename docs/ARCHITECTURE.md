@@ -1,540 +1,398 @@
 # Dify Go Architecture
 
-这个文档说明 `dify-go` 的整体架构、设计思路和实现原则。
+本文说明 `dify-go` 的整体架构、设计思路和实现原理。
 
-本仓库基于并致敬 [langgenius/dify](https://github.com/langgenius/dify)。这里的目标不是概念上重新发明一套 Dify，而是在尽量保持原有产品形态和前端体验的前提下，把后端能力逐步迁移到 Go。
+本仓库基于并致敬 [langgenius/dify](https://github.com/langgenius/dify)。目标不是概念上重新发明一个新产品，而是在尽量保留 Dify 原有产品形态、前端体验和接口契约的前提下，把后端能力逐步迁移到 Go。
 
 ## 1. 项目定位
 
-`dify-go` 是一个“增量式后端迁移项目”。
+`dify-go` 是一个“兼容优先、按域迁移、双轨运行”的后端迁移工程。
 
-核心思路是：
+这里的核心不是一次性重写，而是三件事同时成立：
 
-- 尽量保留上游 Dify 前端不变。
-- 尽量保留现有 HTTP API 前缀和数据结构。
-- 按业务域把后端能力逐步迁到 Go。
-- 对未迁移的路由，临时转发到 Python legacy backend。
+- 前端继续跑
+- Go 能逐步接管真实业务状态
+- 未迁移能力仍能通过 legacy fallback 保持系统可用
 
-这样做的好处是：风险比全量重写低，推进节奏可控，而且每一轮都能形成可运行成果。
+因此它本质上不是“从零开始做一个 Dify-like 产品”，而是“在现有产品之上，逐块把后端主权迁回 Go”。
 
-## 2. 设计目标
+## 2. 约束条件
 
-## 2.1 前端兼容优先
+这个项目从一开始就接受下面几条硬约束：
 
-前端已经承载了大量产品逻辑、交互流程和接口约定。如果在迁移后端的同时还重写前端，风险会成倍放大。
+### 2.1 前端尽量不动
 
-因此 `dify-go` 把“前端兼容”作为第一约束：
+`web/` 基本直接承接上游前端代码。这样做的意义有三层：
 
-- 保留 `/console/api` 和 `/api` 路径体系。
-- 尽量保留字段名和响应结构。
-- 尽量让前端无感切换到 Go 后端。
-- 优先做兼容层，而不是让前端跟着后端一起改。
+- 迁移风险显著低于“前后端一起重写”
+- 前端天然充当最严格的兼容性验收基线
+- 我们能把精力集中在后端契约和状态闭环，而不是重复造 UI 和交互
 
-## 2.2 按业务域增量迁移
+### 2.2 API 外形尽量稳定
 
-像 Dify 这种成熟产品，不适合一次性整体迁移。更合理的方式是按业务域推进，比如：
+Go 后端优先保留上游的：
 
-- 初始化与认证
-- 应用管理
-- Workflow 编辑与运行时
-- Workspace 级模型提供商
-- Tools、Plugins、Triggers
-- Datasets 与 RAG Pipeline
-- Public Runtime API
+- 路径前缀
+- 字段命名
+- 响应结构
+- 请求方法与参数习惯
 
-每一块都可以独立实现、独立验证、独立交付。
+即使内部实现与 Python 原版并不完全相同，对前端和调用方来说也尽量保持“外形不变”。
 
-## 2.3 先可用，再优化
+### 2.3 迁移过程中系统必须一直能跑
 
-当前阶段的第一目标不是做一套最完美的内部实现，而是先让这组能力在 Go 里稳定可用。
+这意味着项目不能采用“全部写完再切换”的策略，而必须支持已迁与未迁能力并存。
 
-所以现阶段允许：
+## 3. 设计目标
 
-- 用文件状态存储先顶起来
-- 用内存 session 先跑起来
-- 在不破坏前端的前提下返回简化但兼容的响应
+### 3.1 兼容优先
 
-这是有意识的迁移策略，不是偷懒。
+第一优先级不是做最理想的内部模型，而是让原有 Dify 前端尽可能无感地工作在 Go 后端之上。
 
-## 2.4 明确 fallback，而不是“半残缺上线”
+### 3.2 业务域闭环优先
 
-对未迁移能力，与其返回 404 或行为不完整，不如明确走 legacy backend。
+一个功能页面通常依赖一串接口和一份共享状态模型，所以迁移单位应当是业务域，而不是离散接口。
 
-这就是 `DIFY_GO_LEGACY_API_BASE_URL` 存在的意义：
+### 3.3 已迁能力必须真正自持状态
 
-- 保证系统可持续运行
-- 让迁移工作可以分批交付
-- 让“哪些已经迁完、哪些还没迁完”边界清晰
+一旦某组能力宣称“迁到了 Go”，那它对应的核心状态就应该由 Go 负责读写、持久化和演化，而不是继续依赖 Python 侧做隐式主存储。
 
-## 3. 非目标
+### 3.4 明确 fallback 边界
 
-当前阶段以下事项不是第一优先级：
+没有迁完的能力可以 fallback，但边界必须清晰可见，不能出现“接口表面在 Go，实际关键语义还散落在别处”的灰区。
 
-- 立即做到与 Python 内部实现逐行对齐
-- 一开始就上最强的持久化架构
-- 在路由覆盖率还不够时过早做深度性能优化
-- 重做前端或重设计交互
+## 4. 非目标
 
-这些事以后会做，但现在不该抢占主线。
+当前阶段不把下面这些事当成第一优先级：
 
-## 4. 总体架构
+- 和 Python 内部实现逐行逐类对齐
+- 一开始就引入最终形态的数据库与分布式架构
+- 在覆盖率还不高时提前做深度性能优化
+- 重做前端视觉和交互
+
+这些并不是永远不做，而是不抢当前主线。
+
+## 5. 核心设计原则
+
+### 5.1 前端兼容优先于内部优雅
+
+如果“内部更优雅的设计”会破坏前端兼容性，那就先选择兼容方案，等覆盖率和回归验证稳定后再收敛内部实现。
+
+### 5.2 先跑通主链路，再补边角语义
+
+很多域的第一阶段实现都先满足：
+
+- 页面能打开
+- 列表能展示
+- 核心 CRUD 可用
+- 关键动作能闭环
+
+然后再逐步把真实语义、失败回滚、外部系统集成等细节往上补。
+
+### 5.3 状态模型先于存储选型
+
+迁移早期最重要的是把“这个域到底有哪些状态、如何演化、由谁拥有”说清楚。至于最终放 JSON 文件、关系库还是事件流，这是下一层问题。
+
+### 5.4 兼容层不是临时脚手架，而是架构层
+
+`internal/server` 的意义不只是“转发请求”，它承担的是：
+
+- 对外 API 契约
+- 前端兼容翻译
+- 迁移边界控制
+- legacy fallback 分流
+
+也就是说，这一层本身就是系统架构的一部分。
+
+## 6. 总体架构
 
 ```mermaid
 flowchart LR
-    A["Browser / Dify Frontend"] --> B["Go HTTP Server"]
-    B --> C["Go Route Handlers"]
-    C --> D["State Store"]
-    C --> E["Legacy Proxy Fallback"]
-    E --> F["Python Dify Backend"]
-
-    subgraph Repo
-      G["web/ 上游前端"]
-      H["internal/server"]
-      I["internal/state"]
-      J["cmd/dify-server"]
-      K["docs/route-manifest.json"]
-    end
+    A["Browser / Upstream Dify Frontend"] --> B["Go HTTP Server"]
+    B --> C["Compatibility Router"]
+    C --> D["Go Domain Handlers"]
+    D --> E["State Store"]
+    C --> F["Legacy Fallback Proxy"]
+    F --> G["Python Dify Backend"]
 ```
 
-落到仓库里就是：
+落到仓库结构里：
 
-- `web/` 保留上游前端代码
-- `cmd/dify-server` 负责启动服务
-- `internal/server` 负责路由、兼容层、认证、中间件、handler
-- `internal/state` 负责已迁移业务域的状态
-- 未迁移请求通过 proxy 转发到 legacy backend
+- `cmd/dify-server`
+  服务启动入口，保持足够薄，只负责装配。
+- `internal/config`
+  管理运行配置、路径、cookie、安全参数、legacy 地址。
+- `internal/server`
+  路由、中间件、认证、响应兼容、fallback 分流。
+- `internal/state`
+  已迁业务域的状态模型和持久化实现。
+- `web/`
+  复用上游前端。
 
-## 5. 模块划分
+## 7. 模块职责
 
-## 5.1 `cmd/dify-server`
+### 7.1 `cmd/dify-server`
 
-这是可执行入口。
-
-职责很简单：
+职责：
 
 - 读取配置
+- 初始化 store、session、legacy proxy
 - 创建 HTTP handler
 - 启动服务
 
-入口层保持很薄，方便后续替换和测试。
+这里刻意保持薄入口，是为了让未来更容易替换存储、注入测试依赖或做多种启动模式。
 
-## 5.2 `internal/config`
+### 7.2 `internal/server`
 
-负责集中管理运行配置，例如：
+这是整个项目的契约层和兼容层核心。
 
-- 监听地址
-- 状态文件路径
-- 上传目录
-- cookie 配置
-- 前端允许来源
-- legacy backend 地址
+主要职责：
 
-配置集中管理的意义在于：迁移过程里环境切换会很多，统一入口更安全。
+- 注册已迁路由
+- 提供认证、中间件、CORS、CSRF、防伪头
+- 把前端期待的数据结构编码出来
+- 在未迁移路径上回退到 legacy backend
 
-## 5.3 `internal/server`
+它的设计思路是“对外稳定，对内可以持续演化”。
 
-这是整个项目的兼容层核心。
+### 7.3 `internal/state`
 
-职责包括：
+这是 Go 侧的领域状态层。当前已经承载：
 
-- 路由注册
-- 中间件
-- 请求解析与响应编码
-- 认证与 session 校验
-- 把前端期待的行为映射到当前 Go 实现
-- 在必要时回退到 legacy backend
+- setup / user / workspace
+- app / workflow / workflow runtime
+- workspace model providers
+- workspace tools / endpoints / triggers
+- workspace plugins
+- dataset 第一批主链路状态
 
-可以把它理解成“对外 API 契约层”。
+这层的设计目标不是“最终最完美的数据层”，而是“让每一块已迁业务都有明确定义的状态所有权”。
 
-## 5.4 `internal/state`
+## 8. 请求处理原理
 
-这是已迁移业务域的状态承载层。
+一个已经迁移的 console 请求，大致会经过下面过程：
 
-目前主要负责：
+1. 浏览器调用 `/console/api/...`
+2. Go router 命中对应子路由
+3. 中间件完成版本头、CORS、认证和 CSRF 校验
+4. handler 解析参数，装配当前用户与工作区上下文
+5. handler 调用 `internal/state` 进行状态读写
+6. server 层把领域对象映射成前端兼容 JSON
 
-- bootstrap 状态
-- 用户与工作区
-- 应用
-- API Key
-- workflow draft/version/runtime
-- workspace model provider 配置
-- workspace tool provider、workflow tool、custom API tool、MCP provider 配置
+一个未迁移的请求则是：
 
-在迁移阶段，明确的状态模型比“最终形态的存储架构”更重要。
+1. 浏览器调用原路径
+2. Go router 未命中已迁 handler
+3. `compatFallback` 接管请求
+4. 请求被转发到 legacy Python backend
+5. Python 返回结果给前端
 
-## 5.5 Workspace 扩展能力状态
+这个双轨流程就是整个迁移方案能够连续交付的基础。
 
-第二阶段开始后，`internal/state` 里的 `Workspace` 不再只保存 model settings，还会把工作区级扩展能力放到独立的 `tool_settings` 里。
+## 9. 路由边界设计
 
-当前已经落地的子域包括：
+当前 Go 侧保留 Dify 既有的入口分层：
 
-- built-in tool provider 凭证状态
-- custom API tool provider 定义与 schema
-- workflow as tool provider 定义
-- MCP provider 配置、授权状态和已同步工具列表
-- plugin endpoint 定义、启停状态和回调 hook
-- trigger provider 的 OAuth client、subscription builder、subscription、请求日志
+- `/console/api`
+  控制台、创作、配置、管理类能力
+- `/api`
+  公共运行时接口
+- `/trigger`
+  trigger builder / subscription / endpoint 的外部入口
+- `/files`、`/inner/api`、`/mcp`
+  保持前缀存在，为后续迁移或 fallback 留出空间
 
-这样做有两个直接收益：
+这里的关键原理是：先稳定“外部轮廓”，再逐步替换“内部器官”。
 
-- `tool-providers`、`tools/*` 这类聚合接口可以完全由 Go 侧自举，不再依赖 Python 查询工作区扩展状态。
-- workflow tool 和 MCP 这类前端强依赖“列表 + 详情 + CRUD + 授权状态”的能力，能够围绕同一份工作区状态做一致读写。
+## 10. 认证与会话设计
 
-随着 endpoint 和 trigger 一起迁进来，这层状态又多了两个价值：
+当前认证方案由下面几部分组成：
 
-- plugin detail panel 这类“先拉声明，再做配置，再拿回调地址”的页面可以闭环工作，不需要再向 Python 查询工作区扩展记录。
-- `/trigger/...` 这类真正会被外部系统调用的入口，已经不只是占位前缀，而是可以直接把 builder / subscription 请求写回 Go 侧状态并供前端查看日志。
+- access token cookie
+- refresh token cookie
+- in-memory session manager
+- cookie + header 的 CSRF 校验
 
-## 5.6 Workspace 插件平台状态
+这样设计的原因是：
 
-第三阶段开始后，`Workspace.ToolSettings` 进一步承担插件平台的兼容状态：
+- 与浏览器控制台形态天然契合
+- 实现成本低，迁移起步快
+- 能把主要精力放在业务域迁移上
 
-- 已安装插件记录
-- 插件偏好设置（权限、自动升级策略）
-- 插件安装/升级任务列表
+当前的明确边界也很清楚：
 
-当前这层状态的设计重点不是“真实还原 Python plugin daemon 的所有内部细节”，而是优先满足前端当前真的会走到的链路：
+- session 重启后不持久
+- 多实例部署还不适用
 
-- 插件列表展示
-- README / asset / icon 渲染
-- 本地包、GitHub、Marketplace 三种入口的安装和升级
-- 任务轮询和任务删除
-- 权限与自动升级偏好设置
+这部分会在工程化加固阶段继续升级。
 
-因此这一层现在采用的是“兼容版 manifest 推导 + 持久化安装记录”的做法：
+## 11. 状态存储设计
 
-- Go 侧会根据 `plugin_unique_identifier`、GitHub repo、上传文件名等信息推导出一个稳定的 manifest。
-- 已安装插件、任务状态和偏好设置会写进工作区状态文件，保证刷新后仍可读。
-- README、asset、icon 等内容当前由 Go 兼容层按插件元数据动态生成，优先保证前端面板能工作。
+### 11.1 为什么当前先用 JSON 文件
+
+文件状态对迁移初期非常合适：
+
+- 直观
+- 便于调试
+- 无需先完成数据库设计
+- 适合快速冒烟和回归
+
+这不是最终形态，但非常适合做迁移初期的“真实业务承载层”。
+
+### 11.2 为什么强调状态所有权
+
+如果某个业务域已经迁到 Go，但状态仍主要依赖 Python 侧，那实际上并没有真正完成迁移。真正完成的标志是：
+
+- Go 可以独立读写该域核心状态
+- 刷新、重启后状态仍存在
+- 不依赖 legacy backend 才能完成主链路
+
+### 11.3 为什么先按域聚合状态
+
+像 tools、plugins、datasets 这种域，其本质不是单个接口，而是一组共享状态与多个页面入口。先把状态归到清晰的域对象上，再围绕它实现接口，是后续收敛复杂度的关键。
+
+## 12. 已迁核心域的设计思路
+
+### 12.1 App / Workflow
+
+这部分已经形成较清晰的 Go 侧建模：
+
+- App 本身的创作态配置
+- Workflow draft
+- Published versions
+- Workflow run / node execution runtime
+
+原理是把“创作态”和“运行态”拆开。因为这两类状态的更新频率、生命周期和查询形态完全不同。
+
+### 12.2 Workspace Model Provider
+
+模型配置被当作 workspace 级能力而不是 app 私有能力，这和前端产品本身的组织方式一致。其设计原理是：
+
+- 多 app 共享同一套模型能力
+- provider/credential/model 三层配置天然是工作区级目录
+- tools、datasets、agents 后续都可以复用这层能力
+
+### 12.3 Workspace Extension System
+
+Tools、MCP、Endpoints、Triggers 在页面上看似分散，但本质上都属于“工作区扩展系统”。因此 Go 侧把它们统一纳入工作区扩展状态，而不是各写一套分散临时实现。
+
+### 12.4 Plugin Platform
+
+插件平台当前采取的是兼容版 manifest + 持久化安装记录的路线。其设计原理不是完整复刻 plugin daemon，而是先满足前端已经依赖的链路：
+
+- 已安装列表
+- 任务轮询
+- README / asset / icon
+- 安装 / 升级 / 卸载
+- 偏好与权限配置
+
+等这些链路都稳定后，再把真实 daemon 语义往里替换。
+
+## 13. Dataset 域的设计思路
+
+Dataset 是第四阶段的核心业务域之一，也是当前刚开始推进的新域。
+
+### 13.1 为什么 dataset 要单独成域
+
+因为它不是“文档上传接口集合”，而是一整套完整业务：
+
+- dataset 自身元数据
+- 文档列表与文档详情
+- indexing 状态
+- retrieval 配置
+- hit testing 记录
+- metadata / segments / external knowledge / pipeline 连接关系
+
+这些状态强关联，不适合拆成零散接口单独迁。
+
+### 13.2 当前 dataset 迁移策略
+
+当前 Go 侧先落第一批主链路：
+
+- dataset 列表、创建、详情、更新、删除
+- 文档列表、详情、索引状态和基础批量动作
+- process rule、indexing estimate 的兼容实现
+- hit testing 与 testing records
+- use-check、related apps、dataset service API 的基础接口
+
+其原理是先让知识库页面具备“看得见、建得出、点得进、能做基础操作”的能力，再继续补 metadata、segments、external knowledge、pipeline execution log 等更深层链路。
+
+### 13.3 为什么 dataset 文档先用兼容型语义
+
+当前 document create / indexing / hit testing 还不是完整的生产语义，而是兼容优先的领域模型：
+
+- 文档创建后即可持久化为 Go 侧状态
+- 索引状态先用简化生命周期表达
+- hit testing 先走轻量检索与记录落库
 
 这样做的收益是：
 
-- 插件页面和安装弹窗可以先彻底脱离 Python fallback。
-- 插件任务状态、已安装列表、偏好设置不再是纯前端临时态，而是 Go 侧可持续推进的业务模型。
-- 后续如果接入真实 plugin daemon，只需要把 manifest / 任务 / 资产的来源替换掉，而不需要重做整个前端兼容面。
+- 页面先脱离“完全未迁”状态
+- 后续可在不改前端的情况下逐步增强真实语义
+- RAG pipeline 的后续迁移有了可复用的数据底座
 
-当前这层仍然保留明确边界：
+## 14. 为什么坚持“前端不动”
 
-- upload / install / upgrade 还没有做到完整的真实包解析和失败回滚。
-  当前已经能从 bundle 压缩包内的 JSON / YAML 依赖声明恢复 `marketplace/github/package` 三类兼容依赖，但还没有接入真实 plugin daemon 的 bundle 语义。
-- dynamic options、权限校验和插件运行时行为还是兼容实现，不等同于完整的生产语义。
-- app / pipeline 的 dependency check 已经迁到 Go，并且会基于现有 app model config 与 workflow graph 提取插件依赖。
-  后续还需要把这层提取逻辑继续对齐到真实 DSL import pipeline 与 daemon 侧依赖分析。
+这是整个项目最关键的工程策略之一。
 
-## 6. 请求处理流程
+原因不是偷懒，而是因为：
 
-一个已经迁移的 console 请求，大致经历下面流程：
+- 上游前端已经沉淀了复杂且成熟的产品逻辑
+- 若前后端同时改动，很难定位兼容问题到底出在哪里
+- 保留前端不动，相当于一直拥有一个真实用户视角的回归基线
 
-1. 浏览器调用 `/console/api/...`
-2. Go router 命中已迁移路由
-3. 中间件执行 CORS、版本头、认证、CSRF 校验
-4. handler 加载当前用户和工作区上下文
-5. handler 读取或修改 `internal/state`
-6. 返回前端兼容的 JSON
+因此这里迁的是“后端实现权”，不是“产品外观”。
 
-一个未迁移的请求，则会走：
+## 15. 为什么按业务域迁，而不是按接口零敲碎打
 
-1. 浏览器调用 `/console/api/...` 或 `/api/...`
-2. Go router 没有匹配到迁移 handler
-3. `compatFallback` 接管请求
-4. 请求被转发到 Python legacy backend
-5. Python 返回结果给前端
+按接口逐个补通常会出现三个问题：
 
-这个双轨结构，就是整个迁移方案的基础。
+- 页面仍打不开，因为依赖的接口没成组补齐
+- 状态模型分散，后续返工很多
+- 很难定义“这一块到底算不算迁完”
 
-## 7. 路由设计原则
+按业务域推进则更自然：
 
-服务端故意沿用 Dify 原有的 API 分层。
+- 一个页面链路更容易闭环
+- 一组接口共用同一份领域状态
+- 可以形成明确的阶段性交付与验证
 
-## 7.1 `/console/api`
+## 16. 测试与验收原则
 
-面向控制台、配置和创作侧。
+当前阶段的推荐验证方式分三层：
 
-例如：
+### 16.1 编译验证
 
-- setup/login
-- account profile
-- workspace 配置
-- apps
-- workflows
-- model providers
-
-## 7.2 `/api`
-
-面向运行时和终端用户访问面。
-
-例如：
-
-- login status
-- chat/completion runtime
-- conversations
-- public workflow execution
-
-## 7.3 兼容保留前缀
-
-像 `/files`、`/inner/api`、`/mcp`、`/trigger` 这类前缀，即使暂时没完全迁，也会先挂载出来，方便：
-
-- 后续逐步补 Go 实现
-- 或者平滑转发到 legacy backend
-
-这样系统的外部形状是稳定的。
-
-其中 `/trigger` 前缀现在已经开始承载真正的 Go 实现：
-
-- `/trigger/builders/{builderId}` 用于 trigger builder 调试回调
-- `/trigger/subscriptions/{subscriptionId}` 用于已创建 subscription 的回调入口
-- `/trigger/endpoints/{hookId}` 用于 plugin endpoint 的兼容入口
-
-其余未迁移 trigger 路由仍然保持 fallback 能力。
-
-## 8. 状态存储设计
-
-## 8.1 为什么先用文件状态
-
-当前 `dify-go` 对已迁业务域使用文件型 JSON 状态存储。
-
-原因很现实：
-
-- 迭代快
-- 调试直观
-- 不需要先引入完整数据库方案
-- 便于冒烟测试和问题定位
-
-它不是最终解，但非常适合迁移初期。
-
-## 8.2 为什么“已迁业务域”必须在 Go 里自持状态
-
-只要一组路由被认为已经迁移，Go 后端就应该真正拥有它对应的状态。
-
-这样做的好处：
-
-- 行为更可预测
-- 测试更容易
-- 减少和 legacy backend 的隐式耦合
-- 让每个迁移阶段边界清楚
-
-## 8.3 当前状态方案的限制
-
-文件状态方案当前也有明确限制：
-
-- 高频写入场景不够理想
-- 随着业务域增多，并发和一致性要更谨慎
-- 跨业务域关联最终会需要更强的存储模型
-
-这些都是真问题，但应该在迁移覆盖率起来之后再系统解决。
-
-## 8.4 工作区扩展状态为什么单独建模
-
-Tools、workflow-as-tool、MCP、agent strategy、plugin endpoints、trigger subscriptions 这些能力表面上是不同页面，实质上都属于“工作区级扩展目录”。
-
-这批能力有几个共同点：
-
-- 前端会先拉 provider 列表，再按类型拉 tools，再进入单 provider 详情页。
-- 大多数页面同时依赖“配置状态”和“可消费的工具定义”。
-- 它们都更适合先做工作区本地状态聚合，再逐步替换成真实后端实现。
-
-所以当前 Go 侧没有把这些接口拆成彼此完全独立的临时实现，而是先统一落到 `Workspace.ToolSettings` 这层，再由 `internal/server/workspace_tools.go` 和 `internal/server/workspace_extensions.go` 负责把状态转换成前端期待的数据结构。
-
-## 9. 认证与 Session 设计
-
-当前认证方案主要由下面几部分组成：
-
-- cookie access token
-- cookie refresh token
-- 内存 session manager
-- cookie + header 的 CSRF 保护
-
-为什么这样设计：
-
-- 它和浏览器前端天然契合
-- 实现简单、行为清晰
-- 能把迁移重点放在业务能力，而不是先做一整套账号基础设施
-
-为什么它还不是终态：
-
-- 服务重启后 session 不持久
-- 多实例部署需要共享 session 存储
-
-所以这部分应该在后面的“工程化加固”阶段继续演进。
-
-## 10. Workflow 运行时设计
-
-Workflow 子系统是当前迁移思路最典型的例子之一。
-
-Go 侧已经显式建模了：
-
-- workflow draft
-- published versions
-- workflow run history
-- node execution history
-- version restore 和 metadata update
-
-这里的核心设计原则是：
-
-“把 workflow 创作态和运行态分开建模。”
-
-原因：
-
-- draft 是高频修改对象，应该可变
-- published version 需要稳定 ID 和历史
-- run/node execution 更像追加型运行记录
-
-这种拆分能让后续日志、暂停、RAG pipeline 复用 runtime 基础更自然。
-
-## 11. Model Provider 设计
-
-Workspace Model Provider 已经被作为一个独立工作区域迁移出来。
-
-目前包含：
-
-- provider catalog
-- supported model types
-- default model
-- provider credential
-- model credential
-- model enable/disable
-- load balancing 配置
-
-这里的核心设计原则是：
-
-“模型可用性首先是 workspace 级能力，而不是 app 私有能力。”
-
-原因：
-
-- 多个 app 会共享同一工作区的模型配置
-- 前端本身就是按 workspace 维度访问 model provider API
-- 这能减少后续 tools、datasets、agents 侧对模型依赖时的重复配置
-
-## 12. 为什么坚持不动前端
-
-这是整个项目最关键的策略之一。
-
-原因：
-
-- Dify 前端已经编码了大量成熟产品逻辑
-- 如果迁后端时同步改前端，会掩盖后端兼容问题
-- 保持前端不动，相当于拥有一个天然的兼容性测试标准
-
-只要原前端能继续跑，就说明迁移方向基本是对的。
-
-这也是对上游产品设计的一种尊重：这里迁的是后端实现，不是无必要地重造整套交互层。
-
-## 13. 为什么按业务域迁，而不是按接口零散补
-
-看起来“一个接口一个接口迁”更安全，但实际常常会得到一个前端打不开、状态不闭环、测试困难的系统。
-
-按业务域迁移更合理，因为：
-
-- 一组页面通常依赖一串相邻接口
-- 相邻接口通常共享状态模型
-- 测试时可以按功能闭环验证，而不是只看单个接口返回 200
-
-例如：
-
-- 应用日志和会话详情应该一起迁
-- tools、endpoints、triggers 适合一起迁
-- datasets 和 RAG pipeline 适合分前后两批但连续推进
-
-这样返工更少。
-
-## 14. 兼容层设计哲学
-
-`dify-go` 的兼容层遵循一个很务实的原则：
-
-先满足前端契约，再优化内部实现。
-
-具体表现为：
-
-- 某些字段先返回简化版本，但结构必须兼容
-- 某些路由同时兼容多个 HTTP method，只要前端当前在使用
-- 某些页面依赖的元数据可以先生成占位但前端可消费的内容
-
-这不是妥协式开发，而是迁移工程里最有效率的策略之一。
-
-## 15. 测试策略
-
-当前阶段建议保持三层验证。
-
-## 15.1 编译验证
-
-每次改动后都先跑：
+每轮改动后先跑：
 
 ```bash
 go build ./...
 ```
 
-这是最基本的完整性校验。
+### 16.2 路由冒烟验证
 
-## 15.2 路由冒烟测试
+对已迁域做最小但完整的 HTTP 验证，例如：
 
-对每个已迁业务域：
+- setup / login
+- 列表 / 创建 / 更新 / 删除
+- 关键行为型接口
 
-- 启一个临时端口的 Go 服务
-- 用 `curl` 或脚本跑 setup/login
-- 验证这组路由最关键的 GET/POST/PATCH/DELETE
+### 16.3 前端流程验证
 
-这是目前最快的验证方式。
+真正的验收不是某个接口 200，而是对应页面能否完成真实操作、并且不再依赖 fallback 才能完成主流程。
 
-## 15.3 前端行为验证
+## 17. 后续演进方向
 
-一组路由迁完以后，还要回到对应前端页面确认：
+随着迁移覆盖率提高，架构会继续朝下面几个方向演化：
 
-- 页面能打开
-- 关键操作能完成
-- 不再依赖 fallback backend
+- 把高频写域从文件状态逐步演进到更稳的持久化方案
+- 让 session 具备重启恢复和多实例共享能力
+- 为已迁域增加更系统的集成测试
+- 基于 `docs/route-manifest.json` 持续追踪覆盖率
+- 持续收缩 `DIFY_GO_LEGACY_API_BASE_URL` 的依赖面
 
-真正的验收标准不是“接口返回 200”，而是“页面和流程真的能跑”。
+## 18. 一句话总结
 
-## 16. 后续演进方向
+`dify-go` 的架构原理可以概括成一句话：
 
-随着迁移覆盖率提高，架构应该继续演进。
-
-## 16.1 更强的持久化方案
-
-后续可以逐步把高价值、高写入业务域迁到更稳的存储：
-
-- 关系型数据库
-- append-oriented runtime records
-- 更好的并发控制
-
-## 16.2 更可靠的 Session 存储
-
-Session 最终应该具备：
-
-- 重启可恢复
-- 多实例可共享
-
-## 16.3 路由覆盖率追踪
-
-`docs/route-manifest.json` 应该持续作为路由库存，用来追踪：
-
-- 已迁哪些业务域
-- 剩余哪些高价值接口
-- fallback 面积还剩多少
-
-## 16.4 最终缩小并移除 Legacy Fallback
-
-长期目标不是永远双轨运行，而是：
-
-- 先把 fallback 面积收缩到很小
-- 再让已支持能力集完全脱离 Python backend
-
-## 17. 总结
-
-`dify-go` 的架构思路，可以概括为一句话：
-
-“外部契约尽量稳定，内部能力逐步换血。”
-
-保守的地方：
-
-- 保留前端
-- 保留 API 形状
-- 按业务域渐进迁移
-
-激进的地方：
-
-- 已迁能力必须真正由 Go 接管
-- 兼容层必须显式、可验证
-- legacy 依赖要一步一步缩小
-
-这套方法的核心价值，不是一次性做完所有事，而是让迁移过程始终保持可运行、可验证、可继续推进。
+在不破坏原有 Dify 产品外形的前提下，用一个兼容优先、状态自持、可双轨运行的 Go 后端，逐步把业务主链路从 Python 迁移出来。
