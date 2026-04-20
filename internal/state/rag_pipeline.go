@@ -120,6 +120,27 @@ func (s *Store) CreateRAGPipelineDataset(workspaceID string, owner User, input C
 	return cloneDataset(dataset), app, nil
 }
 
+func (s *Store) FindRAGPipelineDataset(workspaceID, pipelineID string) (Dataset, bool) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	pipelineID = strings.TrimSpace(pipelineID)
+	if pipelineID == "" {
+		return Dataset{}, false
+	}
+
+	for _, dataset := range s.state.Datasets {
+		if dataset.WorkspaceID != workspaceID {
+			continue
+		}
+		if strings.TrimSpace(dataset.PipelineID) == pipelineID {
+			return cloneDataset(dataset), true
+		}
+	}
+
+	return Dataset{}, false
+}
+
 func (s *Store) nextRAGPipelineDatasetNameLocked(workspaceID string) string {
 	base := ragPipelineDefaultDatasetName
 	used := make(map[string]struct{})

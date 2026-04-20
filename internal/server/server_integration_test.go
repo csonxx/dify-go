@@ -40,19 +40,27 @@ type datasetCreateResponse struct {
 }
 
 type ragPipelineDatasetResponse struct {
+	Name              string `json:"name"`
+	Description       string `json:"description"`
 	ID                string `json:"id"`
 	PipelineID        string `json:"pipeline_id"`
 	RuntimeMode       string `json:"runtime_mode"`
 	Permission        string `json:"permission"`
 	DocForm           string `json:"doc_form"`
 	IndexingTechnique string `json:"indexing_technique"`
+	EmbeddingModel    string `json:"embedding_model"`
+	EmbeddingProvider string `json:"embedding_model_provider"`
 	IsPublished       bool   `json:"is_published"`
 }
 
 type workflowDraftResponse struct {
-	ID                   string           `json:"id"`
-	Hash                 string           `json:"hash"`
-	RagPipelineVariables []map[string]any `json:"rag_pipeline_variables"`
+	Graph                 map[string]any   `json:"graph"`
+	Features              map[string]any   `json:"features"`
+	ID                    string           `json:"id"`
+	Hash                  string           `json:"hash"`
+	EnvironmentVariables  []map[string]any `json:"environment_variables"`
+	ConversationVariables []map[string]any `json:"conversation_variables"`
+	RagPipelineVariables  []map[string]any `json:"rag_pipeline_variables"`
 }
 
 type workflowSyncResponse struct {
@@ -63,6 +71,20 @@ type workflowSyncResponse struct {
 
 type ragPipelineParametersResponse struct {
 	Variables []map[string]any `json:"variables"`
+}
+
+type ragPipelineExportResponse struct {
+	Data string `json:"data"`
+}
+
+type ragPipelineImportResponse struct {
+	ID                 string `json:"id"`
+	Status             string `json:"status"`
+	PipelineID         string `json:"pipeline_id"`
+	DatasetID          string `json:"dataset_id"`
+	CurrentDSLVersion  string `json:"current_dsl_version"`
+	ImportedDSLVersion string `json:"imported_dsl_version"`
+	Error              string `json:"error"`
 }
 
 type externalKnowledgeAPIResponse struct {
@@ -705,6 +727,200 @@ func TestRAGPipelinePublishReflectsDatasetStateAndDeleteCleansUpPipeline(t *test
 	missingPipeline := getJSON[errorResponse](env, "/console/api/rag/pipelines/"+dataset.PipelineID+"/workflows/publish", true, http.StatusNotFound)
 	if missingPipeline.Code != "app_not_found" {
 		t.Fatalf("unexpected missing pipeline response after delete: %+v", missingPipeline)
+	}
+}
+
+func TestRAGPipelineExportAndImportRoundTrip(t *testing.T) {
+	env := newServerTestEnv(t)
+	env.setupAndLogin()
+
+	dataset := postJSON[ragPipelineDatasetResponse](env, http.MethodPost, "/console/api/rag/pipeline/empty-dataset", nil, true, http.StatusCreated)
+	postJSON[ragPipelineDatasetResponse](env, http.MethodPatch, "/console/api/datasets/"+dataset.ID, map[string]any{
+		"name":        "Imported FAQ Pipeline",
+		"description": "round trip export",
+		"icon_info": map[string]any{
+			"icon":            "🧠",
+			"icon_type":       "emoji",
+			"icon_background": "#FED7AA",
+		},
+	}, true, http.StatusOK)
+
+	postJSON[workflowSyncResponse](env, http.MethodPost, "/console/api/rag/pipelines/"+dataset.PipelineID+"/workflows/draft", map[string]any{
+		"graph": map[string]any{
+			"nodes": []map[string]any{
+				{
+					"id": "knowledge-node",
+					"data": map[string]any{
+						"title":                    "Knowledge Index",
+						"type":                     "knowledge-index",
+						"chunk_structure":          "qa_model",
+						"indexing_technique":       "high_quality",
+						"embedding_model":          "text-embedding-3-large",
+						"embedding_model_provider": "openai",
+						"retrieval_model": map[string]any{
+							"search_method":           "semantic_search",
+							"top_k":                   6,
+							"score_threshold":         0.61,
+							"score_threshold_enabled": true,
+						},
+					},
+				},
+				{
+					"id": "tool-node",
+					"data": map[string]any{
+						"title":                    "Plugin Tool",
+						"type":                     "tool",
+						"plugin_unique_identifier": "langgenius/demo:tool@1.0.0",
+					},
+				},
+			},
+			"edges":    []any{},
+			"viewport": map[string]any{"x": 10, "y": 20, "zoom": 0.9},
+		},
+		"features": map[string]any{"opening_statement": "hello"},
+		"environment_variables": []map[string]any{
+			{"id": "env-limit", "name": "limit", "value_type": "number", "value": 5},
+		},
+		"conversation_variables": []map[string]any{
+			{"id": "conv-mode", "name": "mode", "value_type": "string", "value": "draft"},
+		},
+		"rag_pipeline_variables": []map[string]any{
+			{"belong_to_node_id": "shared", "label": "Shared Query", "variable": "shared_query", "type": "text-input", "required": true},
+			{"belong_to_node_id": "knowledge-node", "label": "Question", "variable": "question", "type": "paragraph", "required": true},
+		},
+	}, true, http.StatusOK)
+
+	exported := getJSON[ragPipelineExportResponse](env, "/console/api/rag/pipelines/"+dataset.PipelineID+"/exports?include_secret=false", true, http.StatusOK)
+	if !strings.Contains(exported.Data, "kind: rag_pipeline") {
+		t.Fatalf("expected exported DSL kind, got %q", exported.Data)
+	}
+	if !strings.Contains(exported.Data, "Imported FAQ Pipeline") || !strings.Contains(exported.Data, "langgenius/demo:tool@1.0.0") {
+		t.Fatalf("expected exported DSL metadata and dependencies, got %q", exported.Data)
+	}
+
+	imported := postJSON[ragPipelineImportResponse](env, http.MethodPost, "/console/api/rag/pipelines/imports", map[string]any{
+		"mode":         "yaml-content",
+		"yaml_content": exported.Data,
+	}, true, http.StatusOK)
+	if imported.Status != "completed" || imported.DatasetID == "" || imported.PipelineID == "" {
+		t.Fatalf("unexpected pipeline import response: %+v", imported)
+	}
+	if imported.CurrentDSLVersion == "" || imported.ImportedDSLVersion == "" {
+		t.Fatalf("expected import versions, got %+v", imported)
+	}
+
+	importedDataset := getJSON[ragPipelineDatasetResponse](env, "/console/api/datasets/"+imported.DatasetID, true, http.StatusOK)
+	if importedDataset.Name != "Imported FAQ Pipeline" || importedDataset.Description != "round trip export" {
+		t.Fatalf("unexpected imported dataset metadata: %+v", importedDataset)
+	}
+	if importedDataset.DocForm != "qa_model" || importedDataset.IndexingTechnique != "high_quality" {
+		t.Fatalf("expected imported dataset settings from knowledge node, got %+v", importedDataset)
+	}
+	if importedDataset.EmbeddingModel != "text-embedding-3-large" || importedDataset.EmbeddingProvider != "openai" {
+		t.Fatalf("expected imported embedding settings, got %+v", importedDataset)
+	}
+
+	importedDraft := getJSON[workflowDraftResponse](env, "/console/api/rag/pipelines/"+imported.PipelineID+"/workflows/draft", true, http.StatusOK)
+	if len(anySlice(importedDraft.Graph["nodes"])) != 2 {
+		t.Fatalf("expected imported graph nodes, got %+v", importedDraft.Graph)
+	}
+	if len(importedDraft.EnvironmentVariables) != 1 || len(importedDraft.ConversationVariables) != 1 || len(importedDraft.RagPipelineVariables) != 2 {
+		t.Fatalf("expected imported workflow variables, got %+v", importedDraft)
+	}
+	if stringFromAny(importedDraft.Features["opening_statement"]) != "hello" {
+		t.Fatalf("expected imported features, got %+v", importedDraft.Features)
+	}
+}
+
+func TestRAGPipelineDatasetCreateFromDSL(t *testing.T) {
+	env := newServerTestEnv(t)
+	env.setupAndLogin()
+
+	yamlContent := strings.TrimSpace(`
+version: 0.1.0
+kind: rag_pipeline
+rag_pipeline:
+  name: Ingest QA Pipeline
+  icon: "🧪"
+  icon_type: emoji
+  icon_background: "#123456"
+  description: created from yaml
+workflow:
+  graph:
+    nodes:
+      - id: knowledge-node
+        data:
+          title: Knowledge Index
+          type: knowledge-index
+          chunk_structure: qa_model
+          indexing_technique: high_quality
+          embedding_model: text-embedding-3-large
+          embedding_model_provider: openai
+          retrieval_model:
+            search_method: semantic_search
+            top_k: 6
+            score_threshold: 0.61
+            score_threshold_enabled: true
+          summary_index_setting:
+            enable: true
+            model_name: gpt-4o-mini
+            model_provider_name: openai
+            summary_prompt: Summarize chunks
+    edges: []
+    viewport:
+      x: 12
+      y: 34
+      zoom: 0.8
+  features:
+    opening_statement: hello
+  environment_variables:
+    - id: env-lang
+      name: language
+      value_type: string
+      value: zh-CN
+  conversation_variables:
+    - id: conv-channel
+      name: channel
+      value_type: string
+      value: web
+  rag_pipeline_variables:
+    - belong_to_node_id: shared
+      label: Shared Query
+      variable: shared_query
+      type: text-input
+      required: true
+    - belong_to_node_id: knowledge-node
+      label: Upload
+      variable: upload
+      type: file
+      required: false
+`)
+
+	created := postJSON[ragPipelineDatasetResponse](env, http.MethodPost, "/console/api/rag/pipeline/dataset", map[string]any{
+		"yaml_content": yamlContent,
+	}, true, http.StatusCreated)
+	if created.ID == "" || created.PipelineID == "" {
+		t.Fatalf("expected created dataset ids, got %+v", created)
+	}
+	if created.Name != "Ingest QA Pipeline" || created.Description != "created from yaml" {
+		t.Fatalf("unexpected created dataset metadata: %+v", created)
+	}
+	if created.DocForm != "qa_model" || created.IndexingTechnique != "high_quality" {
+		t.Fatalf("expected created dataset settings from DSL, got %+v", created)
+	}
+	if created.EmbeddingModel != "text-embedding-3-large" || created.EmbeddingProvider != "openai" {
+		t.Fatalf("expected created embedding settings, got %+v", created)
+	}
+
+	draft := getJSON[workflowDraftResponse](env, "/console/api/rag/pipelines/"+created.PipelineID+"/workflows/draft", true, http.StatusOK)
+	if len(anySlice(draft.Graph["nodes"])) != 1 {
+		t.Fatalf("expected imported draft node, got %+v", draft.Graph)
+	}
+	if len(draft.EnvironmentVariables) != 1 || len(draft.ConversationVariables) != 1 || len(draft.RagPipelineVariables) != 2 {
+		t.Fatalf("expected imported variable lists, got %+v", draft)
+	}
+	if stringFromAny(draft.Features["opening_statement"]) != "hello" {
+		t.Fatalf("unexpected imported features: %+v", draft.Features)
 	}
 }
 

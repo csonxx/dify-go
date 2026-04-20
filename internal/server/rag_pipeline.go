@@ -14,12 +14,16 @@ import (
 func (s *server) mountRAGPipelineRoutes(r chi.Router) {
 	r.Route("/rag/pipeline", func(r chi.Router) {
 		r.Post("/empty-dataset", s.handleRAGPipelineEmptyDatasetCreate)
+		r.Post("/dataset", s.handleRAGPipelineDatasetCreateFromDSL)
 		r.NotFound(s.compatFallback)
 	})
 
 	r.Get("/rag/pipelines/datasource-plugins", s.handleRAGPipelineDatasourcePlugins)
+	r.Post("/rag/pipelines/imports", s.handleRAGPipelineImport)
+	r.Post("/rag/pipelines/imports/{importID}/confirm", s.handleRAGPipelineImportConfirm)
 	r.Route("/rag/pipelines/{pipelineID}", func(r chi.Router) {
 		r.Use(s.withResolvedPipelineApp)
+		r.Get("/exports", s.handleRAGPipelineExport)
 		r.Get("/workflows/draft", s.handleWorkflowDraftGet)
 		r.Post("/workflows/draft", s.handleWorkflowDraftSync)
 		r.Get("/workflows/draft/environment-variables", s.handleWorkflowDraftEnvironmentVariables)

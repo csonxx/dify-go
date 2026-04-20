@@ -210,7 +210,11 @@ The Go server keeps Dify's existing API prefixes so the frontend can continue ca
 - `GET /console/api/apps/{id}/workflow-runs/{runId}/node-executions`
 - `POST /console/api/apps/{id}/workflow-runs/tasks/{taskId}/stop`
 - `POST /console/api/rag/pipeline/empty-dataset`
+- `POST /console/api/rag/pipeline/dataset`
 - `GET /console/api/rag/pipelines/datasource-plugins`
+- `POST /console/api/rag/pipelines/imports`
+- `POST /console/api/rag/pipelines/imports/{importId}/confirm`
+- `GET /console/api/rag/pipelines/{pipelineId}/exports`
 - `GET|POST /console/api/rag/pipelines/{pipelineId}/workflows/draft`
 - `GET /console/api/rag/pipelines/{pipelineId}/workflows/default-workflow-block-configs`
 - `GET /console/api/rag/pipelines/{pipelineId}/workflows/default-workflow-block-configs/{blockType}`
@@ -229,6 +233,8 @@ The Go server keeps Dify's existing API prefixes so the frontend can continue ca
 - `POST /console/api/rag/pipelines/{pipelineId}/workflow-runs/tasks/{taskId}/stop`
 
 说明：这一批 route 会先把 `pipelineId` 解析到 Go 侧的 workflow app，再复用既有 workflow draft/publish/version/run 处理器；同时新增 `rag_pipeline_variables` 的持久化与参数过滤，空白 pipeline dataset 删除时也会同步回收绑定的 workflow app。
+
+补充：RAG pipeline DSL 现在已经可以在 Go 侧完成导出、导入和“从 DSL 创建 dataset”。导入时会把 `workflow.graph/features/environment_variables/conversation_variables/rag_pipeline_variables` 回写到 Go workflow draft；如果 DSL 中的 `knowledge-index` 节点带了知识库配置，也会同步更新 dataset 的 `doc_form/indexing_technique/retrieval_model/embedding_model/summary_index_setting`。
 - `GET /console/api/datasets/retrieval-setting`
 - `GET /console/api/datasets/process-rule`
 - `POST /console/api/datasets/indexing-estimate`
@@ -344,5 +350,5 @@ The frontend already defaults to:
 
 - The Go backend currently uses a lightweight file-backed bootstrap store at `var/state.json`.
 - Session storage is in-memory for now.
-- Dataset external retrieval, bulk import semantics, and RAG pipeline deep-link semantics are still only partially migrated.
+- Dataset external retrieval、bulk import semantics，以及 RAG pipeline 的 template/customized template、published run 等深层执行语义仍在继续迁移。
 - Most remaining business routes are still pending migration and should either be proxied to the Python backend or implemented next by priority.
