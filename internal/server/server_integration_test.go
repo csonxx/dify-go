@@ -126,6 +126,24 @@ type publishedPipelineRunResponse struct {
 	} `json:"documents"`
 }
 
+type indexingEstimatePreviewResponse struct {
+	TotalNodes     int    `json:"total_nodes"`
+	Tokens         int    `json:"tokens"`
+	TotalSegments  int    `json:"total_segments"`
+	Currency       string `json:"currency"`
+	ChunkStructure string `json:"chunk_structure"`
+	ParentMode     string `json:"parent_mode"`
+	Preview        []struct {
+		Content     string   `json:"content"`
+		ChildChunks []string `json:"child_chunks"`
+		Summary     string   `json:"summary"`
+	} `json:"preview"`
+	QAPreview []struct {
+		Question string `json:"question"`
+		Answer   string `json:"answer"`
+	} `json:"qa_preview"`
+}
+
 type pipelineExecutionLogResponse struct {
 	DatasourceInfo   map[string]any `json:"datasource_info"`
 	DatasourceType   string         `json:"datasource_type"`
@@ -1712,6 +1730,82 @@ func TestRAGPipelineCustomizedTemplateCRUD(t *testing.T) {
 	}
 }
 
+func TestDatasetIndexingEstimatePreviewModes(t *testing.T) {
+	env := newServerTestEnv(t)
+	env.setupAndLogin()
+
+	hierarchical := postJSON[indexingEstimatePreviewResponse](env, http.MethodPost, "/console/api/datasets/indexing-estimate", map[string]any{
+		"dataset_id":   "preview-dataset",
+		"doc_form":     "hierarchical_model",
+		"doc_language": "English",
+		"process_rule": map[string]any{
+			"mode": "custom",
+			"rules": map[string]any{
+				"parent_mode": "full-doc",
+			},
+		},
+		"info_list": map[string]any{
+			"data_source_type": "website_crawl",
+			"website_info_list": map[string]any{
+				"provider": "firecrawl",
+				"job_id":   "job-preview",
+				"urls": []string{
+					"https://example.com/alpha",
+					"https://example.com/beta",
+				},
+			},
+		},
+	}, true, http.StatusOK)
+	if hierarchical.TotalNodes != 2 || hierarchical.ChunkStructure != "hierarchical_model" || hierarchical.ParentMode != "full-doc" {
+		t.Fatalf("unexpected hierarchical estimate payload: %+v", hierarchical)
+	}
+	if len(hierarchical.Preview) != 2 || len(hierarchical.Preview[0].ChildChunks) == 0 {
+		t.Fatalf("expected hierarchical preview with child chunks, got %+v", hierarchical.Preview)
+	}
+
+	qa := postJSON[indexingEstimatePreviewResponse](env, http.MethodPost, "/console/api/datasets/indexing-estimate", map[string]any{
+		"dataset_id":   "preview-dataset",
+		"doc_form":     "qa_model",
+		"doc_language": "English",
+		"process_rule": map[string]any{
+			"mode": "custom",
+			"rules": map[string]any{
+				"parent_mode": "paragraph",
+			},
+		},
+		"info_list": map[string]any{
+			"data_source_type": "notion_import",
+			"notion_info_list": []map[string]any{
+				{
+					"workspace_id":  "workspace-1",
+					"credential_id": "credential-1",
+					"pages": []map[string]any{
+						{
+							"page_id":   "page-1",
+							"page_name": "Architecture Notes",
+							"type":      "page",
+						},
+						{
+							"page_id":   "page-2",
+							"page_name": "Runbook",
+							"type":      "page",
+						},
+					},
+				},
+			},
+		},
+	}, true, http.StatusOK)
+	if qa.TotalNodes != 2 || qa.ChunkStructure != "qa_model" {
+		t.Fatalf("unexpected qa estimate payload: %+v", qa)
+	}
+	if len(qa.QAPreview) != 4 || len(qa.Preview) != len(qa.QAPreview) {
+		t.Fatalf("expected qa preview pairs for each datasource item, got %+v", qa)
+	}
+	if qa.QAPreview[0].Question == "" || qa.QAPreview[0].Answer == "" {
+		t.Fatalf("expected qa preview entries to be populated, got %+v", qa.QAPreview)
+	}
+}
+
 func TestRAGPipelinePublishedRunCreatePreviewAndReprocess(t *testing.T) {
 	env := newServerTestEnv(t)
 	env.setupAndLogin()
@@ -1773,12 +1867,19 @@ func TestRAGPipelinePublishedRunCreatePreviewAndReprocess(t *testing.T) {
 	if totalNodes, ok := preview.Data.Outputs["total_nodes"].(float64); !ok || int(totalNodes) != 1 {
 		t.Fatalf("unexpected preview outputs: %+v", preview.Data.Outputs)
 	}
+	if stringFromAny(preview.Data.Outputs["chunk_structure"]) != "hierarchical_model" || stringFromAny(preview.Data.Outputs["parent_mode"]) != "paragraph" {
+		t.Fatalf("expected hierarchical preview metadata, got %+v", preview.Data.Outputs)
+	}
+	previewChunks := anySlice(preview.Data.Outputs["preview"])
+	if len(previewChunks) == 0 || len(anySlice(mapFromAny(previewChunks[0])["child_chunks"])) == 0 {
+		t.Fatalf("expected preview output to include parent-child chunk slices, got %+v", preview.Data.Outputs)
+	}
 
 	previewDetail := getJSON[map[string]any](env, "/console/api/rag/pipelines/"+dataset.PipelineID+"/workflow-runs/"+preview.WorkflowRunID, true, http.StatusOK)
 	if !strings.Contains(stringFromAny(previewDetail["inputs"]), "\"datasource_type\":\"local_file\"") || !strings.Contains(stringFromAny(previewDetail["inputs"]), "\"is_preview\":true") {
 		t.Fatalf("expected preview run detail to persist pipeline inputs, got %+v", previewDetail)
 	}
-	if !strings.Contains(stringFromAny(previewDetail["outputs"]), "\"mode\":\"preview\"") || !strings.Contains(stringFromAny(previewDetail["outputs"]), "\"preview_result\"") {
+	if !strings.Contains(stringFromAny(previewDetail["outputs"]), "\"mode\":\"preview\"") || !strings.Contains(stringFromAny(previewDetail["outputs"]), "\"preview_result\"") || !strings.Contains(stringFromAny(previewDetail["outputs"]), "\"chunk_structure\":\"hierarchical_model\"") {
 		t.Fatalf("expected preview run detail to persist preview outputs, got %+v", previewDetail)
 	}
 
@@ -1796,6 +1897,9 @@ func TestRAGPipelinePublishedRunCreatePreviewAndReprocess(t *testing.T) {
 	}
 	if stringFromAny(mapFromAny(previewNode["outputs"])["mode"]) != "preview" || len(mapFromAny(mapFromAny(previewNode["outputs"])["preview_result"])) == 0 {
 		t.Fatalf("expected preview node execution to persist preview outputs, got %+v", previewNode["outputs"])
+	}
+	if stringFromAny(mapFromAny(mapFromAny(previewNode["outputs"])["preview_result"])["chunk_structure"]) != "hierarchical_model" {
+		t.Fatalf("expected preview node execution to persist chunk structure, got %+v", previewNode["outputs"])
 	}
 
 	createPayload := map[string]any{

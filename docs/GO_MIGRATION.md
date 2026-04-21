@@ -260,6 +260,8 @@ The Go server keeps Dify's existing API prefixes so the frontend can continue ca
 
 补充：RAG pipeline `published/run` 写入的 workflow run 现在也不再只是通用兼容占位结果。Go 侧会把 `pipeline_id / dataset_id / datasource_type / datasource_info_list / start_node_id / processing_inputs / batch / document_ids / original_document_id / preview_result` 一并持久化到 `/rag/pipelines/{pipelineId}/workflow-runs`、`/{runId}` 和 `/{runId}/node-executions`，这样前端 run history、详情和 trace panel 看到的是更接近上游 Dify 的 pipeline 语义。
 
+补充：dataset 的 `/console/api/datasets/indexing-estimate` 和 RAG pipeline 的 `published/run preview` 现在也开始共用一套按 `doc_form` 生成的 Go preview builder。返回值会直接补齐前端现有预览面板需要的 `chunk_structure / parent_mode / preview / qa_preview` 结构，`text_model`、`hierarchical_model` 和 `qa_model` 三种 chunk 模式都可以在不改前端代码的前提下直接渲染。
+
 补充：RAG pipeline dataset 和背后的 workflow app 元数据现在也开始共用一份 Go 状态。`PATCH /console/api/datasets/{datasetId}` 更新名称、描述、图标时，会同步回写绑定的 `/console/api/apps/{pipelineId}`；反过来 `PUT /console/api/apps/{pipelineId}` 也会把同样的元数据镜像回 dataset，避免 dataset detail、pipeline editor、app detail 出现不同步的标题或图标。
 
 补充：RAG pipeline 的 publish / copy / delete 生命周期也进一步和 dataset 绑定起来了。Go 侧在 `POST /console/api/rag/pipelines/{pipelineId}/workflows/publish` 时会把 linked dataset 的 `is_published` 一起写回本地状态；通过 `/console/api/apps/{appId}/copy` 复制一个 pipeline app 时，会同步生成新的 linked pipeline dataset；而删除 `/console/api/apps/{appId}` 时，也会把对应的 linked dataset 一起回收，避免留下失联的 `pipeline_id`。
