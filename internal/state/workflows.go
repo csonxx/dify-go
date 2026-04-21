@@ -162,11 +162,30 @@ func (s *Store) PublishWorkflow(appID, workspaceID string, user User, markedName
 		app.Workflow.UpdatedAt = app.UpdatedAt
 		app.Workflow.UpdatedBy = user.ID
 	}
+	s.syncLinkedRAGPipelineDatasetPublishStateLocked(&app, user, now)
 	s.state.Apps[index] = app
 	if err := s.saveLocked(); err != nil {
 		return WorkflowState{}, err
 	}
 	return cloneWorkflowState(published), nil
+}
+
+func (s *Store) syncLinkedRAGPipelineDatasetPublishStateLocked(app *App, user User, now time.Time) {
+	if app == nil {
+		return
+	}
+
+	for i := range s.state.Datasets {
+		dataset := &s.state.Datasets[i]
+		if dataset.WorkspaceID != app.WorkspaceID || strings.TrimSpace(dataset.PipelineID) != app.ID {
+			continue
+		}
+
+		dataset.IsPublished = app.WorkflowPublished != nil
+		dataset.UpdatedAt = now.UTC().Unix()
+		dataset.UpdatedBy = user.ID
+		return
+	}
 }
 
 func (s *Store) mutateWorkflow(appID, workspaceID string, now time.Time, apply func(app *App) error) (WorkflowState, error) {

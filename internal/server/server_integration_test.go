@@ -10,6 +10,7 @@ import (
 	"net/http/cookiejar"
 	"net/http/httptest"
 	"net/url"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -20,9 +21,10 @@ import (
 )
 
 type serverTestEnv struct {
-	t      *testing.T
-	server *httptest.Server
-	client *http.Client
+	t         *testing.T
+	server    *httptest.Server
+	client    *http.Client
+	stateFile string
 }
 
 type uploadResponse struct {
@@ -1335,6 +1337,67 @@ func TestRAGPipelineDatasetAndAppMetadataStayInSync(t *testing.T) {
 	}
 }
 
+func TestRAGPipelinePublishCopyAndDeleteStayLinked(t *testing.T) {
+	env := newServerTestEnv(t)
+	env.setupAndLogin()
+
+	dataset := postJSON[ragPipelineDatasetResponse](env, http.MethodPost, "/console/api/rag/pipeline/empty-dataset", nil, true, http.StatusCreated)
+	postJSON[workflowSyncResponse](env, http.MethodPost, "/console/api/rag/pipelines/"+dataset.PipelineID+"/workflows/draft", map[string]any{
+		"graph": map[string]any{
+			"nodes":    []map[string]any{{"id": "source-node", "data": map[string]any{"title": "Source", "type": "start"}}},
+			"edges":    []any{},
+			"viewport": map[string]any{"x": 0, "y": 0, "zoom": 1},
+		},
+	}, true, http.StatusOK)
+	postJSON[map[string]any](env, http.MethodPost, "/console/api/rag/pipelines/"+dataset.PipelineID+"/workflows/publish", map[string]any{
+		"marked_name": "copied-pipeline-v1",
+	}, true, http.StatusOK)
+
+	persistedDataset := findPersistedDatasetByID(t, env, dataset.ID)
+	if !ragPipelineBoolValue(persistedDataset["is_published"]) {
+		t.Fatalf("expected publish to persist dataset is_published, got %+v", persistedDataset)
+	}
+
+	copiedApp := postJSON[map[string]any](env, http.MethodPost, "/console/api/apps/"+dataset.PipelineID+"/copy", map[string]any{
+		"name":            "Copied Pipeline App",
+		"description":     "copied from app api",
+		"mode":            "workflow",
+		"icon_type":       "emoji",
+		"icon":            "🧪",
+		"icon_background": "#FDE68A",
+	}, true, http.StatusCreated)
+	copiedAppID := stringFromAny(copiedApp["id"])
+	if copiedAppID == "" {
+		t.Fatalf("expected copied app id, got %+v", copiedApp)
+	}
+
+	copiedDataset := findPersistedDatasetByPipelineID(t, env, copiedAppID)
+	if stringFromAny(copiedDataset["name"]) != "Copied Pipeline App" || stringFromAny(copiedDataset["description"]) != "copied from app api" {
+		t.Fatalf("expected copied linked dataset metadata, got %+v", copiedDataset)
+	}
+	if len(objectListFromAny(copiedDataset["documents"])) != 0 {
+		t.Fatalf("expected copied linked dataset to start empty, got %+v", copiedDataset["documents"])
+	}
+
+	copiedDatasetID := stringFromAny(copiedDataset["id"])
+	copiedDatasetDetail := getJSON[map[string]any](env, "/console/api/datasets/"+copiedDatasetID, true, http.StatusOK)
+	if stringFromAny(copiedDatasetDetail["pipeline_id"]) != copiedAppID || stringFromAny(copiedDatasetDetail["name"]) != "Copied Pipeline App" {
+		t.Fatalf("expected copied dataset detail to stay linked to copied app, got %+v", copiedDatasetDetail)
+	}
+
+	copiedDraft := getJSON[workflowDraftResponse](env, "/console/api/rag/pipelines/"+copiedAppID+"/workflows/draft", true, http.StatusOK)
+	if len(anySlice(copiedDraft.Graph["nodes"])) != 1 || copiedDraft.ID == "" {
+		t.Fatalf("expected copied pipeline draft to remain accessible, got %+v", copiedDraft)
+	}
+
+	postJSON[map[string]any](env, http.MethodDelete, "/console/api/apps/"+copiedAppID, nil, true, http.StatusNoContent)
+
+	missingDataset := getJSON[errorResponse](env, "/console/api/datasets/"+copiedDatasetID, true, http.StatusNotFound)
+	if missingDataset.Code != "dataset_not_found" {
+		t.Fatalf("expected linked dataset to be deleted with app, got %+v", missingDataset)
+	}
+}
+
 func TestRAGPipelineExportAndImportRoundTrip(t *testing.T) {
 	env := newServerTestEnv(t)
 	env.setupAndLogin()
@@ -1925,13 +1988,14 @@ func newServerTestEnv(t *testing.T) *serverTestEnv {
 	t.Helper()
 
 	tmpDir := t.TempDir()
+	stateFile := filepath.Join(tmpDir, "state.json")
 	handler, err := New(config.Config{
 		Addr:                 ":0",
 		AppVersion:           "test",
 		AppTitle:             "dify-go-test",
 		Edition:              "SELF_HOSTED",
 		EnvName:              "TEST",
-		StateFile:            filepath.Join(tmpDir, "state.json"),
+		StateFile:            stateFile,
 		UploadDir:            filepath.Join(tmpDir, "uploads"),
 		DefaultWorkspaceName: "Default Workspace",
 		WebOrigins:           []string{"http://localhost"},
@@ -1950,9 +2014,10 @@ func newServerTestEnv(t *testing.T) *serverTestEnv {
 	t.Cleanup(server.Close)
 
 	return &serverTestEnv{
-		t:      t,
-		server: server,
-		client: &http.Client{Jar: jar},
+		t:         t,
+		server:    server,
+		client:    &http.Client{Jar: jar},
+		stateFile: stateFile,
 	}
 }
 
@@ -2201,6 +2266,49 @@ func findDatasourcePluginItem(t *testing.T, items []map[string]any, pluginID str
 	}
 
 	t.Fatalf("expected datasource plugin item %s in %+v", pluginID, items)
+	return nil
+}
+
+func readPersistedState(t *testing.T, env *serverTestEnv) map[string]any {
+	t.Helper()
+
+	data, err := os.ReadFile(env.stateFile)
+	if err != nil {
+		t.Fatalf("read state file: %v", err)
+	}
+
+	payload := map[string]any{}
+	if err := json.Unmarshal(data, &payload); err != nil {
+		t.Fatalf("decode state file: %v", err)
+	}
+	return payload
+}
+
+func findPersistedDatasetByID(t *testing.T, env *serverTestEnv, datasetID string) map[string]any {
+	t.Helper()
+
+	state := readPersistedState(t, env)
+	for _, item := range objectListFromAny(state["datasets"]) {
+		if stringFromAny(item["id"]) == datasetID {
+			return item
+		}
+	}
+
+	t.Fatalf("expected persisted dataset %s in %+v", datasetID, state["datasets"])
+	return nil
+}
+
+func findPersistedDatasetByPipelineID(t *testing.T, env *serverTestEnv, pipelineID string) map[string]any {
+	t.Helper()
+
+	state := readPersistedState(t, env)
+	for _, item := range objectListFromAny(state["datasets"]) {
+		if stringFromAny(item["pipeline_id"]) == pipelineID {
+			return item
+		}
+	}
+
+	t.Fatalf("expected persisted dataset with pipeline_id %s in %+v", pipelineID, state["datasets"])
 	return nil
 }
 

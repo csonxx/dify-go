@@ -383,6 +383,7 @@ func (s *Store) DeleteApp(id, workspaceID string) error {
 		return fmt.Errorf("app not found")
 	}
 
+	s.removeLinkedRAGPipelineDatasetsLocked(id, workspaceID)
 	s.state.Apps = append(s.state.Apps[:index], s.state.Apps[index+1:]...)
 	return s.saveLocked()
 }
@@ -392,6 +393,7 @@ func (s *Store) CopyApp(id, workspaceID string, owner User, input CopyAppInput, 
 	if !ok {
 		return App{}, fmt.Errorf("app not found")
 	}
+	linkedDataset, hasLinkedDataset := s.FindRAGPipelineDataset(workspaceID, id)
 
 	createInput := CreateAppInput{
 		Name:           firstNonEmpty(input.Name, original.Name+" Copy"),
@@ -457,7 +459,14 @@ func (s *Store) CopyApp(id, workspaceID string, owner User, input CopyAppInput, 
 			app.Workflow.ID = app.WorkflowDraft.ID
 		}
 	}
-	return s.replaceApp(app)
+
+	var copiedDataset *Dataset
+	if hasLinkedDataset && app.Workflow != nil && strings.TrimSpace(app.Mode) == "workflow" {
+		dataset := copiedLinkedRAGPipelineDataset(linkedDataset, app, owner, now)
+		copiedDataset = &dataset
+	}
+
+	return s.replaceAppAndLinkedDataset(app, copiedDataset)
 }
 
 func (s *Store) UpdateAppSiteStatus(id, workspaceID string, enabled bool, now time.Time) (App, error) {
@@ -593,6 +602,10 @@ func (s *Store) UpdateModelConfig(id, workspaceID string, config map[string]any,
 }
 
 func (s *Store) replaceApp(app App) (App, error) {
+	return s.replaceAppAndLinkedDataset(app, nil)
+}
+
+func (s *Store) replaceAppAndLinkedDataset(app App, linkedDataset *Dataset) (App, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -601,6 +614,10 @@ func (s *Store) replaceApp(app App) (App, error) {
 		return App{}, fmt.Errorf("app not found")
 	}
 	s.state.Apps[index] = app
+	if linkedDataset != nil {
+		dataset := cloneDataset(*linkedDataset)
+		s.state.Datasets = append(s.state.Datasets, dataset)
+	}
 	if err := s.saveLocked(); err != nil {
 		return App{}, err
 	}
@@ -637,6 +654,44 @@ func (s *Store) findAppIndexLocked(id, workspaceID string) int {
 		}
 	}
 	return -1
+}
+
+func (s *Store) removeLinkedRAGPipelineDatasetsLocked(appID, workspaceID string) {
+	filtered := s.state.Datasets[:0]
+	for _, dataset := range s.state.Datasets {
+		if dataset.WorkspaceID == workspaceID && strings.TrimSpace(dataset.PipelineID) == appID {
+			continue
+		}
+		filtered = append(filtered, dataset)
+	}
+	s.state.Datasets = filtered
+}
+
+func copiedLinkedRAGPipelineDataset(source Dataset, app App, owner User, now time.Time) Dataset {
+	dataset := cloneDataset(source)
+	timestamp := now.UTC().Unix()
+	dataset.ID = generateID("dataset")
+	dataset.WorkspaceID = app.WorkspaceID
+	dataset.Name = app.Name
+	dataset.Description = app.Description
+	dataset.AuthorName = ownerDisplayName(owner)
+	dataset.CreatedBy = owner.ID
+	dataset.UpdatedBy = owner.ID
+	dataset.CreatedAt = timestamp
+	dataset.UpdatedAt = timestamp
+	dataset.IsPublished = app.WorkflowPublished != nil
+	dataset.PipelineID = app.ID
+	dataset.IconInfo = normalizeDatasetIconInfo(DatasetIconInfo{
+		Icon:           app.Icon,
+		IconBackground: app.IconBackground,
+		IconType:       app.IconType,
+		IconURL:        appIconURL(&app),
+	}, app.Name)
+	dataset.Documents = []DatasetDocument{}
+	dataset.Queries = []DatasetQueryRecord{}
+	dataset.BatchImportJobs = []DatasetBatchImportJob{}
+	normalizeDataset(&dataset)
+	return dataset
 }
 
 func defaultAppModelConfig(mode string, timestamp int64) map[string]any {

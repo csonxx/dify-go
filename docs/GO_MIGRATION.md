@@ -262,6 +262,8 @@ The Go server keeps Dify's existing API prefixes so the frontend can continue ca
 
 补充：RAG pipeline dataset 和背后的 workflow app 元数据现在也开始共用一份 Go 状态。`PATCH /console/api/datasets/{datasetId}` 更新名称、描述、图标时，会同步回写绑定的 `/console/api/apps/{pipelineId}`；反过来 `PUT /console/api/apps/{pipelineId}` 也会把同样的元数据镜像回 dataset，避免 dataset detail、pipeline editor、app detail 出现不同步的标题或图标。
 
+补充：RAG pipeline 的 publish / copy / delete 生命周期也进一步和 dataset 绑定起来了。Go 侧在 `POST /console/api/rag/pipelines/{pipelineId}/workflows/publish` 时会把 linked dataset 的 `is_published` 一起写回本地状态；通过 `/console/api/apps/{appId}/copy` 复制一个 pipeline app 时，会同步生成新的 linked pipeline dataset；而删除 `/console/api/apps/{appId}` 时，也会把对应的 linked dataset 一起回收，避免留下失联的 `pipeline_id`。
+
 补充：`GET /console/api/rag/pipelines/datasource-plugins` 现在不再返回空兼容数组，而是由 Go 直接提供 RAG pipeline datasource catalog。当前 `local_file` 仍然作为内建数据源始终可用，而 `online_document / website_crawl / online_drive` 这三类 provider 会优先根据 workspace plugin 安装态暴露；如果工作区里已经存在旧的 datasource credential / OAuth client 状态，也会继续以兼容回退方式保留在 catalog 中，避免迁移中把既有授权状态直接隐藏掉。
 
 补充：datasource auth 相关的 `list / default-list / credential CRUD / default / custom-client / oauth authorization-url / oauth callback` 也已经切到 Go。当前实现除了把 datasource 凭证和自定义 OAuth client 配置保存在 workspace 本地状态里，还会和 workspace plugin 安装态一起决定 provider 是否对前端可见；provider 卸载后，如果没有遗留 credential 状态就会直接从 auth list 消失，如果仍有已有 credential，则会继续以 `is_installed=false` 的兼容形态保留出来。

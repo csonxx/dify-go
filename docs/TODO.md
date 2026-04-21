@@ -425,6 +425,7 @@
 - `/rag/pipelines/datasource-plugins` 现在会按 workspace plugin 安装态返回 datasource catalog：`local_file` 始终内建可用，其它 `online_document / website_crawl / online_drive` provider 只有在工作区已安装对应 plugin，或工作区里已经存在旧的 datasource credential / OAuth client 状态时才会继续暴露；这样前端 block selector、plugin install/uninstall、既有授权状态可以共用一套发现语义。
 - datasource auth 相关的 `list / default-list / credential CRUD / default / custom-client / oauth authorization-url / oauth callback` 也已经切到 Go，当前除了把 datasource 凭证和自定义 OAuth client 配置保存在 workspace 本地状态里，还会与 workspace plugin 安装态联动；provider 卸载后如果没有遗留 credential 状态会直接从 auth 列表消失，如果仍有既有 credential 则会以 `is_installed=false` 的兼容姿态继续可见，避免把历史工作区状态直接“藏掉”。
 - RAG pipeline dataset 与底层 workflow app 的名称、描述、图标元数据现在也已经开始共用一份 Go 状态：`PATCH /datasets/{id}` 会同步回写 `/apps/{pipelineId}`，`PUT /apps/{pipelineId}` 也会反向更新 dataset 的 `name / description / icon_info`，避免 pipeline 编辑器、dataset 详情、app detail 看到不同步的元数据。
+- RAG pipeline 的发布与 app 生命周期状态也继续往共享模型收敛了：`POST /workflows/publish` 现在会把 linked dataset 的 `is_published` 持久化到 Go 状态；通过 `/apps/{appId}/copy` 复制 pipeline app 时，会同时生成一个新的 linked pipeline dataset；而 `/apps/{appId}` 删除 pipeline app 时，也会一起回收对应 dataset，避免留下孤儿 `pipeline_id`。
 
 ## 阶段 6：公共运行时 API
 
