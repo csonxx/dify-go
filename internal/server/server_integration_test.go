@@ -990,6 +990,120 @@ func TestDatasourceAuthLifecycleAndOAuthCallback(t *testing.T) {
 	}
 }
 
+func TestRAGPipelineDatasourceNodeRunCompatibility(t *testing.T) {
+	env := newServerTestEnv(t)
+	env.setupAndLogin()
+
+	dataset := postJSON[ragPipelineDatasetResponse](env, http.MethodPost, "/console/api/rag/pipeline/empty-dataset", nil, true, http.StatusCreated)
+	postJSON[workflowSyncResponse](env, http.MethodPost, "/console/api/rag/pipelines/"+dataset.PipelineID+"/workflows/draft", map[string]any{
+		"graph": map[string]any{
+			"nodes": []map[string]any{
+				{"id": "notion-node", "data": map[string]any{"title": "Notion Source"}},
+				{"id": "crawl-node", "data": map[string]any{"title": "Website Source"}},
+				{"id": "drive-node", "data": map[string]any{"title": "Drive Source"}},
+			},
+			"edges":    []any{},
+			"viewport": map[string]any{"x": 0, "y": 0, "zoom": 1},
+		},
+		"features": map[string]any{},
+	}, true, http.StatusOK)
+	postJSON[map[string]any](env, http.MethodPost, "/console/api/rag/pipelines/"+dataset.PipelineID+"/workflows/publish", map[string]any{
+		"marked_name":    "compat",
+		"marked_comment": "datasource node run coverage",
+	}, true, http.StatusOK)
+
+	postJSON[map[string]any](env, http.MethodPost, "/console/api/auth/plugin/datasource/langgenius/firecrawl_datasource/firecrawl", map[string]any{
+		"type": "api-key",
+		"name": "Crawler",
+		"credentials": map[string]any{
+			"api_key": "firecrawl-secret",
+		},
+	}, true, http.StatusOK)
+	firecrawlCredentials := getJSON[datasourceCredentialListResponse](env, "/console/api/auth/plugin/datasource/langgenius/firecrawl_datasource/firecrawl", true, http.StatusOK)
+	if len(firecrawlCredentials.Result) != 1 {
+		t.Fatalf("expected firecrawl credential for datasource node run test, got %+v", firecrawlCredentials.Result)
+	}
+
+	notionCallbackReq, err := http.NewRequest(http.MethodGet, env.server.URL+"/console/api/oauth/plugin/langgenius/notion_datasource/notion_datasource/datasource/callback?redirect_origin=http://localhost", nil)
+	if err != nil {
+		t.Fatalf("create notion callback request: %v", err)
+	}
+	env.doNoRedirect(notionCallbackReq, http.StatusFound).Body.Close()
+	notionCredentials := getJSON[datasourceCredentialListResponse](env, "/console/api/auth/plugin/datasource/langgenius/notion_datasource/notion_datasource", true, http.StatusOK)
+	if len(notionCredentials.Result) != 1 {
+		t.Fatalf("expected notion credential for datasource node run test, got %+v", notionCredentials.Result)
+	}
+
+	driveCallbackReq, err := http.NewRequest(http.MethodGet, env.server.URL+"/console/api/oauth/plugin/langgenius/google_drive/google_drive/datasource/callback?redirect_origin=http://localhost", nil)
+	if err != nil {
+		t.Fatalf("create google drive callback request: %v", err)
+	}
+	env.doNoRedirect(driveCallbackReq, http.StatusFound).Body.Close()
+	driveCredentials := getJSON[datasourceCredentialListResponse](env, "/console/api/auth/plugin/datasource/langgenius/google_drive/google_drive", true, http.StatusOK)
+	if len(driveCredentials.Result) != 1 {
+		t.Fatalf("expected google drive credential for datasource node run test, got %+v", driveCredentials.Result)
+	}
+
+	notionEvents := postStreamJSON(env, "/console/api/rag/pipelines/"+dataset.PipelineID+"/workflows/draft/datasource/nodes/notion-node/run", map[string]any{
+		"inputs": map[string]any{
+			"workspace": "product",
+			"database":  "roadmap",
+		},
+		"credential_id":   notionCredentials.Result[0].ID,
+		"datasource_type": "online_document",
+	}, true, http.StatusOK)
+	if len(notionEvents) != 1 || stringFromAny(notionEvents[0]["event"]) != "datasource_completed" {
+		t.Fatalf("unexpected notion datasource events: %+v", notionEvents)
+	}
+	notionData := objectListFromAny(notionEvents[0]["data"])
+	if len(notionData) != 1 {
+		t.Fatalf("expected notion workspace payload, got %+v", notionEvents[0]["data"])
+	}
+	rawPages, ok := notionData[0]["pages"].([]any)
+	if !ok || len(rawPages) != 3 {
+		t.Fatalf("expected 3 notion pages, got %+v", notionData[0]["pages"])
+	}
+
+	websiteEvents := postStreamJSON(env, "/console/api/rag/pipelines/"+dataset.PipelineID+"/workflows/published/datasource/nodes/crawl-node/run", map[string]any{
+		"inputs": map[string]any{
+			"url":   "https://docs.example.com/start",
+			"depth": 2,
+		},
+		"credential_id":   firecrawlCredentials.Result[0].ID,
+		"datasource_type": "website_crawl",
+		"response_mode":   "streaming",
+	}, true, http.StatusOK)
+	if len(websiteEvents) != 3 {
+		t.Fatalf("expected processing + completed website events, got %+v", websiteEvents)
+	}
+	if stringFromAny(websiteEvents[0]["event"]) != "datasource_processing" || stringFromAny(websiteEvents[2]["event"]) != "datasource_completed" {
+		t.Fatalf("unexpected website event sequence: %+v", websiteEvents)
+	}
+	websiteResults := objectListFromAny(websiteEvents[2]["data"])
+	if len(websiteResults) != 3 {
+		t.Fatalf("expected 3 website crawl results, got %+v", websiteEvents[2]["data"])
+	}
+	if stringFromAny(websiteResults[0]["source_url"]) == "" || stringFromAny(websiteResults[0]["markdown"]) == "" {
+		t.Fatalf("expected source_url and markdown in website result, got %+v", websiteResults[0])
+	}
+
+	driveEvents := postStreamJSON(env, "/console/api/rag/pipelines/"+dataset.PipelineID+"/workflows/published/datasource/nodes/drive-node/run", map[string]any{
+		"inputs":          map[string]any{},
+		"credential_id":   driveCredentials.Result[0].ID,
+		"datasource_type": "online_drive",
+	}, true, http.StatusOK)
+	if len(driveEvents) != 1 || stringFromAny(driveEvents[0]["event"]) != "datasource_completed" {
+		t.Fatalf("unexpected online drive datasource events: %+v", driveEvents)
+	}
+	driveData := objectListFromAny(driveEvents[0]["data"])
+	if len(driveData) != 2 {
+		t.Fatalf("expected initial online drive bucket list, got %+v", driveEvents[0]["data"])
+	}
+	if stringFromAny(driveData[0]["bucket"]) == "" {
+		t.Fatalf("expected online drive bucket entries, got %+v", driveData[0])
+	}
+}
+
 func TestRAGPipelinePublishReflectsDatasetStateAndDeleteCleansUpPipeline(t *testing.T) {
 	env := newServerTestEnv(t)
 	env.setupAndLogin()
@@ -1636,6 +1750,52 @@ func getJSON[T any](e *serverTestEnv, path string, auth bool, wantStatus int) T 
 		e.t.Fatalf("decode get response for %s: %v", path, err)
 	}
 	return result
+}
+
+func postStreamJSON(e *serverTestEnv, path string, payload any, auth bool, wantStatus int) []map[string]any {
+	e.t.Helper()
+
+	var body io.Reader
+	if payload != nil {
+		data, err := json.Marshal(payload)
+		if err != nil {
+			e.t.Fatalf("marshal stream payload: %v", err)
+		}
+		body = bytes.NewReader(data)
+	}
+
+	req, err := http.NewRequest(http.MethodPost, e.server.URL+path, body)
+	if err != nil {
+		e.t.Fatalf("create stream request: %v", err)
+	}
+	if payload != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
+	if auth {
+		req.Header.Set(csrfHeader, e.csrfToken())
+	}
+
+	resp := e.do(req, wantStatus)
+	defer resp.Body.Close()
+
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		e.t.Fatalf("read stream body for %s: %v", path, err)
+	}
+
+	events := []map[string]any{}
+	for _, line := range strings.Split(string(data), "\n") {
+		line = strings.TrimSpace(line)
+		if !strings.HasPrefix(line, "data: ") {
+			continue
+		}
+		payload := map[string]any{}
+		if err := json.Unmarshal([]byte(strings.TrimPrefix(line, "data: ")), &payload); err != nil {
+			e.t.Fatalf("decode stream event for %s: %v raw=%q", path, err, line)
+		}
+		events = append(events, payload)
+	}
+	return events
 }
 
 func (e *serverTestEnv) getBytes(path string, auth bool, wantStatus int) []byte {

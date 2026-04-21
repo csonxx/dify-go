@@ -136,6 +136,21 @@ func ragPipelineDatasourceProviderSpecByProvider(pluginID, provider string) (rag
 	return ragPipelineDatasourceProviderSpec{}, false
 }
 
+func ragPipelineDatasourceProviderSpecByType(datasourceType string) (ragPipelineDatasourceProviderSpec, bool) {
+	switch strings.TrimSpace(datasourceType) {
+	case "online_document":
+		return ragPipelineDatasourceProviderSpecByProvider("langgenius/notion_datasource", "notion_datasource")
+	case "website_crawl":
+		return ragPipelineDatasourceProviderSpecByProvider("langgenius/firecrawl_datasource", "firecrawl")
+	case "online_drive":
+		return ragPipelineDatasourceProviderSpecByProvider("langgenius/google_drive", "google_drive")
+	case "local_file":
+		return ragPipelineDatasourceProviderSpecByProvider("langgenius/file", "file")
+	default:
+		return ragPipelineDatasourceProviderSpec{}, false
+	}
+}
+
 func (s *server) ragPipelineDatasourcePlugins(workspaceID string) []map[string]any {
 	specs := ragPipelineDatasourceProviderSpecs()
 	plugins := make([]map[string]any, 0, len(specs))

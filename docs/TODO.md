@@ -399,6 +399,8 @@
 - [x] `/rag/pipelines/{pipelineId}/workflows/published/pre-processing/parameters`
 - [x] `/rag/pipelines/{pipelineId}/workflows/draft/processing/parameters`
 - [x] `/rag/pipelines/{pipelineId}/workflows/published/processing/parameters`
+- [x] `/rag/pipelines/{pipelineId}/workflows/draft/datasource/nodes/{nodeId}/run`
+- [x] `/rag/pipelines/{pipelineId}/workflows/published/datasource/nodes/{nodeId}/run`
 - [x] `/rag/pipelines/{pipelineId}/workflows/published/run`
 - [x] `/datasets/{datasetId}/documents/{documentId}/pipeline-execution-log`
 
@@ -417,6 +419,7 @@
 - 如果 DSL 的 `knowledge-index` 节点里带了 `chunk_structure`、`indexing_technique`、`retrieval_model`、`embedding_model(_provider)`、`summary_index_setting`，会同步回写到 dataset 状态，确保前端 dataset/pipeline 面板看到的是同一份配置。
 - Template 目录现在也已经落到 Go：内置 built-in 模板列表/详情由 Go 直接提供，customized template 支持发布、列表、详情、更新元信息、导出和删除。
 - Published run 现在已经支持 preview、首次创建文档、以及基于 `original_document_id` 的重处理，并且会把 `datasource_type / datasource_info / input_data / datasource_node_id` 落到 dataset document 的 pipeline execution log，前端 create-from-pipeline 和 document settings 都可以直接复用这条 Go 链路。
+- datasource node run 现在也已经切到 Go，补上了 draft/published 两套 `/datasource/nodes/{nodeId}/run` SSE 兼容接口，当前覆盖 `online_document / website_crawl / online_drive` 三类节点，create-from-pipeline 的在线数据源选择页不再需要走 Python fallback。
 - `/rag/pipelines/datasource-plugins` 现在会直接返回 Go 侧内置的 datasource catalog，已覆盖 `local_file / online_document / website_crawl / online_drive` 四类节点，前端 block selector 不再卡在空列表；后续再继续补 workspace plugin 安装态、credential 授权态和更完整的声明透传。
 - datasource auth 相关的 `list / default-list / credential CRUD / default / custom-client / oauth authorization-url / oauth callback` 也已经切到 Go，当前通过 workspace 本地状态保存 datasource 凭证，并用一个可回跳前端 `oauth-callback` 的模拟 OAuth 流程保持页面交互可用。
 
