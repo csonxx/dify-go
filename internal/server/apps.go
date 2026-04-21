@@ -211,7 +211,7 @@ func (s *server) handleAppUpdate(w http.ResponseWriter, r *http.Request) {
 		IconBackground:      payload.IconBackground,
 		UseIconAsAnswerIcon: payload.UseIconAsAnswerIcon,
 		MaxActiveRequests:   payload.MaxActiveRequests,
-	}, time.Now())
+	}, currentUser(r), time.Now())
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "invalid_request", err.Error())
 		return

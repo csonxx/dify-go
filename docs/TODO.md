@@ -424,6 +424,7 @@
 - datasource node run 现在也已经切到 Go，补上了 draft/published 两套 `/datasource/nodes/{nodeId}/run` SSE 兼容接口，当前覆盖 `online_document / website_crawl / online_drive` 三类节点，create-from-pipeline 的在线数据源选择页不再需要走 Python fallback。
 - `/rag/pipelines/datasource-plugins` 现在会按 workspace plugin 安装态返回 datasource catalog：`local_file` 始终内建可用，其它 `online_document / website_crawl / online_drive` provider 只有在工作区已安装对应 plugin，或工作区里已经存在旧的 datasource credential / OAuth client 状态时才会继续暴露；这样前端 block selector、plugin install/uninstall、既有授权状态可以共用一套发现语义。
 - datasource auth 相关的 `list / default-list / credential CRUD / default / custom-client / oauth authorization-url / oauth callback` 也已经切到 Go，当前除了把 datasource 凭证和自定义 OAuth client 配置保存在 workspace 本地状态里，还会与 workspace plugin 安装态联动；provider 卸载后如果没有遗留 credential 状态会直接从 auth 列表消失，如果仍有既有 credential 则会以 `is_installed=false` 的兼容姿态继续可见，避免把历史工作区状态直接“藏掉”。
+- RAG pipeline dataset 与底层 workflow app 的名称、描述、图标元数据现在也已经开始共用一份 Go 状态：`PATCH /datasets/{id}` 会同步回写 `/apps/{pipelineId}`，`PUT /apps/{pipelineId}` 也会反向更新 dataset 的 `name / description / icon_info`，避免 pipeline 编辑器、dataset 详情、app detail 看到不同步的元数据。
 
 ## 阶段 6：公共运行时 API
 

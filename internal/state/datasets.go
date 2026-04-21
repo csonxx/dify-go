@@ -912,12 +912,48 @@ func (s *Store) PatchDataset(datasetID, workspaceID string, patch map[string]any
 	dataset.ExternalRetrievalModel = normalizeDatasetExternalRetrievalModel(dataset.ExternalRetrievalModel)
 	dataset.UpdatedAt = now.UTC().Unix()
 	dataset.UpdatedBy = user.ID
+	s.syncLinkedRAGPipelineAppFromDatasetLocked(&dataset, user, now)
 
 	s.state.Datasets[index] = dataset
 	if err := s.saveLocked(); err != nil {
 		return Dataset{}, err
 	}
 	return cloneDataset(dataset), nil
+}
+
+func (s *Store) syncLinkedRAGPipelineAppFromDatasetLocked(dataset *Dataset, user User, now time.Time) {
+	if dataset == nil || strings.TrimSpace(dataset.PipelineID) == "" {
+		return
+	}
+
+	appIndex := s.findAppIndexLocked(dataset.PipelineID, dataset.WorkspaceID)
+	if appIndex < 0 {
+		return
+	}
+
+	app := s.state.Apps[appIndex]
+	app.Name = dataset.Name
+	app.Description = dataset.Description
+	app.IconType = defaultIconType(dataset.IconInfo.IconType)
+	app.Icon = strings.TrimSpace(dataset.IconInfo.Icon)
+	app.IconBackground = strings.TrimSpace(dataset.IconInfo.IconBackground)
+	app.Site.Title = dataset.Name
+	app.Site.Description = dataset.Description
+	app.Site.IconType = app.IconType
+	app.Site.Icon = app.Icon
+	app.Site.IconBackground = app.IconBackground
+	if iconURL := strings.TrimSpace(dataset.IconInfo.IconURL); iconURL != "" && (app.IconType == "image" || app.IconType == "link") {
+		app.Site.IconURL = &iconURL
+	} else {
+		app.Site.IconURL = nil
+	}
+	app.UpdatedAt = now.UTC().Unix()
+	app.UpdatedBy = user.ID
+	if app.Workflow != nil {
+		app.Workflow.UpdatedAt = app.UpdatedAt
+		app.Workflow.UpdatedBy = user.ID
+	}
+	s.state.Apps[appIndex] = app
 }
 
 func (s *Store) DeleteDataset(datasetID, workspaceID string) (Dataset, error) {

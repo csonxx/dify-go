@@ -230,7 +230,7 @@ func (s *server) handleAppImport(w http.ResponseWriter, r *http.Request) {
 			IconBackground:      firstImportValue(document.App.IconBackground, existing.IconBackground),
 			UseIconAsAnswerIcon: boolPtr(existing.UseIconAsAnswerIcon),
 			MaxActiveRequests:   existing.MaxActiveRequests,
-		}, now)
+		}, user, now)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, "invalid_request", err.Error())
 			return

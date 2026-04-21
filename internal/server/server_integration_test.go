@@ -1274,6 +1274,67 @@ func TestRAGPipelinePublishReflectsDatasetStateAndDeleteCleansUpPipeline(t *test
 	}
 }
 
+func TestRAGPipelineDatasetAndAppMetadataStayInSync(t *testing.T) {
+	env := newServerTestEnv(t)
+	env.setupAndLogin()
+
+	dataset := postJSON[ragPipelineDatasetResponse](env, http.MethodPost, "/console/api/rag/pipeline/empty-dataset", nil, true, http.StatusCreated)
+	updatedDataset := postJSON[ragPipelineDatasetResponse](env, http.MethodPatch, "/console/api/datasets/"+dataset.ID, map[string]any{
+		"name":        "Synced Knowledge Pipeline",
+		"description": "metadata updated from dataset",
+		"icon_info": map[string]any{
+			"icon":            "file-pipeline-icon",
+			"icon_type":       "image",
+			"icon_background": "#111827",
+			"icon_url":        "https://example.com/pipeline.png",
+		},
+	}, true, http.StatusOK)
+	if updatedDataset.Name != "Synced Knowledge Pipeline" || updatedDataset.Description != "metadata updated from dataset" {
+		t.Fatalf("unexpected updated dataset metadata: %+v", updatedDataset)
+	}
+
+	appDetail := getJSON[map[string]any](env, "/console/api/apps/"+dataset.PipelineID, true, http.StatusOK)
+	if stringFromAny(appDetail["name"]) != updatedDataset.Name || stringFromAny(appDetail["description"]) != updatedDataset.Description {
+		t.Fatalf("expected dataset patch to sync app metadata, got %+v", appDetail)
+	}
+	if stringFromAny(appDetail["icon_type"]) != "image" || stringFromAny(appDetail["icon"]) != "file-pipeline-icon" || stringFromAny(appDetail["icon_background"]) != "#111827" {
+		t.Fatalf("expected dataset patch to sync app icon fields, got %+v", appDetail)
+	}
+	if stringFromAny(appDetail["icon_url"]) != "https://example.com/pipeline.png" {
+		t.Fatalf("expected dataset patch to sync app icon url, got %+v", appDetail)
+	}
+	appSite := mapFromAny(appDetail["site"])
+	if stringFromAny(appSite["title"]) != updatedDataset.Name || stringFromAny(appSite["description"]) != updatedDataset.Description {
+		t.Fatalf("expected dataset patch to sync app site metadata, got %+v", appSite)
+	}
+	if stringFromAny(appSite["icon_url"]) != "https://example.com/pipeline.png" {
+		t.Fatalf("expected dataset patch to sync app site icon url, got %+v", appSite)
+	}
+
+	updatedApp := postJSON[map[string]any](env, http.MethodPut, "/console/api/apps/"+dataset.PipelineID, map[string]any{
+		"name":            "App Driven Pipeline",
+		"description":     "metadata updated from app",
+		"icon_type":       "emoji",
+		"icon":            "🧭",
+		"icon_background": "#DCFCE7",
+	}, true, http.StatusOK)
+	if stringFromAny(updatedApp["name"]) != "App Driven Pipeline" || stringFromAny(updatedApp["description"]) != "metadata updated from app" {
+		t.Fatalf("unexpected updated app metadata: %+v", updatedApp)
+	}
+
+	datasetDetail := getJSON[map[string]any](env, "/console/api/datasets/"+dataset.ID, true, http.StatusOK)
+	if stringFromAny(datasetDetail["name"]) != "App Driven Pipeline" || stringFromAny(datasetDetail["description"]) != "metadata updated from app" {
+		t.Fatalf("expected app update to sync dataset metadata, got %+v", datasetDetail)
+	}
+	iconInfo := mapFromAny(datasetDetail["icon_info"])
+	if stringFromAny(iconInfo["icon_type"]) != "emoji" || stringFromAny(iconInfo["icon"]) != "🧭" || stringFromAny(iconInfo["icon_background"]) != "#DCFCE7" {
+		t.Fatalf("expected app update to sync dataset icon info, got %+v", iconInfo)
+	}
+	if stringFromAny(iconInfo["icon_url"]) != "" {
+		t.Fatalf("expected app emoji icon update to clear dataset icon url, got %+v", iconInfo)
+	}
+}
+
 func TestRAGPipelineExportAndImportRoundTrip(t *testing.T) {
 	env := newServerTestEnv(t)
 	env.setupAndLogin()

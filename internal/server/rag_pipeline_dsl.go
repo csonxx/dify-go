@@ -205,7 +205,7 @@ func (s *server) importRAGPipelineDSL(workspaceID string, user state.User, mode,
 		}
 	}
 
-	app, err = s.applyRAGPipelineMetadata(app, document, now)
+	app, err = s.applyRAGPipelineMetadata(app, document, user, now)
 	if err != nil {
 		result.Error = err.Error()
 		return result, http.StatusBadRequest
@@ -255,7 +255,7 @@ func (s *server) resolveExistingRAGPipeline(workspaceID, pipelineID string) (sta
 	return app, dataset, nil
 }
 
-func (s *server) applyRAGPipelineMetadata(app state.App, document ragPipelineDSLDocument, now time.Time) (state.App, error) {
+func (s *server) applyRAGPipelineMetadata(app state.App, document ragPipelineDSLDocument, user state.User, now time.Time) (state.App, error) {
 	meta := document.RAGPipeline
 	update := state.UpdateAppInput{
 		Name:                firstImportValue(ragPipelineDSLName(meta), app.Name),
@@ -266,7 +266,7 @@ func (s *server) applyRAGPipelineMetadata(app state.App, document ragPipelineDSL
 		UseIconAsAnswerIcon: boolPtr(app.UseIconAsAnswerIcon),
 		MaxActiveRequests:   app.MaxActiveRequests,
 	}
-	return s.store.UpdateApp(app.ID, app.WorkspaceID, update, now)
+	return s.store.UpdateApp(app.ID, app.WorkspaceID, update, user, now)
 }
 
 func (s *server) applyRAGPipelineDatasetMetadata(dataset state.Dataset, document ragPipelineDSLDocument, user state.User, now time.Time) (state.Dataset, error) {

@@ -299,7 +299,7 @@ func (s *Store) CreateApp(workspaceID string, owner User, input CreateAppInput, 
 	return app, nil
 }
 
-func (s *Store) UpdateApp(id, workspaceID string, input UpdateAppInput, now time.Time) (App, error) {
+func (s *Store) UpdateApp(id, workspaceID string, input UpdateAppInput, user User, now time.Time) (App, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -324,16 +324,54 @@ func (s *Store) UpdateApp(id, workspaceID string, input UpdateAppInput, now time
 	app.Site.IconType = app.IconType
 	app.Site.Icon = app.Icon
 	app.Site.IconBackground = app.IconBackground
+	if app.IconType != "image" && app.IconType != "link" {
+		app.Site.IconURL = nil
+	}
 	app.UpdatedAt = now.UTC().Unix()
+	app.UpdatedBy = user.ID
 	if app.Workflow != nil {
 		app.Workflow.UpdatedAt = app.UpdatedAt
+		app.Workflow.UpdatedBy = user.ID
 	}
+	s.syncLinkedRAGPipelineDatasetFromAppLocked(&app, user, now)
 
 	s.state.Apps[index] = app
 	if err := s.saveLocked(); err != nil {
 		return App{}, err
 	}
 	return app, nil
+}
+
+func (s *Store) syncLinkedRAGPipelineDatasetFromAppLocked(app *App, user User, now time.Time) {
+	if app == nil {
+		return
+	}
+
+	for i := range s.state.Datasets {
+		dataset := &s.state.Datasets[i]
+		if dataset.WorkspaceID != app.WorkspaceID || strings.TrimSpace(dataset.PipelineID) != app.ID {
+			continue
+		}
+
+		dataset.Name = app.Name
+		dataset.Description = app.Description
+		dataset.IconInfo = normalizeDatasetIconInfo(DatasetIconInfo{
+			Icon:           app.Icon,
+			IconBackground: app.IconBackground,
+			IconType:       app.IconType,
+			IconURL:        appIconURL(app),
+		}, app.Name)
+		dataset.UpdatedAt = now.UTC().Unix()
+		dataset.UpdatedBy = user.ID
+		return
+	}
+}
+
+func appIconURL(app *App) string {
+	if app == nil || app.Site.IconURL == nil {
+		return ""
+	}
+	return strings.TrimSpace(*app.Site.IconURL)
 }
 
 func (s *Store) DeleteApp(id, workspaceID string) error {
