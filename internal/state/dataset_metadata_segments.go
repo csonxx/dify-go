@@ -977,8 +977,17 @@ func syncDatasetDocumentFromSegments(document *DatasetDocument) {
 	document.Tokens = tokens
 	document.HitCount = hitCount
 	document.SegmentCount = len(document.Segments)
-	document.TotalSegments = len(document.Segments)
-	document.CompletedSegments = completedCount
+	if datasetDocumentIndexingStatusIsActive(document.IndexingStatus) || document.IndexingStatus == documentIndexingStatusPaused {
+		if document.TotalSegments <= 0 {
+			document.TotalSegments = max(len(document.Segments), 2)
+		}
+		if document.CompletedSegments > document.TotalSegments {
+			document.CompletedSegments = document.TotalSegments
+		}
+	} else {
+		document.TotalSegments = len(document.Segments)
+		document.CompletedSegments = completedCount
+	}
 }
 
 func segmentChildChunksFromContent(content, segmentID string, now time.Time, chunkType string) []DatasetChildChunk {

@@ -17,9 +17,16 @@ const (
 	datasetRuntimeModeRAGPipeline   = "rag_pipeline"
 	datasetProviderLocal            = "local"
 	datasetProviderExternal         = "external"
+	documentIndexingStatusWaiting   = "waiting"
+	documentIndexingStatusParsing   = "parsing"
+	documentIndexingStatusCleaning  = "cleaning"
+	documentIndexingStatusSplitting = "splitting"
+	documentIndexingStatusIndexing  = "indexing"
 	documentIndexingStatusCompleted = "completed"
 	documentIndexingStatusPaused    = "paused"
 	documentIndexingStatusError     = "error"
+	documentDisplayStatusQueuing    = "queuing"
+	documentDisplayStatusIndexing   = "indexing"
 	documentDisplayStatusAvailable  = "available"
 	documentDisplayStatusPaused     = "paused"
 	documentDisplayStatusError      = "error"
@@ -182,6 +189,7 @@ type DatasetDocument struct {
 	Tokens               int                         `json:"tokens"`
 	IndexingLatency      int64                       `json:"indexing_latency"`
 	CompletedAt          int64                       `json:"completed_at"`
+	ProcessingCursor     int                         `json:"processing_cursor,omitempty"`
 	PausedBy             string                      `json:"paused_by"`
 	PausedAt             int64                       `json:"paused_at"`
 	StoppedAt            int64                       `json:"stopped_at"`
@@ -380,6 +388,24 @@ func normalizeDatasetDocument(document *DatasetDocument) {
 	if document.DisplayStatus == "" {
 		document.DisplayStatus = documentDisplayStatusAvailable
 	}
+	if document.TotalSegments <= 0 {
+		document.TotalSegments = max(document.SegmentCount, 1)
+	}
+	if document.CompletedSegments < 0 {
+		document.CompletedSegments = 0
+	}
+	if document.CompletedSegments > document.TotalSegments {
+		document.CompletedSegments = document.TotalSegments
+	}
+	if document.IndexingStatus == documentIndexingStatusCompleted && document.CompletedAt != 0 {
+		document.ProcessingCursor = datasetDocumentProcessingCursorDone(document.TotalSegments)
+	}
+	if datasetDocumentIndexingStatusIsActive(document.IndexingStatus) && document.ProcessingStartedAt == 0 {
+		document.ProcessingStartedAt = datasetFirstNonZeroInt64(document.CreatedAt, document.UpdatedAt)
+	}
+	if document.ProcessingCursor == 0 {
+		document.ProcessingCursor = datasetDocumentProcessingCursorFromDocument(*document)
+	}
 	document.DatasetProcessRule = normalizeDatasetProcessRule(document.DatasetProcessRule)
 	document.DocumentProcessRule = normalizeDatasetProcessRule(document.DocumentProcessRule)
 	if document.DataSourceInfo == nil {
@@ -417,6 +443,75 @@ func normalizeDatasetDocument(document *DatasetDocument) {
 	}
 	normalizeDatasetPipelineExecutionLog(&document.PipelineExecutionLog, *document)
 	syncDatasetDocumentFromSegments(document)
+}
+
+func datasetDocumentIndexingStatusIsActive(status string) bool {
+	switch strings.TrimSpace(status) {
+	case documentIndexingStatusWaiting,
+		documentIndexingStatusParsing,
+		documentIndexingStatusCleaning,
+		documentIndexingStatusSplitting,
+		documentIndexingStatusIndexing:
+		return true
+	default:
+		return false
+	}
+}
+
+func datasetDocumentProcessingCursorFromDocument(document DatasetDocument) int {
+	totalSegments := max(document.TotalSegments, 1)
+	switch strings.TrimSpace(document.IndexingStatus) {
+	case documentIndexingStatusWaiting:
+		return 0
+	case documentIndexingStatusParsing:
+		return 1
+	case documentIndexingStatusCleaning:
+		return 2
+	case documentIndexingStatusSplitting:
+		return 3
+	case documentIndexingStatusIndexing:
+		completed := document.CompletedSegments
+		if completed < 1 {
+			completed = 1
+		}
+		if completed >= totalSegments {
+			completed = totalSegments - 1
+		}
+		return completed + 3
+	case documentIndexingStatusCompleted:
+		return datasetDocumentProcessingCursorDone(totalSegments)
+	default:
+		return 0
+	}
+}
+
+func datasetDocumentProcessingCursorDone(totalSegments int) int {
+	return max(totalSegments, 1) + 3
+}
+
+func datasetDocumentProgressTotalSegments(content string) int {
+	tokens := estimateTokenCount(content)
+	switch {
+	case tokens >= 2400:
+		return 6
+	case tokens >= 1600:
+		return 5
+	case tokens >= 800:
+		return 4
+	case tokens >= 240:
+		return 3
+	default:
+		return 2
+	}
+}
+
+func datasetFirstNonZeroInt64(values ...int64) int64 {
+	for _, value := range values {
+		if value != 0 {
+			return value
+		}
+	}
+	return 0
 }
 
 func normalizeDatasetMetadataField(field *DatasetMetadataField) {
@@ -1002,6 +1097,11 @@ func (s *Store) CreateDatasetDocuments(datasetID, workspaceID string, user User,
 	created := make([]DatasetDocument, 0, len(specs))
 	for i, spec := range specs {
 		content := firstNonEmpty(spec.Content, spec.Name)
+		totalSegments := datasetDocumentProgressTotalSegments(content)
+		summaryIndexStatus := ""
+		if input.SummaryIndexSetting.Enable {
+			summaryIndexStatus = "SUMMARIZING"
+		}
 		document := DatasetDocument{
 			ID:                   generateID("doc"),
 			Batch:                batchID,
@@ -1014,13 +1114,13 @@ func (s *Store) CreateDatasetDocuments(datasetID, workspaceID string, user User,
 			CreatedFrom:          firstNonEmpty(input.CreatedFrom, "web"),
 			CreatedBy:            user.ID,
 			CreatedAt:            timestamp,
-			IndexingStatus:       documentIndexingStatusCompleted,
-			DisplayStatus:        documentDisplayStatusAvailable,
-			CompletedSegments:    1,
-			TotalSegments:        1,
+			IndexingStatus:       documentIndexingStatusWaiting,
+			DisplayStatus:        documentDisplayStatusQueuing,
+			CompletedSegments:    0,
+			TotalSegments:        totalSegments,
 			DocForm:              firstNonEmpty(input.DocForm, dataset.DocForm, "text_model"),
 			DocLanguage:          firstNonEmpty(input.DocLanguage, "English"),
-			SummaryIndexStatus:   "completed",
+			SummaryIndexStatus:   summaryIndexStatus,
 			Enabled:              true,
 			WordCount:            max(estimateWordCount(content), 1),
 			Error:                "",
@@ -1034,12 +1134,12 @@ func (s *Store) CreateDatasetDocuments(datasetID, workspaceID string, user User,
 			DocumentProcessRule:  processRule,
 			CreatedAPIRequestID:  generateID("req"),
 			ProcessingStartedAt:  timestamp,
-			ParsingCompletedAt:   timestamp,
-			CleaningCompletedAt:  timestamp,
-			SplittingCompletedAt: timestamp,
+			ParsingCompletedAt:   0,
+			CleaningCompletedAt:  0,
+			SplittingCompletedAt: 0,
 			Tokens:               estimateTokenCount(content),
-			IndexingLatency:      1,
-			CompletedAt:          timestamp,
+			IndexingLatency:      0,
+			CompletedAt:          0,
 			DocType:              "others",
 			SegmentCount:         1,
 			Content:              content,
@@ -1049,6 +1149,7 @@ func (s *Store) CreateDatasetDocuments(datasetID, workspaceID string, user User,
 			Attachments:          cloneDatasetAttachmentList(spec.Attachments),
 			ChildChunks:          cloneDatasetChildChunkList(spec.ChildChunks),
 			Segments:             []DatasetSegment{},
+			ProcessingCursor:     0,
 		}
 		if i < len(input.PipelineExecutionLogs) {
 			document.PipelineExecutionLog = cloneDatasetPipelineExecutionLog(input.PipelineExecutionLogs[i])
@@ -1120,18 +1221,23 @@ func (s *Store) UpdateDatasetDocumentFromInput(datasetID, workspaceID, documentI
 	}
 
 	content := firstNonEmpty(spec.Content, spec.Name, existing.Content, existing.Name)
+	totalSegments := datasetDocumentProgressTotalSegments(content)
 	existing.Batch = batchID
 	existing.DataSourceType = firstNonEmpty(input.DataSourceType, existing.DataSourceType, dataset.DataSourceType, "upload_file")
 	existing.DataSourceInfo = cloneMap(spec.DataSourceInfo)
 	existing.Name = firstNonEmpty(spec.Name, existing.Name)
 	existing.CreatedFrom = firstNonEmpty(input.CreatedFrom, existing.CreatedFrom, "web")
-	existing.IndexingStatus = documentIndexingStatusCompleted
-	existing.DisplayStatus = documentDisplayStatusAvailable
-	existing.CompletedSegments = 1
-	existing.TotalSegments = 1
+	existing.IndexingStatus = documentIndexingStatusWaiting
+	existing.DisplayStatus = documentDisplayStatusQueuing
+	existing.CompletedSegments = 0
+	existing.TotalSegments = totalSegments
 	existing.DocForm = firstNonEmpty(input.DocForm, dataset.DocForm, existing.DocForm, "text_model")
 	existing.DocLanguage = firstNonEmpty(input.DocLanguage, existing.DocLanguage, "English")
-	existing.SummaryIndexStatus = "completed"
+	if input.SummaryIndexSetting.Enable {
+		existing.SummaryIndexStatus = "SUMMARIZING"
+	} else {
+		existing.SummaryIndexStatus = ""
+	}
 	existing.Enabled = true
 	existing.Error = ""
 	existing.Archived = false
@@ -1144,11 +1250,11 @@ func (s *Store) UpdateDatasetDocumentFromInput(datasetID, workspaceID, documentI
 	existing.DocumentProcessRule = processRule
 	existing.CreatedAPIRequestID = generateID("req")
 	existing.ProcessingStartedAt = timestamp
-	existing.ParsingCompletedAt = timestamp
-	existing.CleaningCompletedAt = timestamp
-	existing.SplittingCompletedAt = timestamp
-	existing.IndexingLatency = 1
-	existing.CompletedAt = timestamp
+	existing.ParsingCompletedAt = 0
+	existing.CleaningCompletedAt = 0
+	existing.SplittingCompletedAt = 0
+	existing.IndexingLatency = 0
+	existing.CompletedAt = 0
 	existing.PausedBy = ""
 	existing.PausedAt = 0
 	existing.StoppedAt = 0
@@ -1165,6 +1271,7 @@ func (s *Store) UpdateDatasetDocumentFromInput(datasetID, workspaceID, documentI
 	existing.WordCount = max(estimateWordCount(content), 1)
 	existing.Tokens = estimateTokenCount(content)
 	existing.SegmentCount = 1
+	existing.ProcessingCursor = 0
 	if len(input.PipelineExecutionLogs) > 0 {
 		existing.PipelineExecutionLog = cloneDatasetPipelineExecutionLog(input.PipelineExecutionLogs[0])
 	} else {
@@ -1221,6 +1328,144 @@ func (s *Store) RenameDatasetDocument(datasetID, workspaceID, documentID, name s
 	return fmt.Errorf("document not found")
 }
 
+func refreshDatasetDocumentProgress(document *DatasetDocument, timestamp int64) bool {
+	if document == nil {
+		return false
+	}
+	if document.IndexingStatus == documentIndexingStatusPaused || document.IndexingStatus == documentIndexingStatusError || document.Archived {
+		return false
+	}
+	if document.TotalSegments <= 0 {
+		document.TotalSegments = datasetDocumentProgressTotalSegments(firstNonEmpty(document.Content, document.Name))
+	}
+	if document.TotalSegments < 2 && (datasetDocumentIndexingStatusIsActive(document.IndexingStatus) || document.IndexingStatus == documentIndexingStatusPaused) {
+		document.TotalSegments = 2
+	}
+	doneCursor := datasetDocumentProcessingCursorDone(document.TotalSegments)
+	if document.ProcessingCursor >= doneCursor || document.IndexingStatus == documentIndexingStatusCompleted {
+		changed := false
+		if document.CompletedAt == 0 {
+			document.CompletedAt = datasetFirstNonZeroInt64(document.CompletedAt, timestamp)
+			changed = true
+		}
+		if document.IndexingLatency == 0 && document.ProcessingStartedAt != 0 && document.CompletedAt != 0 {
+			document.IndexingLatency = document.CompletedAt - document.ProcessingStartedAt
+			if document.IndexingLatency < 1 {
+				document.IndexingLatency = 1
+			}
+			changed = true
+		}
+		if document.IndexingStatus != documentIndexingStatusCompleted {
+			document.IndexingStatus = documentIndexingStatusCompleted
+			changed = true
+		}
+		if document.DisplayStatus != documentDisplayStatusAvailable {
+			document.DisplayStatus = documentDisplayStatusAvailable
+			changed = true
+		}
+		if document.CompletedSegments != document.TotalSegments {
+			document.CompletedSegments = document.TotalSegments
+			changed = true
+		}
+		if document.SummaryIndexStatus == "SUMMARIZING" {
+			document.SummaryIndexStatus = "COMPLETED"
+			changed = true
+		}
+		return changed
+	}
+
+	if document.ProcessingStartedAt == 0 {
+		document.ProcessingStartedAt = datasetFirstNonZeroInt64(document.CreatedAt, document.UpdatedAt, timestamp)
+	}
+	document.ProcessingCursor++
+	document.UpdatedAt = timestamp
+
+	switch {
+	case document.ProcessingCursor == 1:
+		document.IndexingStatus = documentIndexingStatusParsing
+		document.DisplayStatus = documentDisplayStatusIndexing
+	case document.ProcessingCursor == 2:
+		document.ParsingCompletedAt = datasetFirstNonZeroInt64(document.ParsingCompletedAt, timestamp)
+		document.IndexingStatus = documentIndexingStatusCleaning
+		document.DisplayStatus = documentDisplayStatusIndexing
+	case document.ProcessingCursor == 3:
+		document.ParsingCompletedAt = datasetFirstNonZeroInt64(document.ParsingCompletedAt, timestamp)
+		document.CleaningCompletedAt = datasetFirstNonZeroInt64(document.CleaningCompletedAt, timestamp)
+		document.IndexingStatus = documentIndexingStatusSplitting
+		document.DisplayStatus = documentDisplayStatusIndexing
+	case document.ProcessingCursor >= doneCursor:
+		document.ParsingCompletedAt = datasetFirstNonZeroInt64(document.ParsingCompletedAt, timestamp)
+		document.CleaningCompletedAt = datasetFirstNonZeroInt64(document.CleaningCompletedAt, timestamp)
+		document.SplittingCompletedAt = datasetFirstNonZeroInt64(document.SplittingCompletedAt, timestamp)
+		document.IndexingStatus = documentIndexingStatusCompleted
+		document.DisplayStatus = documentDisplayStatusAvailable
+		document.CompletedSegments = document.TotalSegments
+		document.CompletedAt = datasetFirstNonZeroInt64(document.CompletedAt, timestamp)
+		document.IndexingLatency = document.CompletedAt - document.ProcessingStartedAt
+		if document.IndexingLatency < 1 {
+			document.IndexingLatency = 1
+		}
+		if document.SummaryIndexStatus == "SUMMARIZING" {
+			document.SummaryIndexStatus = "COMPLETED"
+		}
+	default:
+		document.ParsingCompletedAt = datasetFirstNonZeroInt64(document.ParsingCompletedAt, timestamp)
+		document.CleaningCompletedAt = datasetFirstNonZeroInt64(document.CleaningCompletedAt, timestamp)
+		document.SplittingCompletedAt = datasetFirstNonZeroInt64(document.SplittingCompletedAt, timestamp)
+		document.IndexingStatus = documentIndexingStatusIndexing
+		document.DisplayStatus = documentDisplayStatusIndexing
+		document.CompletedSegments = min(document.TotalSegments-1, max(document.ProcessingCursor-3, 1))
+	}
+	return true
+}
+
+func restoreDatasetDocumentProcessing(document *DatasetDocument, timestamp int64) {
+	if document == nil {
+		return
+	}
+	if document.TotalSegments <= 0 {
+		document.TotalSegments = datasetDocumentProgressTotalSegments(firstNonEmpty(document.Content, document.Name))
+	}
+	if document.TotalSegments < 2 {
+		document.TotalSegments = 2
+	}
+	doneCursor := datasetDocumentProcessingCursorDone(document.TotalSegments)
+	switch {
+	case document.ProcessingCursor <= 0:
+		document.IndexingStatus = documentIndexingStatusWaiting
+		document.DisplayStatus = documentDisplayStatusQueuing
+		document.CompletedSegments = 0
+	case document.ProcessingCursor == 1:
+		document.IndexingStatus = documentIndexingStatusParsing
+		document.DisplayStatus = documentDisplayStatusIndexing
+		document.CompletedSegments = 0
+	case document.ProcessingCursor == 2:
+		document.IndexingStatus = documentIndexingStatusCleaning
+		document.DisplayStatus = documentDisplayStatusIndexing
+		document.CompletedSegments = 0
+	case document.ProcessingCursor == 3:
+		document.IndexingStatus = documentIndexingStatusSplitting
+		document.DisplayStatus = documentDisplayStatusIndexing
+		document.CompletedSegments = 0
+	case document.ProcessingCursor >= doneCursor:
+		document.IndexingStatus = documentIndexingStatusCompleted
+		document.DisplayStatus = documentDisplayStatusAvailable
+		document.CompletedSegments = document.TotalSegments
+		document.CompletedAt = datasetFirstNonZeroInt64(document.CompletedAt, timestamp)
+		if document.SummaryIndexStatus == "SUMMARIZING" {
+			document.SummaryIndexStatus = "COMPLETED"
+		}
+	default:
+		document.IndexingStatus = documentIndexingStatusIndexing
+		document.DisplayStatus = documentDisplayStatusIndexing
+		document.CompletedSegments = min(document.TotalSegments-1, max(document.ProcessingCursor-3, 1))
+	}
+	if document.ProcessingStartedAt == 0 {
+		document.ProcessingStartedAt = datasetFirstNonZeroInt64(document.CreatedAt, document.UpdatedAt, timestamp)
+	}
+	document.UpdatedAt = timestamp
+}
+
 func (s *Store) SetDatasetDocumentProcessing(datasetID, workspaceID, documentID string, paused bool, user User, now time.Time) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -1241,11 +1486,9 @@ func (s *Store) SetDatasetDocumentProcessing(datasetID, workspaceID, documentID 
 			document.PausedBy = user.ID
 			document.PausedAt = timestamp
 		} else {
-			document.IndexingStatus = documentIndexingStatusCompleted
-			document.DisplayStatus = documentDisplayStatusAvailable
+			restoreDatasetDocumentProcessing(document, timestamp)
 			document.PausedBy = ""
 			document.PausedAt = 0
-			document.CompletedAt = timestamp
 		}
 		document.UpdatedAt = timestamp
 		s.state.Datasets[datasetIndex].UpdatedAt = timestamp
@@ -1388,10 +1631,23 @@ func (s *Store) RetryDatasetDocuments(datasetID, workspaceID string, documentIDs
 			continue
 		}
 
-		document.IndexingStatus = documentIndexingStatusCompleted
-		document.DisplayStatus = documentDisplayStatusAvailable
+		document.IndexingStatus = documentIndexingStatusWaiting
+		document.DisplayStatus = documentDisplayStatusQueuing
+		document.CompletedSegments = 0
+		document.TotalSegments = max(document.TotalSegments, datasetDocumentProgressTotalSegments(firstNonEmpty(document.Content, document.Name)))
+		document.ProcessingCursor = 0
+		document.ProcessingStartedAt = timestamp
+		document.ParsingCompletedAt = 0
+		document.CleaningCompletedAt = 0
+		document.SplittingCompletedAt = 0
 		document.Error = ""
-		document.CompletedAt = timestamp
+		document.CompletedAt = 0
+		document.IndexingLatency = 0
+		if document.DocumentProcessRule.SummaryIndexSetting.Enable || document.DatasetProcessRule.SummaryIndexSetting.Enable {
+			document.SummaryIndexStatus = "SUMMARIZING"
+		} else {
+			document.SummaryIndexStatus = ""
+		}
 		document.UpdatedAt = timestamp
 		updated = true
 	}
@@ -1401,6 +1657,54 @@ func (s *Store) RetryDatasetDocuments(datasetID, workspaceID string, documentIDs
 	s.state.Datasets[datasetIndex].UpdatedAt = timestamp
 	s.state.Datasets[datasetIndex].UpdatedBy = user.ID
 	return s.saveLocked()
+}
+
+func (s *Store) RefreshDatasetProcessingProgress(datasetID, workspaceID string, now time.Time) (Dataset, bool, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	datasetIndex := s.findDatasetIndexLocked(datasetID, workspaceID)
+	if datasetIndex < 0 {
+		return Dataset{}, false, fmt.Errorf("dataset not found")
+	}
+
+	timestamp := now.UTC().Unix()
+	changed := false
+	for i := range s.state.Datasets[datasetIndex].Documents {
+		if refreshDatasetDocumentProgress(&s.state.Datasets[datasetIndex].Documents[i], timestamp) {
+			changed = true
+		}
+	}
+
+	if changed {
+		if err := s.saveLocked(); err != nil {
+			return Dataset{}, false, err
+		}
+	}
+	return cloneDataset(s.state.Datasets[datasetIndex]), changed, nil
+}
+
+func (s *Store) RefreshWorkspaceDatasetProcessingProgress(workspaceID string, now time.Time) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	timestamp := now.UTC().Unix()
+	changed := false
+	for i := range s.state.Datasets {
+		if s.state.Datasets[i].WorkspaceID != workspaceID {
+			continue
+		}
+		for j := range s.state.Datasets[i].Documents {
+			if refreshDatasetDocumentProgress(&s.state.Datasets[i].Documents[j], timestamp) {
+				changed = true
+			}
+		}
+	}
+
+	if changed {
+		return s.saveLocked()
+	}
+	return nil
 }
 
 func (s *Store) ListDatasetBatchDocuments(datasetID, workspaceID, batchID string) ([]DatasetDocument, bool) {

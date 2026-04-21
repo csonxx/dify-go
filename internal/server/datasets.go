@@ -263,6 +263,7 @@ func (s *server) handleDatasetList(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, "workspace_not_found", "Workspace not found.")
 		return
 	}
+	_ = s.store.RefreshWorkspaceDatasetProcessingProgress(workspace.ID, time.Now())
 
 	page := s.store.ListDatasets(workspace.ID, state.DatasetListFilters{
 		Page:    intQuery(r, "page", 1),
@@ -801,6 +802,9 @@ func (s *server) currentUserDataset(r *http.Request) (state.Dataset, bool) {
 	datasetID := strings.TrimSpace(chi.URLParam(r, "datasetID"))
 	if datasetID == "" {
 		return state.Dataset{}, false
+	}
+	if dataset, _, err := s.store.RefreshDatasetProcessingProgress(datasetID, workspace.ID, time.Now()); err == nil {
+		return dataset, true
 	}
 	return s.store.GetDataset(datasetID, workspace.ID)
 }

@@ -191,6 +191,25 @@ type datasetDocumentCreateResponse struct {
 	} `json:"documents"`
 }
 
+type indexingStatusResponse struct {
+	ID                   string `json:"id"`
+	IndexingStatus       string `json:"indexing_status"`
+	ProcessingStartedAt  int64  `json:"processing_started_at"`
+	ParsingCompletedAt   any    `json:"parsing_completed_at"`
+	CleaningCompletedAt  any    `json:"cleaning_completed_at"`
+	SplittingCompletedAt any    `json:"splitting_completed_at"`
+	CompletedAt          any    `json:"completed_at"`
+	PausedAt             any    `json:"paused_at"`
+	Error                any    `json:"error"`
+	StoppedAt            any    `json:"stopped_at"`
+	CompletedSegments    int    `json:"completed_segments"`
+	TotalSegments        int    `json:"total_segments"`
+}
+
+type indexingStatusBatchResponse struct {
+	Data []indexingStatusResponse `json:"data"`
+}
+
 type datasetMetadataFieldResponse struct {
 	ID    string `json:"id"`
 	Name  string `json:"name"`
@@ -1656,8 +1675,40 @@ func TestRAGPipelinePublishedRunCreatePreviewAndReprocess(t *testing.T) {
 	if created.Documents[0].Position != 1 {
 		t.Fatalf("expected first created document position to be 1, got %+v", created.Documents[0])
 	}
+	if created.Documents[0].IndexingStatus != "waiting" {
+		t.Fatalf("expected newly created document to start in waiting status, got %+v", created.Documents[0])
+	}
 
 	documentID := created.Documents[0].ID
+	documentStatus := getJSON[indexingStatusResponse](env, "/console/api/datasets/"+dataset.ID+"/documents/"+documentID+"/indexing-status", true, http.StatusOK)
+	if documentStatus.IndexingStatus != "parsing" {
+		t.Fatalf("expected first indexing poll to move into parsing, got %+v", documentStatus)
+	}
+	if documentStatus.CompletedSegments != 0 || documentStatus.TotalSegments < 2 {
+		t.Fatalf("unexpected initial indexing progress after parsing poll: %+v", documentStatus)
+	}
+
+	expectedBatchStatuses := []string{"cleaning", "splitting", "indexing", "completed"}
+	lastBatchStatus := indexingStatusResponse{}
+	for i, expectedStatus := range expectedBatchStatuses {
+		batchStatus := getJSON[indexingStatusBatchResponse](env, "/console/api/datasets/"+dataset.ID+"/batch/"+created.Batch+"/indexing-status", true, http.StatusOK)
+		if len(batchStatus.Data) != 1 {
+			t.Fatalf("expected single batch indexing status item, got %+v", batchStatus.Data)
+		}
+		lastBatchStatus = batchStatus.Data[0]
+		if lastBatchStatus.IndexingStatus != expectedStatus {
+			t.Fatalf("unexpected batch status at step %d: got %+v want %s", i, lastBatchStatus, expectedStatus)
+		}
+	}
+	if lastBatchStatus.CompletedSegments != lastBatchStatus.TotalSegments || lastBatchStatus.CompletedAt == nil {
+		t.Fatalf("expected completed batch status to finish all segments, got %+v", lastBatchStatus)
+	}
+
+	documentDetail := getJSON[map[string]any](env, "/console/api/datasets/"+dataset.ID+"/documents/"+documentID+"?metadata=without", true, http.StatusOK)
+	if stringFromAny(documentDetail["display_status"]) != "available" || stringFromAny(documentDetail["indexing_status"]) != "completed" {
+		t.Fatalf("expected document detail to become available after indexing completion, got %+v", documentDetail)
+	}
+
 	executionLog := getJSON[pipelineExecutionLogResponse](env, "/console/api/datasets/"+dataset.ID+"/documents/"+documentID+"/pipeline-execution-log", true, http.StatusOK)
 	if executionLog.DatasourceType != "local_file" || executionLog.DatasourceNodeID != "datasource-local-file" {
 		t.Fatalf("unexpected execution log metadata: %+v", executionLog)
@@ -1688,6 +1739,9 @@ func TestRAGPipelinePublishedRunCreatePreviewAndReprocess(t *testing.T) {
 	reprocessed := postJSON[publishedPipelineRunResponse](env, http.MethodPost, "/console/api/rag/pipelines/"+dataset.PipelineID+"/workflows/published/run", reprocessPayload, true, http.StatusOK)
 	if len(reprocessed.Documents) != 1 || reprocessed.Documents[0].ID != documentID {
 		t.Fatalf("expected reprocess to update existing document, got %+v", reprocessed.Documents)
+	}
+	if reprocessed.Documents[0].IndexingStatus != "waiting" {
+		t.Fatalf("expected reprocessed document to re-enter waiting status, got %+v", reprocessed.Documents[0])
 	}
 
 	reprocessedLog := getJSON[pipelineExecutionLogResponse](env, "/console/api/datasets/"+dataset.ID+"/documents/"+documentID+"/pipeline-execution-log", true, http.StatusOK)
