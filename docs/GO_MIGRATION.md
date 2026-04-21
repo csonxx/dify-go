@@ -256,11 +256,11 @@ The Go server keeps Dify's existing API prefixes so the frontend can continue ca
 
 补充：RAG pipeline 的 `published/run` 现已接到 Go，支持 published preview、首次创建文档、以及基于 `original_document_id` 的文档重处理；运行请求会同时把 datasource 和 processing inputs 写回 dataset document 的 pipeline execution log，前端 create-from-pipeline 与 document settings 可以直接复用这条链路。
 
-补充：`GET /console/api/rag/pipelines/datasource-plugins` 现在不再返回空兼容数组，而是由 Go 直接提供内置 datasource catalog，已覆盖 `local_file / online_document / website_crawl / online_drive` 四类 RAG pipeline 数据源，并复用了上游常见的 `plugin_id / provider_name / datasource_name` 标识，方便前端 block selector 和后续 datasource auth 迁移继续对齐。
+补充：`GET /console/api/rag/pipelines/datasource-plugins` 现在不再返回空兼容数组，而是由 Go 直接提供 RAG pipeline datasource catalog。当前 `local_file` 仍然作为内建数据源始终可用，而 `online_document / website_crawl / online_drive` 这三类 provider 会优先根据 workspace plugin 安装态暴露；如果工作区里已经存在旧的 datasource credential / OAuth client 状态，也会继续以兼容回退方式保留在 catalog 中，避免迁移中把既有授权状态直接隐藏掉。
 
-补充：datasource auth 相关的 `list / default-list / credential CRUD / default / custom-client / oauth authorization-url / oauth callback` 也已经切到 Go。当前实现会把 datasource 凭证和自定义 OAuth client 配置保存在 workspace 本地状态里，并通过一个可回跳到前端 `oauth-callback` 页的模拟 OAuth 流程维持账号设置页和 create-from-pipeline 的授权交互。
+补充：datasource auth 相关的 `list / default-list / credential CRUD / default / custom-client / oauth authorization-url / oauth callback` 也已经切到 Go。当前实现除了把 datasource 凭证和自定义 OAuth client 配置保存在 workspace 本地状态里，还会和 workspace plugin 安装态一起决定 provider 是否对前端可见；provider 卸载后，如果没有遗留 credential 状态就会直接从 auth list 消失，如果仍有已有 credential，则会继续以 `is_installed=false` 的兼容形态保留出来。
 
-补充：RAG pipeline datasource node run 也已经迁到 Go。当前新增的 draft/published `/datasource/nodes/{nodeId}/run` SSE 兼容层已覆盖 `online_document / website_crawl / online_drive` 三类在线数据源，会结合 workspace datasource credential 状态做基础校验，并返回前端 create-from-pipeline 已可直接消费的 notion workspace/page、website crawl result、online drive bucket/file 结构。
+补充：RAG pipeline datasource node run 也已经迁到 Go。当前新增的 draft/published `/datasource/nodes/{nodeId}/run` SSE 兼容层已覆盖 `online_document / website_crawl / online_drive` 三类在线数据源，会结合 workspace plugin 安装态和 datasource credential 状态做基础校验，并返回前端 create-from-pipeline 已可直接消费的 notion workspace/page、website crawl result、online drive bucket/file 结构。
 - `GET /console/api/datasets/retrieval-setting`
 - `GET /console/api/datasets/process-rule`
 - `POST /console/api/datasets/indexing-estimate`

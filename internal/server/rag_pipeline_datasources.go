@@ -2,6 +2,8 @@ package server
 
 import (
 	"strings"
+
+	"github.com/langgenius/dify-go/internal/state"
 )
 
 type ragPipelineDatasourceProviderSpec struct {
@@ -151,8 +153,65 @@ func ragPipelineDatasourceProviderSpecByType(datasourceType string) (ragPipeline
 	}
 }
 
-func (s *server) ragPipelineDatasourcePlugins(workspaceID string) []map[string]any {
+func (s *server) ragPipelineDatasourceResolvedSpec(workspaceID string, spec ragPipelineDatasourceProviderSpec) (ragPipelineDatasourceProviderSpec, bool, bool) {
+	if spec.ProviderType == "local_file" {
+		return spec, true, true
+	}
+
+	if installation, ok := s.ragPipelineDatasourceInstalledPlugin(workspaceID, spec.PluginID); ok {
+		resolved := spec
+		if strings.TrimSpace(installation.PluginUniqueIdentifier) != "" {
+			resolved.PluginUniqueIdentifier = installation.PluginUniqueIdentifier
+		}
+		return resolved, true, true
+	}
+
+	if s.hasWorkspaceDatasourceProviderState(workspaceID, spec) {
+		return spec, false, true
+	}
+
+	return ragPipelineDatasourceProviderSpec{}, false, false
+}
+
+func (s *server) ragPipelineDatasourceAvailableSpecs(workspaceID string) []ragPipelineDatasourceProviderSpec {
 	specs := ragPipelineDatasourceProviderSpecs()
+	available := make([]ragPipelineDatasourceProviderSpec, 0, len(specs))
+	for _, spec := range specs {
+		resolved, _, ok := s.ragPipelineDatasourceResolvedSpec(workspaceID, spec)
+		if !ok {
+			continue
+		}
+		available = append(available, resolved)
+	}
+	return available
+}
+
+func (s *server) ragPipelineDatasourceAvailableSpecByProvider(workspaceID, pluginID, provider string) (ragPipelineDatasourceProviderSpec, bool) {
+	spec, ok := ragPipelineDatasourceProviderSpecByProvider(pluginID, provider)
+	if !ok {
+		return ragPipelineDatasourceProviderSpec{}, false
+	}
+	resolved, _, available := s.ragPipelineDatasourceResolvedSpec(workspaceID, spec)
+	if !available {
+		return ragPipelineDatasourceProviderSpec{}, false
+	}
+	return resolved, true
+}
+
+func (s *server) ragPipelineDatasourceAvailableSpecByType(workspaceID, datasourceType string) (ragPipelineDatasourceProviderSpec, bool) {
+	spec, ok := ragPipelineDatasourceProviderSpecByType(datasourceType)
+	if !ok {
+		return ragPipelineDatasourceProviderSpec{}, false
+	}
+	resolved, _, available := s.ragPipelineDatasourceResolvedSpec(workspaceID, spec)
+	if !available {
+		return ragPipelineDatasourceProviderSpec{}, false
+	}
+	return resolved, true
+}
+
+func (s *server) ragPipelineDatasourcePlugins(workspaceID string) []map[string]any {
+	specs := s.ragPipelineDatasourceAvailableSpecs(workspaceID)
 	plugins := make([]map[string]any, 0, len(specs))
 	for _, spec := range specs {
 		plugins = append(plugins, s.ragPipelineDatasourcePluginPayload(workspaceID, spec))
@@ -161,10 +220,12 @@ func (s *server) ragPipelineDatasourcePlugins(workspaceID string) []map[string]a
 }
 
 func (s *server) ragPipelineDatasourcePluginPayload(workspaceID string, spec ragPipelineDatasourceProviderSpec) map[string]any {
+	_, installed, _ := s.ragPipelineDatasourceResolvedSpec(workspaceID, spec)
 	return map[string]any{
 		"plugin_id":                spec.PluginID,
 		"plugin_unique_identifier": spec.PluginUniqueIdentifier,
 		"provider":                 spec.Provider,
+		"is_installed":             installed,
 		"is_authorized":            s.isRAGPipelineDatasourceAuthorized(workspaceID, spec),
 		"declaration": map[string]any{
 			"credentials_schema": []any{},
@@ -200,6 +261,40 @@ func (s *server) isRAGPipelineDatasourceAuthorized(workspaceID string, spec ragP
 		return true
 	}
 	return len(s.store.ListWorkspaceDatasourceCredentials(workspaceID, spec.PluginID, spec.Provider)) > 0
+}
+
+func (s *server) ragPipelineDatasourceInstalledPlugin(workspaceID, pluginID string) (state.WorkspacePluginInstallation, bool) {
+	pluginID = strings.TrimSpace(pluginID)
+	if pluginID == "" {
+		return state.WorkspacePluginInstallation{}, false
+	}
+	for _, item := range s.store.ListWorkspaceInstalledPlugins(workspaceID) {
+		if item.PluginID != pluginID {
+			continue
+		}
+		if strings.EqualFold(strings.TrimSpace(item.Status), state.WorkspacePluginStatusDeleted) {
+			continue
+		}
+		return item, true
+	}
+	return state.WorkspacePluginInstallation{}, false
+}
+
+func (s *server) hasWorkspaceDatasourceProviderState(workspaceID string, spec ragPipelineDatasourceProviderSpec) bool {
+	providerState, ok := s.store.GetWorkspaceDatasourceProviderState(workspaceID, spec.PluginID, spec.Provider)
+	if !ok {
+		return false
+	}
+	if len(providerState.Credentials) > 0 {
+		return true
+	}
+	if strings.TrimSpace(providerState.DefaultCredentialID) != "" {
+		return true
+	}
+	if providerState.OAuthClient.Enabled {
+		return true
+	}
+	return len(providerState.OAuthClient.Params) > 0
 }
 
 func datasourceCredentialField(name, label, kind string, required bool, defaultValue any, description string) map[string]any {

@@ -702,8 +702,8 @@ func TestCreateEmptyRAGPipelineDatasetAndDraftAliases(t *testing.T) {
 	env.setupAndLogin()
 
 	plugins := getJSON[[]map[string]any](env, "/console/api/rag/pipelines/datasource-plugins", true, http.StatusOK)
-	if len(plugins) != 4 {
-		t.Fatalf("expected 4 datasource plugins, got %+v", plugins)
+	if len(plugins) != 1 {
+		t.Fatalf("expected only local file datasource plugin before installs, got %+v", plugins)
 	}
 
 	assertDatasourcePlugin := func(pluginID, providerType, provider, datasourceName string, authorized bool) {
@@ -752,9 +752,6 @@ func TestCreateEmptyRAGPipelineDatasetAndDraftAliases(t *testing.T) {
 	}
 
 	assertDatasourcePlugin("langgenius/file", "local_file", "file", "local-file", true)
-	assertDatasourcePlugin("langgenius/notion_datasource", "online_document", "notion_datasource", "notion_datasource", false)
-	assertDatasourcePlugin("langgenius/firecrawl_datasource", "website_crawl", "firecrawl", "crawl", false)
-	assertDatasourcePlugin("langgenius/google_drive", "online_drive", "google_drive", "google_drive", false)
 
 	dataset := postJSON[ragPipelineDatasetResponse](env, http.MethodPost, "/console/api/rag/pipeline/empty-dataset", nil, true, http.StatusCreated)
 	if dataset.ID == "" || dataset.PipelineID == "" {
@@ -823,13 +820,117 @@ func TestCreateEmptyRAGPipelineDatasetAndDraftAliases(t *testing.T) {
 	}
 }
 
+func TestDatasourceCatalogTracksWorkspacePluginInstallations(t *testing.T) {
+	env := newServerTestEnv(t)
+	env.setupAndLogin()
+
+	plugins := getJSON[[]map[string]any](env, "/console/api/rag/pipelines/datasource-plugins", true, http.StatusOK)
+	if len(plugins) != 1 {
+		t.Fatalf("expected only local file datasource plugin before installs, got %+v", plugins)
+	}
+	localFile := findDatasourcePluginItem(t, plugins, "langgenius/file")
+	if !ragPipelineBoolValue(localFile["is_installed"]) || !ragPipelineBoolValue(localFile["is_authorized"]) {
+		t.Fatalf("expected local file datasource to stay installed and authorized: %+v", localFile)
+	}
+
+	authList := getJSON[datasourceAuthListResponse](env, "/console/api/auth/plugin/datasource/list", true, http.StatusOK)
+	if len(authList.Result) != 0 {
+		t.Fatalf("expected no remote datasource auth providers before installs, got %+v", authList.Result)
+	}
+	defaultAuthList := getJSON[datasourceAuthListResponse](env, "/console/api/auth/plugin/datasource/default-list", true, http.StatusOK)
+	if len(defaultAuthList.Result) != 0 {
+		t.Fatalf("expected empty default datasource auth list before installs, got %+v", defaultAuthList.Result)
+	}
+
+	missingProvider := getJSON[errorResponse](env, "/console/api/auth/plugin/datasource/langgenius/notion_datasource/notion_datasource", true, http.StatusNotFound)
+	if missingProvider.Code != "provider_not_found" {
+		t.Fatalf("unexpected missing datasource provider response: %+v", missingProvider)
+	}
+
+	firecrawlUID := installDatasourcePluginFromSpec(t, env, "langgenius/firecrawl_datasource", "firecrawl")
+	notionUID := installDatasourcePluginFromSpec(t, env, "langgenius/notion_datasource", "notion_datasource")
+
+	plugins = getJSON[[]map[string]any](env, "/console/api/rag/pipelines/datasource-plugins", true, http.StatusOK)
+	if len(plugins) != 3 {
+		t.Fatalf("expected local file + 2 installed datasource plugins, got %+v", plugins)
+	}
+
+	firecrawlPlugin := findDatasourcePluginItem(t, plugins, "langgenius/firecrawl_datasource")
+	if !ragPipelineBoolValue(firecrawlPlugin["is_installed"]) || ragPipelineBoolValue(firecrawlPlugin["is_authorized"]) {
+		t.Fatalf("unexpected firecrawl plugin state after install: %+v", firecrawlPlugin)
+	}
+	if stringFromAny(firecrawlPlugin["plugin_unique_identifier"]) != firecrawlUID {
+		t.Fatalf("unexpected firecrawl plugin unique identifier: %+v", firecrawlPlugin)
+	}
+
+	notionPlugin := findDatasourcePluginItem(t, plugins, "langgenius/notion_datasource")
+	if !ragPipelineBoolValue(notionPlugin["is_installed"]) || ragPipelineBoolValue(notionPlugin["is_authorized"]) {
+		t.Fatalf("unexpected notion plugin state after install: %+v", notionPlugin)
+	}
+	if stringFromAny(notionPlugin["plugin_unique_identifier"]) != notionUID {
+		t.Fatalf("unexpected notion plugin unique identifier: %+v", notionPlugin)
+	}
+
+	authList = getJSON[datasourceAuthListResponse](env, "/console/api/auth/plugin/datasource/list", true, http.StatusOK)
+	if len(authList.Result) != 2 {
+		t.Fatalf("expected 2 installed datasource auth providers, got %+v", authList.Result)
+	}
+	firecrawlAuth := findDatasourceAuthItem(t, authList.Result, "langgenius/firecrawl_datasource")
+	if !ragPipelineBoolValue(firecrawlAuth["is_installed"]) {
+		t.Fatalf("expected firecrawl auth provider to be installed: %+v", firecrawlAuth)
+	}
+
+	postJSON[map[string]any](env, http.MethodPost, "/console/api/auth/plugin/datasource/langgenius/firecrawl_datasource/firecrawl", map[string]any{
+		"type": "api-key",
+		"name": "Crawler Primary",
+		"credentials": map[string]any{
+			"api_key": "firecrawl-secret",
+		},
+	}, true, http.StatusOK)
+
+	uninstallWorkspacePluginByID(t, env, "langgenius/notion_datasource")
+	uninstallWorkspacePluginByID(t, env, "langgenius/firecrawl_datasource")
+
+	plugins = getJSON[[]map[string]any](env, "/console/api/rag/pipelines/datasource-plugins", true, http.StatusOK)
+	if len(plugins) != 2 {
+		t.Fatalf("expected local file + firecrawl fallback datasource plugin after uninstall, got %+v", plugins)
+	}
+	firecrawlPlugin = findDatasourcePluginItem(t, plugins, "langgenius/firecrawl_datasource")
+	if ragPipelineBoolValue(firecrawlPlugin["is_installed"]) || !ragPipelineBoolValue(firecrawlPlugin["is_authorized"]) {
+		t.Fatalf("expected firecrawl datasource to stay available via credential state after uninstall: %+v", firecrawlPlugin)
+	}
+	if stringFromAny(firecrawlPlugin["plugin_unique_identifier"]) != firecrawlUID {
+		t.Fatalf("expected firecrawl unique identifier to stay stable after uninstall fallback: %+v", firecrawlPlugin)
+	}
+
+	authList = getJSON[datasourceAuthListResponse](env, "/console/api/auth/plugin/datasource/list", true, http.StatusOK)
+	if len(authList.Result) != 1 {
+		t.Fatalf("expected only firecrawl auth provider after uninstall fallback, got %+v", authList.Result)
+	}
+	firecrawlAuth = findDatasourceAuthItem(t, authList.Result, "langgenius/firecrawl_datasource")
+	if ragPipelineBoolValue(firecrawlAuth["is_installed"]) {
+		t.Fatalf("expected firecrawl auth provider to reflect uninstall state: %+v", firecrawlAuth)
+	}
+	if stringFromAny(firecrawlAuth["plugin_unique_identifier"]) != firecrawlUID {
+		t.Fatalf("expected firecrawl auth unique identifier to stay stable after uninstall fallback: %+v", firecrawlAuth)
+	}
+
+	missingProvider = getJSON[errorResponse](env, "/console/api/auth/plugin/datasource/langgenius/notion_datasource/notion_datasource", true, http.StatusNotFound)
+	if missingProvider.Code != "provider_not_found" {
+		t.Fatalf("expected notion datasource provider to disappear after uninstall, got %+v", missingProvider)
+	}
+}
+
 func TestDatasourceAuthLifecycleAndOAuthCallback(t *testing.T) {
 	env := newServerTestEnv(t)
 	env.setupAndLogin()
 
+	installDatasourcePluginFromSpec(t, env, "langgenius/firecrawl_datasource", "firecrawl")
+	installDatasourcePluginFromSpec(t, env, "langgenius/notion_datasource", "notion_datasource")
+
 	authList := getJSON[datasourceAuthListResponse](env, "/console/api/auth/plugin/datasource/list", true, http.StatusOK)
-	if len(authList.Result) != 3 {
-		t.Fatalf("expected 3 datasource auth entries, got %+v", authList.Result)
+	if len(authList.Result) != 2 {
+		t.Fatalf("expected 2 installed datasource auth entries, got %+v", authList.Result)
 	}
 
 	firecrawl := findDatasourceAuthItem(t, authList.Result, "langgenius/firecrawl_datasource")
@@ -993,6 +1094,10 @@ func TestDatasourceAuthLifecycleAndOAuthCallback(t *testing.T) {
 func TestRAGPipelineDatasourceNodeRunCompatibility(t *testing.T) {
 	env := newServerTestEnv(t)
 	env.setupAndLogin()
+
+	installDatasourcePluginFromSpec(t, env, "langgenius/firecrawl_datasource", "firecrawl")
+	installDatasourcePluginFromSpec(t, env, "langgenius/notion_datasource", "notion_datasource")
+	installDatasourcePluginFromSpec(t, env, "langgenius/google_drive", "google_drive")
 
 	dataset := postJSON[ragPipelineDatasetResponse](env, http.MethodPost, "/console/api/rag/pipeline/empty-dataset", nil, true, http.StatusCreated)
 	postJSON[workflowSyncResponse](env, http.MethodPost, "/console/api/rag/pipelines/"+dataset.PipelineID+"/workflows/draft", map[string]any{
@@ -1884,6 +1989,19 @@ func findDatasourceAuthItem(t *testing.T, items []map[string]any, pluginID strin
 	return nil
 }
 
+func findDatasourcePluginItem(t *testing.T, items []map[string]any, pluginID string) map[string]any {
+	t.Helper()
+
+	for _, item := range items {
+		if stringFromAny(item["plugin_id"]) == pluginID {
+			return item
+		}
+	}
+
+	t.Fatalf("expected datasource plugin item %s in %+v", pluginID, items)
+	return nil
+}
+
 func datasourcePluginAuthorized(t *testing.T, items []map[string]any, pluginID string) bool {
 	t.Helper()
 
@@ -1895,6 +2013,42 @@ func datasourcePluginAuthorized(t *testing.T, items []map[string]any, pluginID s
 
 	t.Fatalf("expected datasource plugin %s in %+v", pluginID, items)
 	return false
+}
+
+func installDatasourcePluginFromSpec(t *testing.T, env *serverTestEnv, pluginID, provider string) string {
+	t.Helper()
+
+	spec, ok := ragPipelineDatasourceProviderSpecByProvider(pluginID, provider)
+	if !ok {
+		t.Fatalf("datasource provider spec not found for %s/%s", pluginID, provider)
+	}
+
+	response := postJSON[map[string]any](env, http.MethodPost, "/console/api/workspaces/current/plugin/install/marketplace", map[string]any{
+		"plugin_unique_identifiers": []string{spec.PluginUniqueIdentifier},
+	}, true, http.StatusOK)
+	if stringFromAny(response["plugin_unique_identifier"]) != spec.PluginUniqueIdentifier {
+		t.Fatalf("unexpected plugin install response for %s: %+v", pluginID, response)
+	}
+
+	return spec.PluginUniqueIdentifier
+}
+
+func uninstallWorkspacePluginByID(t *testing.T, env *serverTestEnv, pluginID string) {
+	t.Helper()
+
+	list := getJSON[map[string]any](env, "/console/api/workspaces/current/plugin/list?page=1&limit=100", true, http.StatusOK)
+	plugins := objectListFromAny(list["plugins"])
+	for _, item := range plugins {
+		if stringFromAny(item["plugin_id"]) != pluginID {
+			continue
+		}
+		postJSON[map[string]any](env, http.MethodPost, "/console/api/workspaces/current/plugin/uninstall", map[string]any{
+			"plugin_installation_id": stringFromAny(item["installation_id"]),
+		}, true, http.StatusOK)
+		return
+	}
+
+	t.Fatalf("expected installed workspace plugin %s in %+v", pluginID, plugins)
 }
 
 func isNoContentStatus(status int) bool {

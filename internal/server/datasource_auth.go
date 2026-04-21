@@ -59,13 +59,12 @@ func (s *server) handleDatasourceAuthGet(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	spec, err := s.datasourceSpecFromProviderID(providerID)
+	_, providerState, err := s.datasourceSpecFromProviderIDForWorkspace(workspace.ID, providerID)
 	if err != nil {
 		writeError(w, http.StatusNotFound, "provider_not_found", err.Error())
 		return
 	}
 
-	providerState, _ := s.store.GetWorkspaceDatasourceProviderState(workspace.ID, spec.PluginID, spec.Provider)
 	writeJSON(w, http.StatusOK, map[string]any{
 		"result": s.datasourceCredentialListPayload(providerState),
 	})
@@ -376,7 +375,7 @@ func (s *server) handleDatasourceOAuthCallback(w http.ResponseWriter, r *http.Re
 }
 
 func (s *server) datasourceAuthCatalogPayload(r *http.Request, workspaceID string, defaultOnly bool) []map[string]any {
-	specs := ragPipelineDatasourceProviderSpecs()
+	specs := s.ragPipelineDatasourceAvailableSpecs(workspaceID)
 	items := make([]map[string]any, 0, len(specs))
 	for _, spec := range specs {
 		if !spec.IncludeInAuthCatalog {
@@ -392,11 +391,13 @@ func (s *server) datasourceAuthCatalogPayload(r *http.Request, workspaceID strin
 
 func (s *server) datasourceAuthProviderPayload(r *http.Request, workspaceID string, spec ragPipelineDatasourceProviderSpec) map[string]any {
 	providerState, _ := s.store.GetWorkspaceDatasourceProviderState(workspaceID, spec.PluginID, spec.Provider)
+	_, installed, _ := s.ragPipelineDatasourceResolvedSpec(workspaceID, spec)
 	payload := map[string]any{
 		"author":                   spec.Author,
 		"provider":                 spec.Provider,
 		"plugin_id":                spec.PluginID,
 		"plugin_unique_identifier": spec.PluginUniqueIdentifier,
+		"is_installed":             installed,
 		"icon":                     spec.Icon,
 		"name":                     spec.Provider,
 		"label":                    localizedText(spec.DatasourceLabel),
@@ -435,9 +436,13 @@ func (s *server) datasourceCredentialListPayload(providerState state.WorkspaceDa
 }
 
 func (s *server) datasourceSpecFromProviderIDForWorkspace(workspaceID, providerID string) (ragPipelineDatasourceProviderSpec, state.WorkspaceDatasourceProviderState, error) {
-	spec, err := s.datasourceSpecFromProviderID(providerID)
+	pluginID, provider, err := parseDatasourceProviderID(providerID)
 	if err != nil {
 		return ragPipelineDatasourceProviderSpec{}, state.WorkspaceDatasourceProviderState{}, err
+	}
+	spec, ok := s.ragPipelineDatasourceAvailableSpecByProvider(workspaceID, pluginID, provider)
+	if !ok || !spec.IncludeInAuthCatalog {
+		return ragPipelineDatasourceProviderSpec{}, state.WorkspaceDatasourceProviderState{}, fmt.Errorf("datasource provider %s not found", providerID)
 	}
 	currentState, _ := s.store.GetWorkspaceDatasourceProviderState(workspaceID, spec.PluginID, spec.Provider)
 	return spec, currentState, nil

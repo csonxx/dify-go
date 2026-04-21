@@ -59,17 +59,17 @@ func (s *server) handleRAGPipelineDatasourceNodeRun(w http.ResponseWriter, r *ht
 		return
 	}
 
-	spec, ok := ragPipelineDatasourceProviderSpecByType(datasourceType)
-	if !ok {
-		s.streamDatasourceEvents(w, r, []map[string]any{
-			datasourceErrorEvent("Datasource type is not supported by dify-go yet."),
-		})
-		return
-	}
-
 	workspace, ok := s.currentUserWorkspace(r)
 	if !ok {
 		writeError(w, http.StatusNotFound, "workspace_not_found", "Workspace not found.")
+		return
+	}
+
+	spec, ok := s.ragPipelineDatasourceAvailableSpecByType(workspace.ID, datasourceType)
+	if !ok {
+		s.streamDatasourceEvents(w, r, []map[string]any{
+			datasourceErrorEvent("Datasource provider is not available in the current workspace."),
+		})
 		return
 	}
 

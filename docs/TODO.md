@@ -409,7 +409,7 @@
 - [ ] 继续把 published run 从当前兼容执行面推进到更贴近上游的真实 pipeline transform / batch job / node output 语义
 - [x] 把 datasource plugin 列表从当前空兼容响应推进到 Go 侧可直接驱动前端的内置 datasource catalog
 - [x] 把 datasource auth 的列表、凭证 CRUD、默认项切换、自定义 OAuth client、授权回跳兼容链路迁到 Go
-- [ ] 继续把 datasource plugin / credential 发现从当前内置 catalog + workspace state 推进到更贴近上游的 workspace plugin 安装态、provider 发现与 credential 发现语义
+- [x] 把 datasource plugin / credential 发现从当前内置 catalog + workspace state 推进到 workspace plugin 安装态优先的 provider 发现语义，并保留对既有 credential 状态的兼容回退
 - [ ] 继续收敛 pipeline 与 dataset 之间的共享状态，让空白 dataset、publish 状态、execution log、文档处理流程完全共用 Go 模型
 
 补充：
@@ -420,8 +420,8 @@
 - Template 目录现在也已经落到 Go：内置 built-in 模板列表/详情由 Go 直接提供，customized template 支持发布、列表、详情、更新元信息、导出和删除。
 - Published run 现在已经支持 preview、首次创建文档、以及基于 `original_document_id` 的重处理，并且会把 `datasource_type / datasource_info / input_data / datasource_node_id` 落到 dataset document 的 pipeline execution log，前端 create-from-pipeline 和 document settings 都可以直接复用这条 Go 链路。
 - datasource node run 现在也已经切到 Go，补上了 draft/published 两套 `/datasource/nodes/{nodeId}/run` SSE 兼容接口，当前覆盖 `online_document / website_crawl / online_drive` 三类节点，create-from-pipeline 的在线数据源选择页不再需要走 Python fallback。
-- `/rag/pipelines/datasource-plugins` 现在会直接返回 Go 侧内置的 datasource catalog，已覆盖 `local_file / online_document / website_crawl / online_drive` 四类节点，前端 block selector 不再卡在空列表；后续再继续补 workspace plugin 安装态、credential 授权态和更完整的声明透传。
-- datasource auth 相关的 `list / default-list / credential CRUD / default / custom-client / oauth authorization-url / oauth callback` 也已经切到 Go，当前通过 workspace 本地状态保存 datasource 凭证，并用一个可回跳前端 `oauth-callback` 的模拟 OAuth 流程保持页面交互可用。
+- `/rag/pipelines/datasource-plugins` 现在会按 workspace plugin 安装态返回 datasource catalog：`local_file` 始终内建可用，其它 `online_document / website_crawl / online_drive` provider 只有在工作区已安装对应 plugin，或工作区里已经存在旧的 datasource credential / OAuth client 状态时才会继续暴露；这样前端 block selector、plugin install/uninstall、既有授权状态可以共用一套发现语义。
+- datasource auth 相关的 `list / default-list / credential CRUD / default / custom-client / oauth authorization-url / oauth callback` 也已经切到 Go，当前除了把 datasource 凭证和自定义 OAuth client 配置保存在 workspace 本地状态里，还会与 workspace plugin 安装态联动；provider 卸载后如果没有遗留 credential 状态会直接从 auth 列表消失，如果仍有既有 credential 则会以 `is_installed=false` 的兼容姿态继续可见，避免把历史工作区状态直接“藏掉”。
 
 ## 阶段 6：公共运行时 API
 
