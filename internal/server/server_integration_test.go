@@ -1650,6 +1650,30 @@ func TestRAGPipelinePublishedRunCreatePreviewAndReprocess(t *testing.T) {
 		t.Fatalf("unexpected preview outputs: %+v", preview.Data.Outputs)
 	}
 
+	previewDetail := getJSON[map[string]any](env, "/console/api/rag/pipelines/"+dataset.PipelineID+"/workflow-runs/"+preview.WorkflowRunID, true, http.StatusOK)
+	if !strings.Contains(stringFromAny(previewDetail["inputs"]), "\"datasource_type\":\"local_file\"") || !strings.Contains(stringFromAny(previewDetail["inputs"]), "\"is_preview\":true") {
+		t.Fatalf("expected preview run detail to persist pipeline inputs, got %+v", previewDetail)
+	}
+	if !strings.Contains(stringFromAny(previewDetail["outputs"]), "\"mode\":\"preview\"") || !strings.Contains(stringFromAny(previewDetail["outputs"]), "\"preview_result\"") {
+		t.Fatalf("expected preview run detail to persist preview outputs, got %+v", previewDetail)
+	}
+
+	previewNodeExecutions := getJSON[map[string]any](env, "/console/api/rag/pipelines/"+dataset.PipelineID+"/workflow-runs/"+preview.WorkflowRunID+"/node-executions", true, http.StatusOK)
+	previewNodes := objectListFromAny(previewNodeExecutions["data"])
+	if len(previewNodes) != 1 {
+		t.Fatalf("expected one preview node execution, got %+v", previewNodes)
+	}
+	previewNode := previewNodes[0]
+	if stringFromAny(previewNode["node_id"]) != "knowledge-node" || stringFromAny(previewNode["node_type"]) != "knowledge-index" {
+		t.Fatalf("unexpected preview node execution: %+v", previewNode)
+	}
+	if stringFromAny(mapFromAny(previewNode["inputs"])["datasource_type"]) != "local_file" {
+		t.Fatalf("expected preview node execution to persist datasource context, got %+v", previewNode["inputs"])
+	}
+	if stringFromAny(mapFromAny(previewNode["outputs"])["mode"]) != "preview" || len(mapFromAny(mapFromAny(previewNode["outputs"])["preview_result"])) == 0 {
+		t.Fatalf("expected preview node execution to persist preview outputs, got %+v", previewNode["outputs"])
+	}
+
 	createPayload := map[string]any{
 		"pipeline_id":     dataset.PipelineID,
 		"inputs":          ragPipelineRunInputs("Chinese", 800, true),
@@ -1677,6 +1701,41 @@ func TestRAGPipelinePublishedRunCreatePreviewAndReprocess(t *testing.T) {
 	}
 	if created.Documents[0].IndexingStatus != "waiting" {
 		t.Fatalf("expected newly created document to start in waiting status, got %+v", created.Documents[0])
+	}
+
+	runHistory := getJSON[map[string]any](env, "/console/api/rag/pipelines/"+dataset.PipelineID+"/workflow-runs", true, http.StatusOK)
+	createRun := findWorkflowRunByBatch(t, objectListFromAny(runHistory["data"]), created.Batch)
+	if stringFromAny(mapFromAny(createRun["inputs"])["datasource_type"]) != "local_file" {
+		t.Fatalf("expected create run history to persist datasource type, got %+v", createRun)
+	}
+	if stringFromAny(mapFromAny(createRun["outputs"])["mode"]) != "create" {
+		t.Fatalf("expected create run history to persist create mode, got %+v", createRun)
+	}
+	documentIDs, ok := mapFromAny(createRun["outputs"])["document_ids"].([]any)
+	if !ok || len(documentIDs) != 1 {
+		t.Fatalf("expected create run history to persist document ids, got %+v", createRun)
+	}
+
+	createRunID := stringFromAny(createRun["id"])
+	createRunDetail := getJSON[map[string]any](env, "/console/api/rag/pipelines/"+dataset.PipelineID+"/workflow-runs/"+createRunID, true, http.StatusOK)
+	if !strings.Contains(stringFromAny(createRunDetail["inputs"]), "\"pipeline_id\":\""+dataset.PipelineID+"\"") || !strings.Contains(stringFromAny(createRunDetail["inputs"]), "\"start_node_id\":\"datasource-local-file\"") {
+		t.Fatalf("expected create run detail to persist pipeline inputs, got %+v", createRunDetail)
+	}
+	if !strings.Contains(stringFromAny(createRunDetail["outputs"]), "\"mode\":\"create\"") || !strings.Contains(stringFromAny(createRunDetail["outputs"]), "\"batch\":\""+created.Batch+"\"") {
+		t.Fatalf("expected create run detail to persist batch outputs, got %+v", createRunDetail)
+	}
+
+	createNodeExecutions := getJSON[map[string]any](env, "/console/api/rag/pipelines/"+dataset.PipelineID+"/workflow-runs/"+createRunID+"/node-executions", true, http.StatusOK)
+	createNodes := objectListFromAny(createNodeExecutions["data"])
+	if len(createNodes) != 1 {
+		t.Fatalf("expected one create node execution, got %+v", createNodes)
+	}
+	createNode := createNodes[0]
+	if stringFromAny(mapFromAny(createNode["outputs"])["batch"]) != created.Batch {
+		t.Fatalf("expected create node execution to persist batch id, got %+v", createNode["outputs"])
+	}
+	if stringFromAny(mapFromAny(createNode["process_data"])["mode"]) != "create" {
+		t.Fatalf("expected create node execution to persist create mode, got %+v", createNode["process_data"])
 	}
 
 	documentID := created.Documents[0].ID
@@ -1742,6 +1801,34 @@ func TestRAGPipelinePublishedRunCreatePreviewAndReprocess(t *testing.T) {
 	}
 	if reprocessed.Documents[0].IndexingStatus != "waiting" {
 		t.Fatalf("expected reprocessed document to re-enter waiting status, got %+v", reprocessed.Documents[0])
+	}
+
+	runHistory = getJSON[map[string]any](env, "/console/api/rag/pipelines/"+dataset.PipelineID+"/workflow-runs", true, http.StatusOK)
+	reprocessRun := findWorkflowRunByOriginalDocumentID(t, objectListFromAny(runHistory["data"]), documentID)
+	if stringFromAny(mapFromAny(reprocessRun["outputs"])["mode"]) != "reprocess" {
+		t.Fatalf("expected reprocess run history to persist reprocess mode, got %+v", reprocessRun)
+	}
+
+	reprocessRunID := stringFromAny(reprocessRun["id"])
+	reprocessRunDetail := getJSON[map[string]any](env, "/console/api/rag/pipelines/"+dataset.PipelineID+"/workflow-runs/"+reprocessRunID, true, http.StatusOK)
+	if !strings.Contains(stringFromAny(reprocessRunDetail["inputs"]), "\"original_document_id\":\""+documentID+"\"") {
+		t.Fatalf("expected reprocess run detail to persist original document id, got %+v", reprocessRunDetail)
+	}
+	if !strings.Contains(stringFromAny(reprocessRunDetail["outputs"]), "\"mode\":\"reprocess\"") || !strings.Contains(stringFromAny(reprocessRunDetail["outputs"]), "\"batch\":\""+reprocessed.Batch+"\"") {
+		t.Fatalf("expected reprocess run detail to persist reprocess outputs, got %+v", reprocessRunDetail)
+	}
+
+	reprocessNodeExecutions := getJSON[map[string]any](env, "/console/api/rag/pipelines/"+dataset.PipelineID+"/workflow-runs/"+reprocessRunID+"/node-executions", true, http.StatusOK)
+	reprocessNodes := objectListFromAny(reprocessNodeExecutions["data"])
+	if len(reprocessNodes) != 1 {
+		t.Fatalf("expected one reprocess node execution, got %+v", reprocessNodes)
+	}
+	reprocessNode := reprocessNodes[0]
+	if stringFromAny(mapFromAny(reprocessNode["outputs"])["batch"]) != reprocessed.Batch {
+		t.Fatalf("expected reprocess node execution to persist updated batch id, got %+v", reprocessNode["outputs"])
+	}
+	if stringFromAny(mapFromAny(reprocessNode["process_data"])["mode"]) != "reprocess" {
+		t.Fatalf("expected reprocess node execution to persist reprocess mode, got %+v", reprocessNode["process_data"])
 	}
 
 	reprocessedLog := getJSON[pipelineExecutionLogResponse](env, "/console/api/datasets/"+dataset.ID+"/documents/"+documentID+"/pipeline-execution-log", true, http.StatusOK)
@@ -2067,6 +2154,32 @@ func datasourcePluginAuthorized(t *testing.T, items []map[string]any, pluginID s
 
 	t.Fatalf("expected datasource plugin %s in %+v", pluginID, items)
 	return false
+}
+
+func findWorkflowRunByBatch(t *testing.T, items []map[string]any, batchID string) map[string]any {
+	t.Helper()
+
+	for _, item := range items {
+		if stringFromAny(mapFromAny(item["outputs"])["batch"]) == batchID {
+			return item
+		}
+	}
+
+	t.Fatalf("expected workflow run batch %s in %+v", batchID, items)
+	return nil
+}
+
+func findWorkflowRunByOriginalDocumentID(t *testing.T, items []map[string]any, documentID string) map[string]any {
+	t.Helper()
+
+	for _, item := range items {
+		if stringFromAny(mapFromAny(item["outputs"])["original_document_id"]) == documentID {
+			return item
+		}
+	}
+
+	t.Fatalf("expected workflow run original_document_id %s in %+v", documentID, items)
+	return nil
 }
 
 func installDatasourcePluginFromSpec(t *testing.T, env *serverTestEnv, pluginID, provider string) string {

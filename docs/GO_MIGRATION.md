@@ -258,6 +258,8 @@ The Go server keeps Dify's existing API prefixes so the frontend can continue ca
 
 补充：Go 侧的 published run 和 dataset document 处理流现在开始共用一套 processing 状态机。新建或重处理出来的文档会先以 `waiting` 返回，随后通过 `document detail / document list / documents/{id}/indexing-status / batch/{batchId}/indexing-status` 这些读路径在 Go 侧推进到 `parsing / cleaning / splitting / indexing / completed`，不再是一开始就直接落成 `completed`。这让 create-from-pipeline 的 processing 页面、文档详情页和普通 dataset 文档列表看到的是同一条状态轨迹。
 
+补充：RAG pipeline `published/run` 写入的 workflow run 现在也不再只是通用兼容占位结果。Go 侧会把 `pipeline_id / dataset_id / datasource_type / datasource_info_list / start_node_id / processing_inputs / batch / document_ids / original_document_id / preview_result` 一并持久化到 `/rag/pipelines/{pipelineId}/workflow-runs`、`/{runId}` 和 `/{runId}/node-executions`，这样前端 run history、详情和 trace panel 看到的是更接近上游 Dify 的 pipeline 语义。
+
 补充：`GET /console/api/rag/pipelines/datasource-plugins` 现在不再返回空兼容数组，而是由 Go 直接提供 RAG pipeline datasource catalog。当前 `local_file` 仍然作为内建数据源始终可用，而 `online_document / website_crawl / online_drive` 这三类 provider 会优先根据 workspace plugin 安装态暴露；如果工作区里已经存在旧的 datasource credential / OAuth client 状态，也会继续以兼容回退方式保留在 catalog 中，避免迁移中把既有授权状态直接隐藏掉。
 
 补充：datasource auth 相关的 `list / default-list / credential CRUD / default / custom-client / oauth authorization-url / oauth callback` 也已经切到 Go。当前实现除了把 datasource 凭证和自定义 OAuth client 配置保存在 workspace 本地状态里，还会和 workspace plugin 安装态一起决定 provider 是否对前端可见；provider 卸载后，如果没有遗留 credential 状态就会直接从 auth list 消失，如果仍有已有 credential，则会继续以 `is_installed=false` 的兼容形态保留出来。

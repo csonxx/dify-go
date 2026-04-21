@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -58,10 +59,18 @@ func (s *server) handleRAGPipelinePublishedRun(w http.ResponseWriter, r *http.Re
 	startNodeID := firstImportValue(strings.TrimSpace(stringFromAny(payload["start_node_id"])), ragPipelineDatasourceNodeID(datasourceType))
 	documentInput := ragPipelinePublishedDocumentInput(dataset, *app.WorkflowPublished, datasourceType, datasourceInfoList, inputs, startNodeID)
 	now := time.Now()
+	runContext := ragPipelinePublishedRunContext{
+		Dataset:            dataset,
+		DatasourceType:     datasourceType,
+		DatasourceInfoList: cloneMapList(datasourceInfoList),
+		Inputs:             cloneJSONObject(inputs),
+		StartNodeID:        startNodeID,
+		IsPreview:          ragPipelineBoolValue(payload["is_preview"]),
+	}
 
 	if ragPipelineBoolValue(payload["is_preview"]) {
 		previewOutputs := ragPipelinePreviewOutputs(datasourceInfoList)
-		run := s.buildPublishedPipelineRun(app, currentUser(r), payload, previewOutputs, now)
+		run := s.buildPublishedPipelineRun(app, currentUser(r), payload, runContext, ragPipelineStoredRunOutputs(runContext, previewOutputs), now)
 		_, _ = s.store.SaveWorkflowRun(app.ID, app.WorkspaceID, currentUser(r), run, now)
 
 		writeJSON(w, http.StatusOK, map[string]any{
@@ -84,6 +93,7 @@ func (s *server) handleRAGPipelinePublishedRun(w http.ResponseWriter, r *http.Re
 	}
 
 	originalDocumentID := strings.TrimSpace(stringFromAny(payload["original_document_id"]))
+	runContext.OriginalDocumentID = originalDocumentID
 	if originalDocumentID != "" && len(datasourceInfoList) != 1 {
 		writeError(w, http.StatusBadRequest, "invalid_request", "Published pipeline reprocess expects a single datasource item.")
 		return
@@ -121,13 +131,10 @@ func (s *server) handleRAGPipelinePublishedRun(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	runOutputs := map[string]any{
-		"batch":           batchID,
-		"dataset_id":      updatedDataset.ID,
-		"datasource_type": datasourceType,
-		"document_ids":    ragPipelineDocumentIDs(documents),
-	}
-	run := s.buildPublishedPipelineRun(app, currentUser(r), payload, runOutputs, now)
+	runContext.Dataset = updatedDataset
+	runContext.BatchID = batchID
+	runContext.Documents = ragPipelineCloneDocuments(documents)
+	run := s.buildPublishedPipelineRun(app, currentUser(r), payload, runContext, ragPipelineStoredRunOutputs(runContext, nil), now)
 	_, _ = s.store.SaveWorkflowRun(app.ID, app.WorkspaceID, currentUser(r), run, now)
 
 	writeJSON(w, http.StatusOK, map[string]any{
@@ -142,7 +149,19 @@ func (s *server) handleRAGPipelinePublishedRun(w http.ResponseWriter, r *http.Re
 	})
 }
 
-func (s *server) buildPublishedPipelineRun(app state.App, user state.User, payload map[string]any, outputs map[string]any, now time.Time) state.WorkflowRun {
+type ragPipelinePublishedRunContext struct {
+	Dataset            state.Dataset
+	DatasourceType     string
+	DatasourceInfoList []map[string]any
+	Inputs             map[string]any
+	StartNodeID        string
+	IsPreview          bool
+	OriginalDocumentID string
+	BatchID            string
+	Documents          []state.DatasetDocument
+}
+
+func (s *server) buildPublishedPipelineRun(app state.App, user state.User, payload map[string]any, ctx ragPipelinePublishedRunContext, outputs map[string]any, now time.Time) state.WorkflowRun {
 	runApp := app
 	if app.WorkflowPublished != nil {
 		workflow := state.WorkflowState(*app.WorkflowPublished)
@@ -151,8 +170,209 @@ func (s *server) buildPublishedPipelineRun(app state.App, user state.User, paylo
 	run := s.buildWorkflowRun(runApp, user, payload, workflowRunOptions{
 		Mode: "published",
 	}, now)
+	run.Inputs = ragPipelineWorkflowRunInputs(ctx)
 	run.Outputs = cloneJSONObject(outputs)
+	run.NodeExecutions = s.ragPipelineWorkflowNodeExecutions(runApp, user, ctx, run.Outputs, now)
+	run.TotalSteps = len(run.NodeExecutions)
+	run.TotalTokens = len(run.NodeExecutions) * 40
+	run.ElapsedTime = workflowElapsed(len(run.NodeExecutions))
 	return run
+}
+
+func ragPipelineStoredRunOutputs(ctx ragPipelinePublishedRunContext, previewOutputs map[string]any) map[string]any {
+	outputs := map[string]any{
+		"mode":            ragPipelineRunMode(ctx),
+		"dataset_id":      ctx.Dataset.ID,
+		"pipeline_id":     ctx.Dataset.PipelineID,
+		"datasource_type": ctx.DatasourceType,
+		"start_node_id":   ctx.StartNodeID,
+		"datasource": map[string]any{
+			"type":  ctx.DatasourceType,
+			"count": len(ctx.DatasourceInfoList),
+			"items": cloneMapList(ctx.DatasourceInfoList),
+		},
+		"processing_inputs": cloneJSONObject(ctx.Inputs),
+	}
+	if ctx.OriginalDocumentID != "" {
+		outputs["original_document_id"] = ctx.OriginalDocumentID
+	}
+	if ctx.IsPreview {
+		for key, value := range cloneJSONObject(previewOutputs) {
+			outputs[key] = value
+		}
+		outputs["preview_result"] = cloneJSONObject(previewOutputs)
+		return outputs
+	}
+
+	outputs["batch"] = ctx.BatchID
+	outputs["document_ids"] = ragPipelineDocumentIDs(ctx.Documents)
+	outputs["document_count"] = len(ctx.Documents)
+	outputs["documents"] = ragPipelineWorkflowRunDocuments(ctx.Documents)
+	return outputs
+}
+
+func ragPipelineRunMode(ctx ragPipelinePublishedRunContext) string {
+	switch {
+	case ctx.IsPreview:
+		return "preview"
+	case strings.TrimSpace(ctx.OriginalDocumentID) != "":
+		return "reprocess"
+	default:
+		return "create"
+	}
+}
+
+func ragPipelineWorkflowRunInputs(ctx ragPipelinePublishedRunContext) map[string]any {
+	inputs := map[string]any{
+		"pipeline_id":          ctx.Dataset.PipelineID,
+		"dataset_id":           ctx.Dataset.ID,
+		"start_node_id":        ctx.StartNodeID,
+		"datasource_type":      ctx.DatasourceType,
+		"datasource_info_list": cloneMapList(ctx.DatasourceInfoList),
+		"processing_inputs":    cloneJSONObject(ctx.Inputs),
+		"is_preview":           ctx.IsPreview,
+	}
+	if ctx.OriginalDocumentID != "" {
+		inputs["original_document_id"] = ctx.OriginalDocumentID
+	}
+	return inputs
+}
+
+func (s *server) ragPipelineWorkflowNodeExecutions(app state.App, user state.User, ctx ragPipelinePublishedRunContext, runOutputs map[string]any, now time.Time) []state.WorkflowNodeExecution {
+	nodes := workflowGraphNodes(app.WorkflowDraft.Graph, nil)
+	executions := make([]state.WorkflowNodeExecution, 0, len(nodes))
+	for index, node := range nodes {
+		executions = append(executions, state.WorkflowNodeExecution{
+			ID:                runtimeID("node"),
+			Index:             index,
+			PredecessorNodeID: node.PredecessorNode,
+			NodeID:            node.ID,
+			NodeType:          node.NodeType,
+			Title:             node.Title,
+			Inputs:            ragPipelineNodeExecutionInputs(node, ctx),
+			ProcessData:       ragPipelineNodeProcessData(node, ctx),
+			Outputs:           ragPipelineNodeExecutionOutputs(node, ctx, runOutputs, index == len(nodes)-1),
+			Status:            "succeeded",
+			ElapsedTime:       workflowNodeElapsed(index),
+			TotalTokens:       32 + index*10,
+			TotalPrice:        0,
+			Currency:          "USD",
+			CreatedAt:         now.UTC().Unix(),
+			FinishedAt:        now.UTC().Unix(),
+			CreatedBy:         user.ID,
+		})
+	}
+	return executions
+}
+
+func ragPipelineNodeExecutionInputs(node workflowNodeMeta, ctx ragPipelinePublishedRunContext) map[string]any {
+	switch node.NodeType {
+	case "knowledge-index":
+		return map[string]any{
+			"dataset_id":           ctx.Dataset.ID,
+			"pipeline_id":          ctx.Dataset.PipelineID,
+			"start_node_id":        ctx.StartNodeID,
+			"datasource_type":      ctx.DatasourceType,
+			"datasource_info_list": cloneMapList(ctx.DatasourceInfoList),
+			"processing_inputs":    cloneJSONObject(ctx.Inputs),
+		}
+	case "start":
+		return ragPipelineWorkflowRunInputs(ctx)
+	default:
+		if len(ctx.Inputs) > 0 {
+			return cloneJSONObject(ctx.Inputs)
+		}
+		return map[string]any{
+			"datasource_type": ctx.DatasourceType,
+			"start_node_id":   ctx.StartNodeID,
+		}
+	}
+}
+
+func ragPipelineNodeProcessData(node workflowNodeMeta, ctx ragPipelinePublishedRunContext) map[string]any {
+	mode := ragPipelineRunMode(ctx)
+	switch node.NodeType {
+	case "knowledge-index":
+		summary := "Knowledge indexing completed."
+		switch mode {
+		case "preview":
+			summary = fmt.Sprintf("Generated preview from %d datasource item(s).", len(ctx.DatasourceInfoList))
+		case "reprocess":
+			summary = fmt.Sprintf("Reprocessed %d document(s) into batch %s.", len(ctx.Documents), ctx.BatchID)
+		default:
+			summary = fmt.Sprintf("Created %d document(s) in batch %s.", len(ctx.Documents), ctx.BatchID)
+		}
+		return map[string]any{
+			"summary":          summary,
+			"mode":             mode,
+			"phase":            "knowledge-index",
+			"datasource_count": len(ctx.DatasourceInfoList),
+			"document_count":   len(ctx.Documents),
+		}
+	default:
+		return map[string]any{
+			"summary": fmt.Sprintf("%s completed for %s mode.", node.Title, mode),
+			"mode":    mode,
+			"phase":   "pipeline",
+		}
+	}
+}
+
+func ragPipelineNodeExecutionOutputs(node workflowNodeMeta, ctx ragPipelinePublishedRunContext, runOutputs map[string]any, isLast bool) map[string]any {
+	switch node.NodeType {
+	case "knowledge-index":
+		outputs := map[string]any{
+			"mode":             ragPipelineRunMode(ctx),
+			"dataset_id":       ctx.Dataset.ID,
+			"pipeline_id":      ctx.Dataset.PipelineID,
+			"datasource_type":  ctx.DatasourceType,
+			"start_node_id":    ctx.StartNodeID,
+			"datasource_count": len(ctx.DatasourceInfoList),
+		}
+		if ctx.IsPreview {
+			if preview := mapFromAny(runOutputs["preview_result"]); len(preview) > 0 {
+				outputs["preview_result"] = preview
+			} else {
+				outputs["preview_result"] = cloneJSONObject(runOutputs)
+			}
+			return outputs
+		}
+		outputs["batch"] = ctx.BatchID
+		outputs["documents"] = ragPipelineWorkflowRunDocuments(ctx.Documents)
+		outputs["document_ids"] = ragPipelineDocumentIDs(ctx.Documents)
+		outputs["document_count"] = len(ctx.Documents)
+		return outputs
+	default:
+		if isLast {
+			return cloneJSONObject(runOutputs)
+		}
+		return map[string]any{
+			"mode":             ragPipelineRunMode(ctx),
+			"datasource_type":  ctx.DatasourceType,
+			"datasource_count": len(ctx.DatasourceInfoList),
+		}
+	}
+}
+
+func ragPipelineWorkflowRunDocuments(documents []state.DatasetDocument) []map[string]any {
+	items := make([]map[string]any, 0, len(documents))
+	for _, document := range documents {
+		items = append(items, map[string]any{
+			"id":               document.ID,
+			"name":             document.Name,
+			"data_source_type": document.DataSourceType,
+			"indexing_status":  document.IndexingStatus,
+			"display_status":   document.DisplayStatus,
+		})
+	}
+	return items
+}
+
+func ragPipelineCloneDocuments(documents []state.DatasetDocument) []state.DatasetDocument {
+	if documents == nil {
+		return []state.DatasetDocument{}
+	}
+	return append([]state.DatasetDocument(nil), documents...)
 }
 
 func ragPipelinePublishedDocumentInput(dataset state.Dataset, workflow state.WorkflowState, datasourceType string, datasourceInfoList []map[string]any, inputs map[string]any, startNodeID string) state.CreateDatasetDocumentInput {

@@ -406,7 +406,7 @@
 
 本阶段剩余重点：
 
-- [ ] 继续把 published run 从当前兼容执行面推进到更贴近上游的真实 pipeline transform / batch job / node output 语义
+- [ ] 继续把 published run 从当前兼容执行面推进到更贴近上游的真实 pipeline transform / batch job 执行语义
 - [x] 把 datasource plugin 列表从当前空兼容响应推进到 Go 侧可直接驱动前端的内置 datasource catalog
 - [x] 把 datasource auth 的列表、凭证 CRUD、默认项切换、自定义 OAuth client、授权回跳兼容链路迁到 Go
 - [x] 把 datasource plugin / credential 发现从当前内置 catalog + workspace state 推进到 workspace plugin 安装态优先的 provider 发现语义，并保留对既有 credential 状态的兼容回退
@@ -419,6 +419,7 @@
 - 如果 DSL 的 `knowledge-index` 节点里带了 `chunk_structure`、`indexing_technique`、`retrieval_model`、`embedding_model(_provider)`、`summary_index_setting`，会同步回写到 dataset 状态，确保前端 dataset/pipeline 面板看到的是同一份配置。
 - Template 目录现在也已经落到 Go：内置 built-in 模板列表/详情由 Go 直接提供，customized template 支持发布、列表、详情、更新元信息、导出和删除。
 - Published run 现在已经支持 preview、首次创建文档、以及基于 `original_document_id` 的重处理，并且会把 `datasource_type / datasource_info / input_data / datasource_node_id` 落到 dataset document 的 pipeline execution log，前端 create-from-pipeline 和 document settings 都可以直接复用这条 Go 链路。
+- Published run 写入的 `/rag/pipelines/{pipelineId}/workflow-runs` 历史、详情和 `/node-executions` tracing 现在也已经带上 pipeline 语义化上下文：会持久化 `pipeline_id / dataset_id / datasource_type / datasource_info_list / start_node_id / processing_inputs / batch / document_ids / original_document_id / preview_result`，前端 run history、run detail、trace panel 不再只看到通用 workflow 占位数据。
 - Published run 创建/重处理出来的 dataset document 现在不再直接落成 `completed`，而是会先进入 `waiting`，再通过 Go 侧统一的 document processing 状态推进器在 `document detail / document list / document indexing-status / batch indexing-status` 这些读路径上推进到 `parsing / cleaning / splitting / indexing / completed`；这样 create-from-pipeline 的 processing 页面、文档详情页和普通知识库文档列表看到的是同一条状态流。
 - datasource node run 现在也已经切到 Go，补上了 draft/published 两套 `/datasource/nodes/{nodeId}/run` SSE 兼容接口，当前覆盖 `online_document / website_crawl / online_drive` 三类节点，create-from-pipeline 的在线数据源选择页不再需要走 Python fallback。
 - `/rag/pipelines/datasource-plugins` 现在会按 workspace plugin 安装态返回 datasource catalog：`local_file` 始终内建可用，其它 `online_document / website_crawl / online_drive` provider 只有在工作区已安装对应 plugin，或工作区里已经存在旧的 datasource credential / OAuth client 状态时才会继续暴露；这样前端 block selector、plugin install/uninstall、既有授权状态可以共用一套发现语义。
