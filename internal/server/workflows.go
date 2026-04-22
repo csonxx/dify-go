@@ -63,6 +63,11 @@ func (s *server) handleWorkflowDraftSync(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	if err := s.syncLinkedRAGPipelineDatasetFromWorkflow(app, workflow, currentUser(r), time.Now()); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_request", err.Error())
+		return
+	}
+
 	writeJSON(w, http.StatusOK, map[string]any{
 		"result":     "success",
 		"updated_at": workflow.UpdatedAt,
@@ -288,6 +293,11 @@ func (s *server) handleWorkflowPublish(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusNotFound, "draft_workflow_not_exist", "Draft workflow does not exist.")
 			return
 		}
+		writeError(w, http.StatusBadRequest, "invalid_request", err.Error())
+		return
+	}
+
+	if err := s.syncLinkedRAGPipelineDatasetFromWorkflow(app, published, currentUser(r), time.Now()); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid_request", err.Error())
 		return
 	}

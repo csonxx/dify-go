@@ -1416,6 +1416,139 @@ func TestRAGPipelinePublishCopyAndDeleteStayLinked(t *testing.T) {
 	}
 }
 
+func TestRAGPipelineDraftSyncAndRestoreKeepLinkedDatasetSettingsInSync(t *testing.T) {
+	env := newServerTestEnv(t)
+	env.setupAndLogin()
+
+	dataset := postJSON[ragPipelineDatasetResponse](env, http.MethodPost, "/console/api/rag/pipeline/empty-dataset", nil, true, http.StatusCreated)
+
+	postJSON[workflowSyncResponse](env, http.MethodPost, "/console/api/rag/pipelines/"+dataset.PipelineID+"/workflows/draft", map[string]any{
+		"graph": map[string]any{
+			"nodes": []map[string]any{
+				{
+					"id": "knowledge-node-v1",
+					"data": map[string]any{
+						"title":                    "Knowledge Index V1",
+						"type":                     "knowledge-index",
+						"chunk_structure":          "qa_model",
+						"indexing_technique":       "high_quality",
+						"embedding_model":          "text-embedding-3-large",
+						"embedding_model_provider": "openai",
+						"retrieval_model": map[string]any{
+							"search_method":           "semantic_search",
+							"top_k":                   6,
+							"score_threshold":         0.61,
+							"score_threshold_enabled": true,
+						},
+						"summary_index_setting": map[string]any{
+							"enable":              true,
+							"model_name":          "gpt-4o-mini",
+							"model_provider_name": "openai",
+							"summary_prompt":      "Summarize knowledge chunks",
+						},
+					},
+				},
+			},
+			"edges":    []any{},
+			"viewport": map[string]any{"x": 0, "y": 0, "zoom": 1},
+		},
+		"features": map[string]any{},
+	}, true, http.StatusOK)
+
+	detailV1 := getJSON[map[string]any](env, "/console/api/datasets/"+dataset.ID, true, http.StatusOK)
+	if stringFromAny(detailV1["doc_form"]) != "qa_model" || stringFromAny(detailV1["indexing_technique"]) != "high_quality" {
+		t.Fatalf("expected first draft sync to update dataset chunk settings, got %+v", detailV1)
+	}
+	if stringFromAny(detailV1["embedding_model"]) != "text-embedding-3-large" || stringFromAny(detailV1["embedding_model_provider"]) != "openai" {
+		t.Fatalf("expected first draft sync to update embedding config, got %+v", detailV1)
+	}
+	retrievalV1 := mapFromAny(detailV1["retrieval_model"])
+	if topK, ok := ragPipelineIntValue(retrievalV1["top_k"]); !ok || topK != 6 || !ragPipelineBoolValue(retrievalV1["score_threshold_enabled"]) {
+		t.Fatalf("expected first draft sync to update retrieval model, got %+v", retrievalV1)
+	}
+	summaryV1 := mapFromAny(detailV1["summary_index_setting"])
+	if !ragPipelineBoolValue(summaryV1["enable"]) || stringFromAny(summaryV1["model_name"]) != "gpt-4o-mini" {
+		t.Fatalf("expected first draft sync to update summary index settings, got %+v", summaryV1)
+	}
+
+	postJSON[map[string]any](env, http.MethodPost, "/console/api/rag/pipelines/"+dataset.PipelineID+"/workflows/publish", map[string]any{
+		"marked_name": "v1",
+	}, true, http.StatusOK)
+
+	postJSON[workflowSyncResponse](env, http.MethodPost, "/console/api/rag/pipelines/"+dataset.PipelineID+"/workflows/draft", map[string]any{
+		"graph": map[string]any{
+			"nodes": []map[string]any{
+				{
+					"id": "knowledge-node-v2",
+					"data": map[string]any{
+						"title":                    "Knowledge Index V2",
+						"type":                     "knowledge-index",
+						"chunk_structure":          "hierarchical_model",
+						"indexing_technique":       "economy",
+						"embedding_model":          "text-embedding-3-small",
+						"embedding_model_provider": "openai",
+						"retrieval_model": map[string]any{
+							"search_method":           "keyword_search",
+							"top_k":                   3,
+							"score_threshold":         0.2,
+							"score_threshold_enabled": false,
+						},
+						"summary_index_setting": map[string]any{
+							"enable":              false,
+							"model_name":          "gpt-4.1-mini",
+							"model_provider_name": "openai",
+							"summary_prompt":      "Unused summary prompt",
+						},
+					},
+				},
+			},
+			"edges":    []any{},
+			"viewport": map[string]any{"x": 10, "y": 20, "zoom": 0.9},
+		},
+		"features": map[string]any{},
+	}, true, http.StatusOK)
+
+	detailV2 := getJSON[map[string]any](env, "/console/api/datasets/"+dataset.ID, true, http.StatusOK)
+	if stringFromAny(detailV2["doc_form"]) != "hierarchical_model" || stringFromAny(detailV2["indexing_technique"]) != "economy" {
+		t.Fatalf("expected second draft sync to update dataset chunk settings, got %+v", detailV2)
+	}
+	retrievalV2 := mapFromAny(detailV2["retrieval_model"])
+	if topK, ok := ragPipelineIntValue(retrievalV2["top_k"]); !ok || topK != 3 || ragPipelineBoolValue(retrievalV2["score_threshold_enabled"]) {
+		t.Fatalf("expected second draft sync to update retrieval model, got %+v", retrievalV2)
+	}
+	summaryV2 := mapFromAny(detailV2["summary_index_setting"])
+	if ragPipelineBoolValue(summaryV2["enable"]) {
+		t.Fatalf("expected second draft sync to disable summary index, got %+v", summaryV2)
+	}
+
+	postJSON[map[string]any](env, http.MethodPost, "/console/api/rag/pipelines/"+dataset.PipelineID+"/workflows/publish", map[string]any{
+		"marked_name": "v2",
+	}, true, http.StatusOK)
+
+	versionList := getJSON[map[string]any](env, "/console/api/rag/pipelines/"+dataset.PipelineID+"/workflows?page=1&limit=10", true, http.StatusOK)
+	versionV1 := findWorkflowVersionByMarkedName(t, objectListFromAny(versionList["items"]), "v1")
+	postJSON[map[string]any](env, http.MethodPost, "/console/api/rag/pipelines/"+dataset.PipelineID+"/workflows/"+stringFromAny(versionV1["id"])+"/restore", nil, true, http.StatusOK)
+
+	restoredDraft := getJSON[workflowDraftResponse](env, "/console/api/rag/pipelines/"+dataset.PipelineID+"/workflows/draft", true, http.StatusOK)
+	restoredNodeData := ragPipelineKnowledgeIndexNodeData(restoredDraft.Graph)
+	if stringFromAny(restoredNodeData["chunk_structure"]) != "qa_model" {
+		t.Fatalf("expected restored draft graph to roll back to v1 knowledge settings, got %+v", restoredDraft.Graph)
+	}
+
+	restoredDetail := getJSON[map[string]any](env, "/console/api/datasets/"+dataset.ID, true, http.StatusOK)
+	if stringFromAny(restoredDetail["doc_form"]) != "qa_model" || stringFromAny(restoredDetail["embedding_model"]) != "text-embedding-3-large" {
+		t.Fatalf("expected restore to sync dataset back to v1 settings, got %+v", restoredDetail)
+	}
+	restoredRetrieval := mapFromAny(restoredDetail["retrieval_model"])
+	if topK, ok := ragPipelineIntValue(restoredRetrieval["top_k"]); !ok || topK != 6 || !ragPipelineBoolValue(restoredRetrieval["score_threshold_enabled"]) {
+		t.Fatalf("expected restore to sync retrieval model back to v1, got %+v", restoredRetrieval)
+	}
+	restoredSummary := mapFromAny(restoredDetail["summary_index_setting"])
+	if !ragPipelineBoolValue(restoredSummary["enable"]) || stringFromAny(restoredSummary["model_name"]) != "gpt-4o-mini" {
+		t.Fatalf("expected restore to sync summary index settings back to v1, got %+v", restoredSummary)
+	}
+}
+
 func TestRAGPipelineExportAndImportRoundTrip(t *testing.T) {
 	env := newServerTestEnv(t)
 	env.setupAndLogin()
@@ -2452,6 +2585,19 @@ func findWorkflowRunByOriginalDocumentID(t *testing.T, items []map[string]any, d
 	}
 
 	t.Fatalf("expected workflow run original_document_id %s in %+v", documentID, items)
+	return nil
+}
+
+func findWorkflowVersionByMarkedName(t *testing.T, items []map[string]any, markedName string) map[string]any {
+	t.Helper()
+
+	for _, item := range items {
+		if stringFromAny(item["marked_name"]) == markedName {
+			return item
+		}
+	}
+
+	t.Fatalf("expected workflow version %s in %+v", markedName, items)
 	return nil
 }
 

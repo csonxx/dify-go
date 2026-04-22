@@ -131,6 +131,11 @@ func (s *server) handleWorkflowVersionRestore(w http.ResponseWriter, r *http.Req
 		return
 	}
 
+	if err := s.syncLinkedRAGPipelineDatasetFromWorkflow(app, version, currentUser(r), time.Now()); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_request", err.Error())
+		return
+	}
+
 	writeJSON(w, http.StatusOK, map[string]any{
 		"result":     "success",
 		"updated_at": version.UpdatedAt,
