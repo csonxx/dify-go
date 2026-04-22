@@ -481,53 +481,73 @@ func (s *Store) UpdateAppAPIStatus(id, workspaceID string, enabled bool, now tim
 	})
 }
 
-func (s *Store) UpdateAppSite(id, workspaceID string, updates map[string]any, now time.Time) (App, error) {
-	return s.mutateApp(id, workspaceID, now, func(app *App) {
-		for key, value := range updates {
-			switch key {
-			case "title":
-				app.Site.Title = stringValue(value, app.Site.Title)
-			case "description":
-				app.Site.Description = stringValue(value, app.Site.Description)
-			case "chat_color_theme":
-				app.Site.ChatColorTheme = stringValue(value, app.Site.ChatColorTheme)
-			case "chat_color_theme_inverted":
-				app.Site.ChatColorThemeInverted = boolValue(value, app.Site.ChatColorThemeInverted)
-			case "default_language":
-				app.Site.DefaultLanguage = stringValue(value, app.Site.DefaultLanguage)
-			case "customize_domain":
-				app.Site.CustomizeDomain = stringValue(value, app.Site.CustomizeDomain)
-			case "copyright":
-				app.Site.Copyright = stringValue(value, app.Site.Copyright)
-			case "privacy_policy":
-				app.Site.PrivacyPolicy = stringValue(value, app.Site.PrivacyPolicy)
-			case "custom_disclaimer":
-				app.Site.CustomDisclaimer = stringValue(value, app.Site.CustomDisclaimer)
-			case "customize_token_strategy":
-				app.Site.CustomizeTokenStrategy = stringValue(value, app.Site.CustomizeTokenStrategy)
-			case "prompt_public":
-				app.Site.PromptPublic = boolValue(value, app.Site.PromptPublic)
-			case "app_base_url":
-				app.Site.AppBaseURL = stringValue(value, app.Site.AppBaseURL)
-			case "icon_type":
-				app.Site.IconType = defaultIconType(stringValue(value, app.Site.IconType))
-				app.IconType = app.Site.IconType
-			case "icon":
-				app.Site.Icon = stringValue(value, app.Site.Icon)
-				app.Icon = app.Site.Icon
-			case "icon_background":
-				app.Site.IconBackground = stringValue(value, app.Site.IconBackground)
-				app.IconBackground = app.Site.IconBackground
-			case "show_workflow_steps":
-				app.Site.ShowWorkflowSteps = boolValue(value, app.Site.ShowWorkflowSteps)
-			case "use_icon_as_answer_icon":
-				app.Site.UseIconAsAnswerIcon = boolValue(value, app.Site.UseIconAsAnswerIcon)
-				app.UseIconAsAnswerIcon = app.Site.UseIconAsAnswerIcon
-			}
+func (s *Store) UpdateAppSite(id, workspaceID string, updates map[string]any, user User, now time.Time) (App, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	index := s.findAppIndexLocked(id, workspaceID)
+	if index < 0 {
+		return App{}, fmt.Errorf("app not found")
+	}
+
+	app := s.state.Apps[index]
+	for key, value := range updates {
+		switch key {
+		case "title":
+			app.Site.Title = stringValue(value, app.Site.Title)
+		case "description":
+			app.Site.Description = stringValue(value, app.Site.Description)
+		case "chat_color_theme":
+			app.Site.ChatColorTheme = stringValue(value, app.Site.ChatColorTheme)
+		case "chat_color_theme_inverted":
+			app.Site.ChatColorThemeInverted = boolValue(value, app.Site.ChatColorThemeInverted)
+		case "default_language":
+			app.Site.DefaultLanguage = stringValue(value, app.Site.DefaultLanguage)
+		case "customize_domain":
+			app.Site.CustomizeDomain = stringValue(value, app.Site.CustomizeDomain)
+		case "copyright":
+			app.Site.Copyright = stringValue(value, app.Site.Copyright)
+		case "privacy_policy":
+			app.Site.PrivacyPolicy = stringValue(value, app.Site.PrivacyPolicy)
+		case "custom_disclaimer":
+			app.Site.CustomDisclaimer = stringValue(value, app.Site.CustomDisclaimer)
+		case "customize_token_strategy":
+			app.Site.CustomizeTokenStrategy = stringValue(value, app.Site.CustomizeTokenStrategy)
+		case "prompt_public":
+			app.Site.PromptPublic = boolValue(value, app.Site.PromptPublic)
+		case "app_base_url":
+			app.Site.AppBaseURL = stringValue(value, app.Site.AppBaseURL)
+		case "icon_type":
+			app.Site.IconType = defaultIconType(stringValue(value, app.Site.IconType))
+			app.IconType = app.Site.IconType
+		case "icon":
+			app.Site.Icon = stringValue(value, app.Site.Icon)
+			app.Icon = app.Site.Icon
+		case "icon_background":
+			app.Site.IconBackground = stringValue(value, app.Site.IconBackground)
+			app.IconBackground = app.Site.IconBackground
+		case "show_workflow_steps":
+			app.Site.ShowWorkflowSteps = boolValue(value, app.Site.ShowWorkflowSteps)
+		case "use_icon_as_answer_icon":
+			app.Site.UseIconAsAnswerIcon = boolValue(value, app.Site.UseIconAsAnswerIcon)
+			app.UseIconAsAnswerIcon = app.Site.UseIconAsAnswerIcon
 		}
-		app.Name = app.Site.Title
-		app.Description = app.Site.Description
-	})
+	}
+	app.Name = app.Site.Title
+	app.Description = app.Site.Description
+	app.UpdatedAt = now.UTC().Unix()
+	app.UpdatedBy = user.ID
+	if app.Workflow != nil {
+		app.Workflow.UpdatedAt = app.UpdatedAt
+		app.Workflow.UpdatedBy = user.ID
+	}
+	s.syncLinkedRAGPipelineDatasetFromAppLocked(&app, user, now)
+
+	s.state.Apps[index] = app
+	if err := s.saveLocked(); err != nil {
+		return App{}, err
+	}
+	return app, nil
 }
 
 func (s *Store) ResetAppSiteAccessToken(id, workspaceID string, now time.Time) (App, error) {

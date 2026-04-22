@@ -1353,6 +1353,28 @@ func TestRAGPipelineDatasetAndAppMetadataStayInSync(t *testing.T) {
 	if stringFromAny(iconInfo["icon_url"]) != "" {
 		t.Fatalf("expected app emoji icon update to clear dataset icon url, got %+v", iconInfo)
 	}
+
+	updatedSite := postJSON[map[string]any](env, http.MethodPost, "/console/api/apps/"+dataset.PipelineID+"/site", map[string]any{
+		"title":               "Site Driven Pipeline",
+		"description":         "metadata updated from site config",
+		"icon_type":           "emoji",
+		"icon":                "🛰",
+		"icon_background":     "#DBEAFE",
+		"show_workflow_steps": false,
+	}, true, http.StatusOK)
+	updatedSiteData := mapFromAny(updatedSite["site"])
+	if stringFromAny(updatedSite["name"]) != "Site Driven Pipeline" || stringFromAny(updatedSiteData["title"]) != "Site Driven Pipeline" {
+		t.Fatalf("unexpected updated app site metadata: %+v", updatedSite)
+	}
+
+	datasetDetailAfterSite := getJSON[map[string]any](env, "/console/api/datasets/"+dataset.ID, true, http.StatusOK)
+	if stringFromAny(datasetDetailAfterSite["name"]) != "Site Driven Pipeline" || stringFromAny(datasetDetailAfterSite["description"]) != "metadata updated from site config" {
+		t.Fatalf("expected app site update to sync dataset metadata, got %+v", datasetDetailAfterSite)
+	}
+	iconInfoAfterSite := mapFromAny(datasetDetailAfterSite["icon_info"])
+	if stringFromAny(iconInfoAfterSite["icon_type"]) != "emoji" || stringFromAny(iconInfoAfterSite["icon"]) != "🛰" || stringFromAny(iconInfoAfterSite["icon_background"]) != "#DBEAFE" {
+		t.Fatalf("expected app site update to sync dataset icon info, got %+v", iconInfoAfterSite)
+	}
 }
 
 func TestRAGPipelinePublishCopyAndDeleteStayLinked(t *testing.T) {

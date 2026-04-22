@@ -260,7 +260,7 @@ func (s *server) handleAppImport(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if len(document.App.Site) > 0 {
-		app, err = s.store.UpdateAppSite(app.ID, app.WorkspaceID, document.App.Site, now)
+		app, err = s.store.UpdateAppSite(app.ID, app.WorkspaceID, document.App.Site, currentUser(r), now)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, "internal_error", "Failed to import site configuration.")
 			return

@@ -264,6 +264,8 @@ The Go server keeps Dify's existing API prefixes so the frontend can continue ca
 
 补充：RAG pipeline dataset 和背后的 workflow app 元数据现在也开始共用一份 Go 状态。`PATCH /console/api/datasets/{datasetId}` 更新名称、描述、图标时，会同步回写绑定的 `/console/api/apps/{pipelineId}`；反过来 `PUT /console/api/apps/{pipelineId}` 也会把同样的元数据镜像回 dataset，避免 dataset detail、pipeline editor、app detail 出现不同步的标题或图标。
 
+补充：这条 app -> linked dataset 的元数据同步链也已经覆盖到 `POST /console/api/apps/{pipelineId}/site`。如果从 app overview / site settings 修改站点标题、描述或图标，Go 侧也会把这些字段同步回 linked dataset，避免 pipeline app 的 site 配置页和 dataset detail 再次出现不同步。
+
 补充：linked dataset 和 RAG pipeline workflow draft 的知识库配置也开始共用同步链了。现在无论是 `POST /console/api/rag/pipelines/{pipelineId}/workflows/draft` 保存 graph、`POST /workflows/publish` 正式发布，还是 `POST /workflows/{versionId}/restore` 从历史版本恢复 draft，Go 侧都会把 `knowledge-index` 节点里的 `chunk_structure / indexing_technique / retrieval_model / embedding_model / summary_index_setting` 自动回写到 linked dataset，避免 pipeline editor 改完配置后 dataset 详情页还是旧值。
 
 补充：RAG pipeline 的 publish / copy / delete 生命周期也进一步和 dataset 绑定起来了。Go 侧在 `POST /console/api/rag/pipelines/{pipelineId}/workflows/publish` 时会把 linked dataset 的 `is_published` 一起写回本地状态；通过 `/console/api/apps/{appId}/copy` 复制一个 pipeline app 时，会同步生成新的 linked pipeline dataset；而删除 `/console/api/apps/{appId}` 时，也会把对应的 linked dataset 一起回收，避免留下失联的 `pipeline_id`。

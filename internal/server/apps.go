@@ -328,7 +328,7 @@ func (s *server) handleAppSiteUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	updated, err := s.store.UpdateAppSite(app.ID, app.WorkspaceID, payload, time.Now())
+	updated, err := s.store.UpdateAppSite(app.ID, app.WorkspaceID, payload, currentUser(r), time.Now())
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "internal_error", "Failed to update app site.")
 		return
