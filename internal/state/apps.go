@@ -97,6 +97,9 @@ type App struct {
 	MCPServer           *AppMCPServer                    `json:"mcp_server,omitempty"`
 	Annotations         []AppAnnotation                  `json:"annotations,omitempty"`
 	MessageFeedbacks    []AppMessageFeedback             `json:"message_feedbacks,omitempty"`
+	PublicConversations []AppPublicConversation          `json:"public_conversations,omitempty"`
+	PublicMessages      []AppPublicMessage               `json:"public_messages,omitempty"`
+	SavedMessages       []AppPublicSavedMessage          `json:"saved_messages,omitempty"`
 	Tracing             Tracing                          `json:"tracing"`
 }
 
@@ -214,6 +217,9 @@ func (s *Store) ListApps(workspaceID string, filters AppListFilters) AppPage {
 
 	pageApps := make([]App, end-start)
 	copy(pageApps, apps[start:end])
+	for i := range pageApps {
+		normalizeApp(&pageApps[i])
+	}
 
 	return AppPage{
 		Page:    page,
@@ -230,6 +236,7 @@ func (s *Store) GetApp(id, workspaceID string) (App, bool) {
 
 	for _, app := range s.state.Apps {
 		if app.ID == id && app.WorkspaceID == workspaceID {
+			normalizeApp(&app)
 			return app, true
 		}
 	}
@@ -250,6 +257,7 @@ func (s *Store) FindAppBySiteAccessToken(accessToken string) (App, bool) {
 			continue
 		}
 		if strings.TrimSpace(app.Site.AccessToken) == trimmed {
+			normalizeApp(&app)
 			return app, true
 		}
 	}
@@ -295,6 +303,7 @@ func (s *Store) CreateApp(workspaceID string, owner User, input CreateAppInput, 
 			Configs: map[string]map[string]any{},
 		},
 	}
+	normalizeApp(&app)
 	if app.IconType == "emoji" && app.Icon == "" {
 		app.Icon = "🤖"
 	}
@@ -855,6 +864,30 @@ func defaultIconType(iconType string) string {
 		return iconType
 	default:
 		return "emoji"
+	}
+}
+
+func normalizeApp(app *App) {
+	if app == nil {
+		return
+	}
+	if app.Annotations == nil {
+		app.Annotations = []AppAnnotation{}
+	}
+	if app.MessageFeedbacks == nil {
+		app.MessageFeedbacks = []AppMessageFeedback{}
+	}
+	if app.PublicConversations == nil {
+		app.PublicConversations = []AppPublicConversation{}
+	}
+	if app.PublicMessages == nil {
+		app.PublicMessages = []AppPublicMessage{}
+	}
+	if app.SavedMessages == nil {
+		app.SavedMessages = []AppPublicSavedMessage{}
+	}
+	if app.Tracing.Configs == nil {
+		app.Tracing.Configs = map[string]map[string]any{}
 	}
 }
 

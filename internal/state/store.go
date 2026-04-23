@@ -106,6 +106,9 @@ func Open(path string) (*Store, error) {
 	if store.state.Apps == nil {
 		store.state.Apps = []App{}
 	}
+	for i := range store.state.Apps {
+		normalizeApp(&store.state.Apps[i])
+	}
 	if store.state.Datasets == nil {
 		store.state.Datasets = []Dataset{}
 	}

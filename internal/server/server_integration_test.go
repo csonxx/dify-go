@@ -2508,6 +2508,259 @@ func TestPublicWorkflowRunUsesPublishedWorkflowAndStop(t *testing.T) {
 	}
 }
 
+func TestPublicChatRuntimeRoutes(t *testing.T) {
+	env := newServerTestEnv(t)
+	env.setupAndLogin()
+
+	app := postJSON[map[string]any](env, http.MethodPost, "/console/api/apps", map[string]any{
+		"name":            "Public Chat Runtime",
+		"description":     "public chat runtime",
+		"mode":            "chat",
+		"icon_type":       "emoji",
+		"icon":            "💬",
+		"icon_background": "#FDE68A",
+	}, true, http.StatusCreated)
+	appID := stringFromAny(app["id"])
+	appCode := stringFromAny(mapFromAny(app["site"])["access_token"])
+	if appID == "" || appCode == "" {
+		t.Fatalf("expected created chat app id and app code, got %+v", app)
+	}
+
+	postJSON[map[string]any](env, http.MethodPost, "/console/api/apps/"+appID+"/site-enable", map[string]any{
+		"enable_site": true,
+	}, true, http.StatusOK)
+
+	modelConfig := cloneJSONObject(mapFromAny(app["model_config"]))
+	modelConfig["opening_statement"] = "Welcome to the public chat runtime"
+	modelConfig["suggested_questions_after_answer"] = map[string]any{"enabled": true}
+	modelConfig["speech_to_text"] = map[string]any{"enabled": true}
+	modelConfig["text_to_speech"] = map[string]any{"enabled": true, "voice": "alloy", "language": "en-US"}
+	postJSON[map[string]any](env, http.MethodPost, "/console/api/apps/"+appID+"/model-config", modelConfig, true, http.StatusOK)
+
+	headers := map[string]string{webAppCodeHeader: appCode}
+	events := postStreamJSONWithHeaders(env, "/api/chat-messages", headers, map[string]any{
+		"query":         "Explain the migration status",
+		"inputs":        map[string]any{"audience": "maintainers"},
+		"response_mode": "streaming",
+	}, http.StatusOK)
+	if len(events) < 2 {
+		t.Fatalf("expected public chat events, got %+v", events)
+	}
+	if stringFromAny(events[0]["event"]) != "message" {
+		t.Fatalf("expected first public chat event to be message, got %+v", events)
+	}
+	conversationID := stringFromAny(events[0]["conversation_id"])
+	messageID := stringFromAny(events[0]["id"])
+	taskID := stringFromAny(events[0]["task_id"])
+	if conversationID == "" || messageID == "" || taskID == "" {
+		t.Fatalf("expected chat identifiers in first event, got %+v", events[0])
+	}
+	if stringFromAny(events[len(events)-1]["event"]) != "message_end" {
+		t.Fatalf("expected public chat stream to end with message_end, got %+v", events)
+	}
+
+	messages := getJSONWithHeaders[map[string]any](env, "/api/messages?conversation_id="+url.QueryEscape(conversationID), headers, http.StatusOK)
+	messageItems := objectListFromAny(messages["data"])
+	if len(messageItems) != 1 {
+		t.Fatalf("expected a single public chat message, got %+v", messages)
+	}
+	if stringFromAny(messageItems[0]["query"]) != "Explain the migration status" {
+		t.Fatalf("expected stored public chat query, got %+v", messageItems[0])
+	}
+	if stringFromAny(messageItems[0]["status"]) != "normal" {
+		t.Fatalf("expected initial public chat status to be normal, got %+v", messageItems[0])
+	}
+	if feedback := messageItems[0]["feedback"]; feedback != nil {
+		t.Fatalf("expected no feedback before feedback submission, got %+v", feedback)
+	}
+	if len(anySlice(messageItems[0]["extra_contents"])) != 0 {
+		t.Fatalf("expected no extra contents for simple public chat message, got %+v", messageItems[0]["extra_contents"])
+	}
+
+	postJSONWithHeaders[map[string]any](env, http.MethodPost, "/api/chat-messages/"+taskID+"/stop", headers, nil, http.StatusOK)
+
+	stoppedMessages := getJSONWithHeaders[map[string]any](env, "/api/messages?conversation_id="+url.QueryEscape(conversationID), headers, http.StatusOK)
+	stoppedItems := objectListFromAny(stoppedMessages["data"])
+	if len(stoppedItems) != 1 || stringFromAny(stoppedItems[0]["status"]) != "stopped" {
+		t.Fatalf("expected stopped public chat message, got %+v", stoppedMessages)
+	}
+
+	postJSONWithHeaders[map[string]any](env, http.MethodPost, "/api/messages/"+messageID+"/feedbacks", headers, map[string]any{
+		"rating":  "like",
+		"content": "helpful",
+	}, http.StatusOK)
+
+	feedbackMessages := getJSONWithHeaders[map[string]any](env, "/api/messages?conversation_id="+url.QueryEscape(conversationID), headers, http.StatusOK)
+	feedbackItems := objectListFromAny(feedbackMessages["data"])
+	feedback := mapFromAny(feedbackItems[0]["feedback"])
+	if stringFromAny(feedback["rating"]) != "like" || stringFromAny(feedback["content"]) != "helpful" {
+		t.Fatalf("expected stored public feedback, got %+v", feedbackItems[0]["feedback"])
+	}
+
+	suggested := getJSONWithHeaders[map[string]any](env, "/api/messages/"+messageID+"/suggested-questions", headers, http.StatusOK)
+	if len(anySlice(suggested["data"])) != 3 {
+		t.Fatalf("expected generated suggested questions, got %+v", suggested)
+	}
+
+	moreLikeThis := getJSONWithHeaders[map[string]any](env, "/api/messages/"+messageID+"/more-like-this", headers, http.StatusOK)
+	if stringFromAny(moreLikeThis["id"]) == "" || stringFromAny(moreLikeThis["id"]) == messageID {
+		t.Fatalf("expected more-like-this to create a new public message, got %+v", moreLikeThis)
+	}
+	if stringFromAny(moreLikeThis["answer"]) == "" {
+		t.Fatalf("expected more-like-this answer, got %+v", moreLikeThis)
+	}
+
+	conversations := getJSONWithHeaders[map[string]any](env, "/api/conversations?pinned=false&limit=20", headers, http.StatusOK)
+	conversationItems := objectListFromAny(conversations["data"])
+	if len(conversationItems) != 1 {
+		t.Fatalf("expected one public conversation, got %+v", conversations)
+	}
+	if stringFromAny(conversationItems[0]["id"]) != conversationID {
+		t.Fatalf("expected public conversation id to match chat stream, got %+v", conversationItems[0])
+	}
+	if stringFromAny(conversationItems[0]["introduction"]) != "Welcome to the public chat runtime" {
+		t.Fatalf("expected conversation introduction to reflect opening statement, got %+v", conversationItems[0])
+	}
+
+	postJSONWithHeaders[map[string]any](env, http.MethodPatch, "/api/conversations/"+conversationID+"/pin", headers, nil, http.StatusOK)
+	pinnedConversations := getJSONWithHeaders[map[string]any](env, "/api/conversations?pinned=true&limit=20", headers, http.StatusOK)
+	if len(objectListFromAny(pinnedConversations["data"])) != 1 {
+		t.Fatalf("expected pinned public conversation, got %+v", pinnedConversations)
+	}
+
+	renamed := postJSONWithHeaders[map[string]any](env, http.MethodPost, "/api/conversations/"+conversationID+"/name", headers, map[string]any{
+		"name": "Migration Thread",
+	}, http.StatusOK)
+	if stringFromAny(renamed["name"]) != "Migration Thread" {
+		t.Fatalf("expected renamed public conversation, got %+v", renamed)
+	}
+
+	postJSONWithHeaders[map[string]any](env, http.MethodPost, "/api/saved-messages", headers, map[string]any{
+		"message_id": messageID,
+	}, http.StatusOK)
+	savedMessages := getJSONWithHeaders[map[string]any](env, "/api/saved-messages", headers, http.StatusOK)
+	savedItems := objectListFromAny(savedMessages["data"])
+	if len(savedItems) != 1 || stringFromAny(savedItems[0]["id"]) != messageID {
+		t.Fatalf("expected saved public message, got %+v", savedMessages)
+	}
+
+	postJSONWithHeaders[map[string]any](env, http.MethodDelete, "/api/saved-messages/"+messageID, headers, nil, http.StatusOK)
+	afterDeleteSaved := getJSONWithHeaders[map[string]any](env, "/api/saved-messages", headers, http.StatusOK)
+	if len(objectListFromAny(afterDeleteSaved["data"])) != 0 {
+		t.Fatalf("expected saved messages to be empty after deletion, got %+v", afterDeleteSaved)
+	}
+
+	postJSONWithHeaders[map[string]any](env, http.MethodDelete, "/api/conversations/"+conversationID, headers, nil, http.StatusOK)
+	afterDeleteConversations := getJSONWithHeaders[map[string]any](env, "/api/conversations?pinned=false&limit=20", headers, http.StatusOK)
+	if len(objectListFromAny(afterDeleteConversations["data"])) != 0 {
+		t.Fatalf("expected public conversations to be empty after deletion, got %+v", afterDeleteConversations)
+	}
+}
+
+func TestPublicCompletionAndAudioRoutes(t *testing.T) {
+	env := newServerTestEnv(t)
+	env.setupAndLogin()
+
+	app := postJSON[map[string]any](env, http.MethodPost, "/console/api/apps", map[string]any{
+		"name":            "Public Completion Runtime",
+		"description":     "public completion runtime",
+		"mode":            "completion",
+		"icon_type":       "emoji",
+		"icon":            "📝",
+		"icon_background": "#DBEAFE",
+	}, true, http.StatusCreated)
+	appID := stringFromAny(app["id"])
+	appCode := stringFromAny(mapFromAny(app["site"])["access_token"])
+	if appID == "" || appCode == "" {
+		t.Fatalf("expected created completion app id and app code, got %+v", app)
+	}
+
+	postJSON[map[string]any](env, http.MethodPost, "/console/api/apps/"+appID+"/site-enable", map[string]any{
+		"enable_site": true,
+	}, true, http.StatusOK)
+
+	modelConfig := cloneJSONObject(mapFromAny(app["model_config"]))
+	modelConfig["speech_to_text"] = map[string]any{"enabled": true}
+	modelConfig["text_to_speech"] = map[string]any{"enabled": true, "voice": "alloy", "language": "en-US"}
+	postJSON[map[string]any](env, http.MethodPost, "/console/api/apps/"+appID+"/model-config", modelConfig, true, http.StatusOK)
+
+	headers := map[string]string{webAppCodeHeader: appCode}
+	events := postStreamJSONWithHeaders(env, "/api/completion-messages", headers, map[string]any{
+		"inputs": map[string]any{
+			"topic": "Go compatibility layer",
+		},
+		"response_mode": "streaming",
+	}, http.StatusOK)
+	if len(events) < 2 || stringFromAny(events[0]["event"]) != "message" {
+		t.Fatalf("expected public completion stream message event, got %+v", events)
+	}
+	messageID := stringFromAny(events[0]["id"])
+	if messageID == "" {
+		t.Fatalf("expected public completion message id, got %+v", events[0])
+	}
+
+	var audioBody bytes.Buffer
+	audioWriter := multipart.NewWriter(&audioBody)
+	part, err := audioWriter.CreateFormFile("file", "voice.mp3")
+	if err != nil {
+		t.Fatalf("create audio form file: %v", err)
+	}
+	if _, err := part.Write([]byte("fake audio bytes")); err != nil {
+		t.Fatalf("write audio form file: %v", err)
+	}
+	if err := audioWriter.Close(); err != nil {
+		t.Fatalf("close audio form writer: %v", err)
+	}
+
+	audioReq, err := http.NewRequest(http.MethodPost, env.server.URL+"/api/audio-to-text", &audioBody)
+	if err != nil {
+		t.Fatalf("create audio-to-text request: %v", err)
+	}
+	audioReq.Header.Set("Content-Type", audioWriter.FormDataContentType())
+	for key, value := range headers {
+		audioReq.Header.Set(key, value)
+	}
+	audioResp := env.do(audioReq, http.StatusOK)
+	defer audioResp.Body.Close()
+
+	var audioToText map[string]any
+	if err := json.NewDecoder(audioResp.Body).Decode(&audioToText); err != nil {
+		t.Fatalf("decode audio-to-text response: %v", err)
+	}
+	if !strings.Contains(stringFromAny(audioToText["text"]), "voice.mp3") {
+		t.Fatalf("expected audio-to-text transcription to reference uploaded file, got %+v", audioToText)
+	}
+
+	ttsPayload, err := json.Marshal(map[string]any{
+		"message_id": messageID,
+		"streaming":  true,
+	})
+	if err != nil {
+		t.Fatalf("marshal text-to-audio payload: %v", err)
+	}
+	ttsReq, err := http.NewRequest(http.MethodPost, env.server.URL+"/api/text-to-audio", bytes.NewReader(ttsPayload))
+	if err != nil {
+		t.Fatalf("create text-to-audio request: %v", err)
+	}
+	ttsReq.Header.Set("Content-Type", "application/json")
+	for key, value := range headers {
+		ttsReq.Header.Set(key, value)
+	}
+	ttsResp := env.do(ttsReq, http.StatusOK)
+	defer ttsResp.Body.Close()
+
+	if contentType := ttsResp.Header.Get("Content-Type"); contentType != "audio/mpeg" {
+		t.Fatalf("expected text-to-audio response to be audio/mpeg, got %q", contentType)
+	}
+	ttsBody, err := io.ReadAll(ttsResp.Body)
+	if err != nil {
+		t.Fatalf("read text-to-audio body: %v", err)
+	}
+	if len(ttsBody) == 0 {
+		t.Fatalf("expected text-to-audio body to contain mp3 bytes")
+	}
+}
+
 func ragPipelineRunInputs(language string, chunkSize int, removeExtraSpaces bool) map[string]any {
 	return map[string]any{
 		"separator":              "\n\n",

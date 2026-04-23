@@ -359,6 +359,23 @@ The Go server keeps Dify's existing API prefixes so the frontend can continue ca
 - `GET /api/site`
 - `GET /api/parameters`
 - `GET /api/meta`
+- `POST /api/chat-messages`
+- `POST /api/chat-messages/{taskId}/stop`
+- `POST /api/completion-messages`
+- `GET /api/messages`
+- `POST /api/messages/{messageId}/feedbacks`
+- `GET /api/messages/{messageId}/suggested-questions`
+- `GET /api/messages/{messageId}/more-like-this`
+- `GET /api/conversations`
+- `PATCH /api/conversations/{conversationId}/pin`
+- `PATCH /api/conversations/{conversationId}/unpin`
+- `DELETE /api/conversations/{conversationId}`
+- `POST /api/conversations/{conversationId}/name`
+- `POST /api/saved-messages`
+- `GET /api/saved-messages`
+- `DELETE /api/saved-messages/{messageId}`
+- `POST /api/audio-to-text`
+- `POST /api/text-to-audio`
 - `POST /api/workflows/run`
 - `POST /api/workflows/tasks/{taskId}/stop`
 - `ANY /trigger/builders/{builderId}`
@@ -368,6 +385,8 @@ The Go server keeps Dify's existing API prefixes so the frontend can continue ca
 补充：Public share/webapp bootstrap 现在也开始走 Go。`X-App-Code`、`app_code` 或 `appCode` 会解析到已启用站点的 app access token，`/api/site` 返回前端 `AppData` 兼容包装，`/api/parameters` 返回去掉 `model` 细节后的公开 model config，`/api/meta` 先提供稳定的空 `tool_icons`，`/api/webapp/access-mode` 和 `/api/passport` 可支撑 share 页面初始化；同时 `/api/login/status` 会在 public app 模式下返回 `app_logged_in=true`，让原样搬过来的前端可以继续启动。
 
 补充：public workflow runtime 也已经开始复用 Go 侧 console workflow 状态机。`POST /api/workflows/run` 现在会按 `X-App-Code` 解析公开 app，并且只执行已发布的 workflow snapshot，不会误跑到更新后的 draft；执行结果会沿用现有 SSE `workflow_started / node_started / node_finished / workflow_finished` 事件格式持久化到同一份 workflow run 历史。`POST /api/workflows/tasks/{taskId}/stop` 则直接复用现有 stop 逻辑，把 public share 页发起的任务写回成统一的 `stopped` run/node 状态。
+
+补充：public chat / completion runtime 这一轮也已经整体切到 Go。`POST /api/chat-messages`、`POST /api/completion-messages` 会把 SSE 响应、会话、消息历史、用户反馈、suggested questions、more-like-this、saved messages 和音频接口一起落到 Go 状态里；同时 public webapp 不再只靠 bootstrap 时返回的兼容 token，而是优先用 `X-App-Passport`，并在没有 passport 时回退到持久化 `dify_go_public_session` cookie，把公开访问的 app session 隔离开，避免不同访客共享同一份 conversations / messages / saved-messages 状态。
 
 ## Compatibility Mode
 

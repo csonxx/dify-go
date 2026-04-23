@@ -436,7 +436,7 @@
 
 ## 阶段 6：公共运行时 API
 
-状态：进行中（public webapp bootstrap 第一批已落地）
+状态：已完成
 
 范围：
 
@@ -469,16 +469,21 @@
 - [x] `/api/site`
 - [x] `/api/parameters`
 - [x] `/api/meta`
+- [x] `/api/chat-messages`
+- [x] `/api/chat-messages/{taskId}/stop`
+- [x] `/api/completion-messages`
+- [x] `/api/messages`
+- [x] `/api/conversations*`
+- [x] `/api/messages/{messageId}/feedbacks`
+- [x] `/api/messages/{messageId}/suggested-questions`
+- [x] `/api/messages/{messageId}/more-like-this`
+- [x] `/api/saved-messages*`
+- [x] `/api/audio-to-text`
+- [x] `/api/text-to-audio`
 - [x] `/api/workflows/run`
 - [x] `/api/workflows/tasks/{taskId}/stop`
 - [x] `/api/login/status` 的 public app `app_logged_in` 识别
-
-本阶段剩余重点：
-
-- [ ] 接上 `/api/chat-messages`、`/api/completion-messages`、`/api/messages` 的公开会话执行与消息历史
-- [ ] 接上 `/api/conversations*` 的会话列表、重命名、删除、pin/unpin
-- [ ] 接上 `/api/audio-to-text`、`/api/text-to-audio` 与 `/api/saved-messages*`
-- [ ] 把当前 bootstrap passport 从兼容 token 推进到更贴近上游的 app/end-user/session 语义
+- [x] public webapp 会话态从单纯 bootstrap token 收敛到 `X-App-Passport` / `dify_go_public_session` 的 app session 语义，公开会话、消息历史、收藏与反馈不再跨访客串线
 
 ## 阶段 7：账号、工作区与平台集成
 
@@ -536,12 +541,10 @@
 
 ## 下一步
 
-下一轮继续做“阶段 6：公共运行时 API”的执行链路。
+下一轮从公共运行时转回“剩余业务域的真实语义收敛”。
 
 推荐顺序：
 
-1. `/api/workflows/run` 与 `/api/workflows/tasks/{taskId}/stop`
-2. `/api/chat-messages` / `/api/completion-messages` 的 SSE 公开运行时
-3. `/api/messages`、`/api/conversations*` 的历史与会话管理
-4. `/api/saved-messages*`、`/api/audio-to-text`、`/api/text-to-audio`
-5. 收敛 passport、end-user 与 app session 状态模型
+1. 继续推进阶段 5，把 RAG pipeline published run / batch execution / execution log 做得更贴近上游真实行为
+2. 进入阶段 7，补 workspace members、ownership transfer、email register / forgot-password 与 OAuth / SSO
+3. 进入阶段 8，把 session 与高频状态写入从文件态继续往更稳的持久化方案演进
