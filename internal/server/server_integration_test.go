@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -2385,6 +2386,128 @@ func TestPublicWebAppBootstrapRoutes(t *testing.T) {
 	}
 }
 
+func TestPublicWorkflowRunUsesPublishedWorkflowAndStop(t *testing.T) {
+	env := newServerTestEnv(t)
+	env.setupAndLogin()
+
+	app := postJSON[map[string]any](env, http.MethodPost, "/console/api/apps", map[string]any{
+		"name":            "Public Workflow Runtime",
+		"description":     "public workflow runtime",
+		"mode":            "workflow",
+		"icon_type":       "emoji",
+		"icon":            "🛠",
+		"icon_background": "#D1FAE5",
+	}, true, http.StatusCreated)
+	appID := stringFromAny(app["id"])
+	appCode := stringFromAny(mapFromAny(app["site"])["access_token"])
+	if appID == "" || appCode == "" {
+		t.Fatalf("expected created workflow app id and app code, got %+v", app)
+	}
+
+	postJSON[workflowSyncResponse](env, http.MethodPost, "/console/api/apps/"+appID+"/workflows/draft", map[string]any{
+		"graph": map[string]any{
+			"nodes": []map[string]any{
+				{"id": "start-node", "data": map[string]any{"type": "start", "title": "Start"}},
+				{"id": "answer-node", "data": map[string]any{"type": "answer", "title": "Published Answer"}},
+			},
+			"edges": []map[string]any{
+				{"source": "start-node", "target": "answer-node"},
+			},
+			"viewport": map[string]any{"x": 0, "y": 0, "zoom": 1},
+		},
+		"features": map[string]any{},
+	}, true, http.StatusOK)
+	postJSON[map[string]any](env, http.MethodPost, "/console/api/apps/"+appID+"/workflows/publish", map[string]any{
+		"marked_name":    "published-v1",
+		"marked_comment": "public workflow runtime",
+	}, true, http.StatusOK)
+
+	postJSON[workflowSyncResponse](env, http.MethodPost, "/console/api/apps/"+appID+"/workflows/draft", map[string]any{
+		"graph": map[string]any{
+			"nodes": []map[string]any{
+				{"id": "start-node", "data": map[string]any{"type": "start", "title": "Start"}},
+				{"id": "draft-llm", "data": map[string]any{"type": "llm", "title": "Unpublished LLM"}},
+				{"id": "answer-node", "data": map[string]any{"type": "answer", "title": "Unpublished Answer"}},
+			},
+			"edges": []map[string]any{
+				{"source": "start-node", "target": "draft-llm"},
+				{"source": "draft-llm", "target": "answer-node"},
+			},
+			"viewport": map[string]any{"x": 0, "y": 0, "zoom": 1},
+		},
+		"features": map[string]any{},
+	}, true, http.StatusOK)
+	postJSON[map[string]any](env, http.MethodPost, "/console/api/apps/"+appID+"/site-enable", map[string]any{
+		"enable_site": true,
+	}, true, http.StatusOK)
+
+	headers := map[string]string{
+		webAppCodeHeader:     appCode,
+		webAppPassportHeader: "passport_" + appID,
+	}
+	events := postStreamJSONWithHeaders(env, "/api/workflows/run", headers, map[string]any{
+		"inputs": map[string]any{
+			"topic": "public workflow",
+		},
+		"response_mode": "streaming",
+	}, http.StatusOK)
+	if len(events) < 4 {
+		t.Fatalf("expected public workflow stream events, got %+v", events)
+	}
+	if stringFromAny(events[0]["event"]) != "workflow_started" {
+		t.Fatalf("expected workflow_started first, got %+v", events)
+	}
+
+	runID := stringFromAny(events[0]["workflow_run_id"])
+	taskID := stringFromAny(events[0]["task_id"])
+	if runID == "" || taskID == "" {
+		t.Fatalf("expected public workflow stream ids, got %+v", events[0])
+	}
+
+	finished := events[len(events)-1]
+	if stringFromAny(finished["event"]) != "workflow_finished" {
+		t.Fatalf("expected workflow_finished last, got %+v", events)
+	}
+	if _, exists := mapFromAny(finished["data"])["node_count"]; exists {
+		t.Fatalf("expected workflow_finished data to nest outputs instead of raw node_count, got %+v", finished["data"])
+	}
+	finishedOutputs := mapFromAny(mapFromAny(finished["data"])["outputs"])
+	nodeCount, ok := finishedOutputs["node_count"].(float64)
+	if !ok || int(nodeCount) != 2 {
+		t.Fatalf("expected public workflow run to use published graph with 2 nodes, got %+v", finishedOutputs)
+	}
+
+	nodeFinishedTitles := []string{}
+	for _, event := range events {
+		if stringFromAny(event["event"]) != "node_finished" {
+			continue
+		}
+		nodeFinishedTitles = append(nodeFinishedTitles, stringFromAny(mapFromAny(event["data"])["title"]))
+	}
+	if len(nodeFinishedTitles) != 2 {
+		t.Fatalf("expected 2 node_finished events from published workflow, got %+v", nodeFinishedTitles)
+	}
+	if slices.Contains(nodeFinishedTitles, "Unpublished LLM") || slices.Contains(nodeFinishedTitles, "Unpublished Answer") {
+		t.Fatalf("expected public workflow run to ignore latest draft graph, got %+v", nodeFinishedTitles)
+	}
+	if !slices.Contains(nodeFinishedTitles, "Published Answer") {
+		t.Fatalf("expected public workflow run to expose published workflow node title, got %+v", nodeFinishedTitles)
+	}
+
+	postJSONWithHeaders[map[string]any](env, http.MethodPost, "/api/workflows/tasks/"+taskID+"/stop", headers, nil, http.StatusOK)
+
+	runDetail := getJSON[map[string]any](env, "/console/api/apps/"+appID+"/workflow-runs/"+runID, true, http.StatusOK)
+	if stringFromAny(runDetail["status"]) != "stopped" {
+		t.Fatalf("expected public workflow stop to persist stopped status, got %+v", runDetail)
+	}
+	nodeExecutions := getJSON[map[string]any](env, "/console/api/apps/"+appID+"/workflow-runs/"+runID+"/node-executions", true, http.StatusOK)
+	for _, item := range objectListFromAny(nodeExecutions["data"]) {
+		if stringFromAny(item["status"]) != "stopped" {
+			t.Fatalf("expected public workflow stop to mark node execution stopped, got %+v", item)
+		}
+	}
+}
+
 func ragPipelineRunInputs(language string, chunkSize int, removeExtraSpaces bool) map[string]any {
 	return map[string]any{
 		"separator":              "\n\n",
@@ -2562,6 +2685,42 @@ func getJSONWithHeaders[T any](e *serverTestEnv, path string, headers map[string
 	return result
 }
 
+func postJSONWithHeaders[T any](e *serverTestEnv, method string, path string, headers map[string]string, payload any, wantStatus int) T {
+	e.t.Helper()
+
+	var body io.Reader
+	if payload != nil {
+		data, err := json.Marshal(payload)
+		if err != nil {
+			e.t.Fatalf("marshal payload with headers: %v", err)
+		}
+		body = bytes.NewReader(data)
+	}
+	req, err := http.NewRequest(method, e.server.URL+path, body)
+	if err != nil {
+		e.t.Fatalf("create json request with headers: %v", err)
+	}
+	if payload != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
+	for key, value := range headers {
+		req.Header.Set(key, value)
+	}
+	resp := e.do(req, wantStatus)
+	defer resp.Body.Close()
+
+	if isNoContentStatus(wantStatus) {
+		var zero T
+		return zero
+	}
+
+	var result T
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		e.t.Fatalf("decode json response with headers for %s %s: %v", method, path, err)
+	}
+	return result
+}
+
 func postStreamJSON(e *serverTestEnv, path string, payload any, auth bool, wantStatus int) []map[string]any {
 	e.t.Helper()
 
@@ -2602,6 +2761,52 @@ func postStreamJSON(e *serverTestEnv, path string, payload any, auth bool, wantS
 		payload := map[string]any{}
 		if err := json.Unmarshal([]byte(strings.TrimPrefix(line, "data: ")), &payload); err != nil {
 			e.t.Fatalf("decode stream event for %s: %v raw=%q", path, err, line)
+		}
+		events = append(events, payload)
+	}
+	return events
+}
+
+func postStreamJSONWithHeaders(e *serverTestEnv, path string, headers map[string]string, payload any, wantStatus int) []map[string]any {
+	e.t.Helper()
+
+	var body io.Reader
+	if payload != nil {
+		data, err := json.Marshal(payload)
+		if err != nil {
+			e.t.Fatalf("marshal stream payload with headers: %v", err)
+		}
+		body = bytes.NewReader(data)
+	}
+
+	req, err := http.NewRequest(http.MethodPost, e.server.URL+path, body)
+	if err != nil {
+		e.t.Fatalf("create stream request with headers: %v", err)
+	}
+	if payload != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
+	for key, value := range headers {
+		req.Header.Set(key, value)
+	}
+
+	resp := e.do(req, wantStatus)
+	defer resp.Body.Close()
+
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		e.t.Fatalf("read stream body with headers for %s: %v", path, err)
+	}
+
+	events := []map[string]any{}
+	for _, line := range strings.Split(string(data), "\n") {
+		line = strings.TrimSpace(line)
+		if !strings.HasPrefix(line, "data: ") {
+			continue
+		}
+		payload := map[string]any{}
+		if err := json.Unmarshal([]byte(strings.TrimPrefix(line, "data: ")), &payload); err != nil {
+			e.t.Fatalf("decode stream event with headers for %s: %v raw=%q", path, err, line)
 		}
 		events = append(events, payload)
 	}

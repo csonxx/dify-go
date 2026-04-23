@@ -469,13 +469,14 @@
 - [x] `/api/site`
 - [x] `/api/parameters`
 - [x] `/api/meta`
+- [x] `/api/workflows/run`
+- [x] `/api/workflows/tasks/{taskId}/stop`
 - [x] `/api/login/status` 的 public app `app_logged_in` 识别
 
 本阶段剩余重点：
 
 - [ ] 接上 `/api/chat-messages`、`/api/completion-messages`、`/api/messages` 的公开会话执行与消息历史
 - [ ] 接上 `/api/conversations*` 的会话列表、重命名、删除、pin/unpin
-- [ ] 接上 `/api/workflows/run` 与 `/api/workflows/tasks/{taskId}/stop`，复用 console workflow runtime 的 run/task 状态
 - [ ] 接上 `/api/audio-to-text`、`/api/text-to-audio` 与 `/api/saved-messages*`
 - [ ] 把当前 bootstrap passport 从兼容 token 推进到更贴近上游的 app/end-user/session 语义
 

@@ -359,11 +359,15 @@ The Go server keeps Dify's existing API prefixes so the frontend can continue ca
 - `GET /api/site`
 - `GET /api/parameters`
 - `GET /api/meta`
+- `POST /api/workflows/run`
+- `POST /api/workflows/tasks/{taskId}/stop`
 - `ANY /trigger/builders/{builderId}`
 - `ANY /trigger/subscriptions/{subscriptionId}`
 - `ANY /trigger/endpoints/{hookId}`
 
 补充：Public share/webapp bootstrap 现在也开始走 Go。`X-App-Code`、`app_code` 或 `appCode` 会解析到已启用站点的 app access token，`/api/site` 返回前端 `AppData` 兼容包装，`/api/parameters` 返回去掉 `model` 细节后的公开 model config，`/api/meta` 先提供稳定的空 `tool_icons`，`/api/webapp/access-mode` 和 `/api/passport` 可支撑 share 页面初始化；同时 `/api/login/status` 会在 public app 模式下返回 `app_logged_in=true`，让原样搬过来的前端可以继续启动。
+
+补充：public workflow runtime 也已经开始复用 Go 侧 console workflow 状态机。`POST /api/workflows/run` 现在会按 `X-App-Code` 解析公开 app，并且只执行已发布的 workflow snapshot，不会误跑到更新后的 draft；执行结果会沿用现有 SSE `workflow_started / node_started / node_finished / workflow_finished` 事件格式持久化到同一份 workflow run 历史。`POST /api/workflows/tasks/{taskId}/stop` 则直接复用现有 stop 逻辑，把 public share 页发起的任务写回成统一的 `stopped` run/node 状态。
 
 ## Compatibility Mode
 

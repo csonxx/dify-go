@@ -134,6 +134,8 @@ func (s *server) publicRoutes() http.Handler {
 	r.Get("/site", s.handlePublicAppSite)
 	r.Get("/parameters", s.handlePublicAppParameters)
 	r.Get("/meta", s.handlePublicAppMeta)
+	r.Post("/workflows/run", s.handlePublicWorkflowRun)
+	r.Post("/workflows/tasks/{taskID}/stop", s.handlePublicWorkflowRunStop)
 	r.Get("/files/upload", s.handleUploadConfig)
 	r.Post("/files/upload", s.handlePublicFileUpload)
 	r.Get("/files/support-type", s.handleFileSupportTypes)

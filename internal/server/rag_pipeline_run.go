@@ -163,11 +163,12 @@ type ragPipelinePublishedRunContext struct {
 
 func (s *server) buildPublishedPipelineRun(app state.App, user state.User, payload map[string]any, ctx ragPipelinePublishedRunContext, outputs map[string]any, now time.Time) state.WorkflowRun {
 	runApp := app
+	workflow := state.WorkflowState{}
 	if app.WorkflowPublished != nil {
-		workflow := state.WorkflowState(*app.WorkflowPublished)
+		workflow = state.WorkflowState(*app.WorkflowPublished)
 		runApp.WorkflowDraft = &workflow
 	}
-	run := s.buildWorkflowRun(runApp, user, payload, workflowRunOptions{
+	run := s.buildWorkflowRunForState(runApp, workflow, user, payload, workflowRunOptions{
 		Mode: "published",
 	}, now)
 	run.Inputs = ragPipelineWorkflowRunInputs(ctx)

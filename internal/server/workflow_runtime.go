@@ -290,7 +290,7 @@ func (s *server) handleWorkflowRunSSEWithPayload(w http.ResponseWriter, r *http.
 	}
 
 	now := time.Now()
-	run := s.buildWorkflowRun(app, currentUser(r), payload, options, now)
+	run := s.buildWorkflowRunForState(app, *app.WorkflowDraft, currentUser(r), payload, options, now)
 	if _, err := s.store.SaveWorkflowRun(app.ID, app.WorkspaceID, currentUser(r), run, now); err != nil {
 		writeError(w, http.StatusInternalServerError, "internal_error", "Failed to persist workflow run.")
 		return
@@ -507,8 +507,8 @@ func (s *server) handleConversationVariablesCurrentValues(w http.ResponseWriter,
 	})
 }
 
-func (s *server) buildWorkflowRun(app state.App, user state.User, payload map[string]any, options workflowRunOptions, now time.Time) state.WorkflowRun {
-	nodes := workflowGraphNodes(app.WorkflowDraft.Graph, options.SelectedNodeIDs)
+func (s *server) buildWorkflowRunForState(app state.App, workflow state.WorkflowState, user state.User, payload map[string]any, options workflowRunOptions, now time.Time) state.WorkflowRun {
+	nodes := workflowGraphNodes(workflow.Graph, options.SelectedNodeIDs)
 	inputs := workflowRunInputs(payload)
 	outputs := workflowRunOutputs(inputs, nodes, options.Mode)
 	nodeExecutions := make([]state.WorkflowNodeExecution, 0, len(nodes))
@@ -541,8 +541,8 @@ func (s *server) buildWorkflowRun(app state.App, user state.User, payload map[st
 	run := state.WorkflowRun{
 		ID:             runtimeID("run"),
 		TaskID:         runtimeID("task"),
-		Version:        workflowRunVersion(app),
-		Graph:          cloneJSONObject(app.WorkflowDraft.Graph),
+		Version:        firstImportValue(strings.TrimSpace(workflow.Version), "draft"),
+		Graph:          cloneJSONObject(workflow.Graph),
 		Inputs:         inputs,
 		Status:         "succeeded",
 		Outputs:        outputs,
@@ -1007,13 +1007,6 @@ func fallbackNodeTitle(nodeType string) string {
 		}
 		return strings.Title(strings.ReplaceAll(nodeType, "-", " "))
 	}
-}
-
-func workflowRunVersion(app state.App) string {
-	if app.WorkflowDraft != nil && strings.TrimSpace(app.WorkflowDraft.Version) != "" {
-		return app.WorkflowDraft.Version
-	}
-	return "draft"
 }
 
 func workflowIDForResponse(app state.App) string {
