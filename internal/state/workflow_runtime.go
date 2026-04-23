@@ -49,6 +49,15 @@ type WorkflowNodeExecution struct {
 	CreatedBy         string         `json:"created_by"`
 }
 
+func workflowRunStopEligible(status string) bool {
+	switch strings.TrimSpace(status) {
+	case "", "running", "succeeded", "paused":
+		return true
+	default:
+		return false
+	}
+}
+
 func (s *Store) ListWorkflowVersions(appID, workspaceID string, page, limit int, userID string, namedOnly bool) ([]WorkflowState, bool, int, bool) {
 	app, ok := s.GetApp(appID, workspaceID)
 	if !ok {
@@ -273,29 +282,39 @@ func (s *Store) StopWorkflowRun(appID, workspaceID, taskID string, user User, no
 	}
 
 	app := s.state.Apps[index]
+	found := false
 	updated := false
+	timestamp := now.UTC().Unix()
 	for i := range app.WorkflowRuns {
 		if app.WorkflowRuns[i].TaskID != taskID {
 			continue
 		}
-		if app.WorkflowRuns[i].Status == "running" {
+		found = true
+		if workflowRunStopEligible(app.WorkflowRuns[i].Status) {
 			app.WorkflowRuns[i].Status = "stopped"
-			app.WorkflowRuns[i].FinishedAt = now.UTC().Unix()
+			app.WorkflowRuns[i].FinishedAt = timestamp
+			updated = true
 		}
 		for j := range app.WorkflowRuns[i].NodeExecutions {
-			if app.WorkflowRuns[i].NodeExecutions[j].Status == "running" {
+			if workflowRunStopEligible(app.WorkflowRuns[i].NodeExecutions[j].Status) {
 				app.WorkflowRuns[i].NodeExecutions[j].Status = "stopped"
-				app.WorkflowRuns[i].NodeExecutions[j].FinishedAt = now.UTC().Unix()
+				app.WorkflowRuns[i].NodeExecutions[j].FinishedAt = timestamp
+				updated = true
 			}
 		}
-		updated = true
+		if s.stopLinkedDatasetDocumentsForWorkflowRunLocked(workspaceID, &app.WorkflowRuns[i], user, timestamp) {
+			updated = true
+		}
 		break
 	}
-	if !updated {
+	if !found {
 		return false, nil
 	}
+	if !updated {
+		return true, nil
+	}
 
-	app.UpdatedAt = now.UTC().Unix()
+	app.UpdatedAt = timestamp
 	app.UpdatedBy = user.ID
 	if app.Workflow != nil {
 		app.Workflow.UpdatedAt = app.UpdatedAt
@@ -303,6 +322,73 @@ func (s *Store) StopWorkflowRun(appID, workspaceID, taskID string, user User, no
 	}
 	s.state.Apps[index] = app
 	return true, s.saveLocked()
+}
+
+func (s *Store) stopLinkedDatasetDocumentsForWorkflowRunLocked(workspaceID string, run *WorkflowRun, user User, timestamp int64) bool {
+	if run == nil {
+		return false
+	}
+
+	datasetID := firstNonEmpty(
+		strings.TrimSpace(stringValue(run.Outputs["dataset_id"], "")),
+		strings.TrimSpace(stringValue(run.Inputs["dataset_id"], "")),
+	)
+	if datasetID == "" {
+		return false
+	}
+
+	datasetIndex := s.findDatasetIndexLocked(datasetID, workspaceID)
+	if datasetIndex < 0 {
+		return false
+	}
+
+	documentIDs := stringSliceFromAny(run.Outputs["document_ids"])
+	if len(documentIDs) == 0 {
+		for _, item := range mapSliceFromAny(run.Outputs["documents"]) {
+			if documentID := strings.TrimSpace(stringValue(item["id"], "")); documentID != "" {
+				documentIDs = append(documentIDs, documentID)
+			}
+		}
+	}
+	if len(documentIDs) == 0 {
+		if originalDocumentID := strings.TrimSpace(stringValue(run.Outputs["original_document_id"], "")); originalDocumentID != "" {
+			documentIDs = append(documentIDs, originalDocumentID)
+		}
+	}
+
+	targets := make(map[string]struct{}, len(documentIDs))
+	for _, documentID := range documentIDs {
+		if trimmed := strings.TrimSpace(documentID); trimmed != "" {
+			targets[trimmed] = struct{}{}
+		}
+	}
+
+	batchID := strings.TrimSpace(stringValue(run.Outputs["batch"], ""))
+	if len(targets) == 0 && batchID == "" {
+		return false
+	}
+
+	updated := false
+	for i := range s.state.Datasets[datasetIndex].Documents {
+		document := &s.state.Datasets[datasetIndex].Documents[i]
+		if len(targets) > 0 {
+			if _, ok := targets[document.ID]; !ok {
+				continue
+			}
+		} else if document.Batch != batchID {
+			continue
+		}
+		if !datasetDocumentStopEligible(*document) {
+			continue
+		}
+		setDatasetDocumentPaused(document, user.ID, timestamp, true)
+		updated = true
+	}
+	if updated {
+		s.state.Datasets[datasetIndex].UpdatedAt = timestamp
+		s.state.Datasets[datasetIndex].UpdatedBy = user.ID
+	}
+	return updated
 }
 
 func (s *Store) SaveWorkflowNodeRun(appID, workspaceID string, user User, execution WorkflowNodeExecution, now time.Time) (WorkflowNodeExecution, error) {

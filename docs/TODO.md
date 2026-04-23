@@ -395,6 +395,7 @@
 - [x] `/rag/pipelines/{pipelineId}/workflows/publish`
 - [x] `/rag/pipelines/{pipelineId}/workflows`
 - [x] `/rag/pipelines/{pipelineId}/workflow-runs`
+- [x] `/rag/pipelines/{pipelineId}/workflow-runs/tasks/{taskId}/stop`
 - [x] `/rag/pipelines/{pipelineId}/workflows/draft/pre-processing/parameters`
 - [x] `/rag/pipelines/{pipelineId}/workflows/published/pre-processing/parameters`
 - [x] `/rag/pipelines/{pipelineId}/workflows/draft/processing/parameters`
@@ -423,6 +424,7 @@
 - Published run 现在已经支持 preview、首次创建文档、以及基于 `original_document_id` 的重处理，并且会把 `datasource_type / datasource_info / input_data / datasource_node_id` 落到 dataset document 的 pipeline execution log，前端 create-from-pipeline 和 document settings 都可以直接复用这条 Go 链路。
 - dataset `/datasets/indexing-estimate` 和 RAG pipeline `published/run` 的 preview 输出现在也开始共用一套按 `doc_form` 生成的 Go 预览语义：`text_model` 返回普通 `preview`，`hierarchical_model` 返回带 `child_chunks` 和 `parent_mode` 的 parent-child 结构，`qa_model` 返回前端可直接渲染的 `qa_preview`，这样原样搬过来的 preview 面板不需要额外前端兼容代码。
 - Published run 写入的 `/rag/pipelines/{pipelineId}/workflow-runs` 历史、详情和 `/node-executions` tracing 现在也已经带上 pipeline 语义化上下文：会持久化 `pipeline_id / dataset_id / datasource_type / datasource_info_list / start_node_id / processing_inputs / batch / document_ids / original_document_id / preview_result`，前端 run history、run detail、trace panel 不再只看到通用 workflow 占位数据。
+- console workflow stop 现在也开始有真实语义了：`/apps/{appId}/workflow-runs/tasks/{taskId}/stop` 和 `/rag/pipelines/{pipelineId}/workflow-runs/tasks/{taskId}/stop` 会把已持久化的 run 与 node execution 改成 `stopped`，并且在 run history/detail 一起暴露 `task_id`；如果这是 RAG pipeline 的 create/reprocess run，还会把 linked dataset document/batch 一并落到 `paused + stopped_at`，避免 processing 页和 run trace 各说各话。
 - Published run 创建/重处理出来的 dataset document 现在不再直接落成 `completed`，而是会先进入 `waiting`，再通过 Go 侧统一的 document processing 状态推进器在 `document detail / document list / document indexing-status / batch indexing-status` 这些读路径上推进到 `parsing / cleaning / splitting / indexing / completed`；这样 create-from-pipeline 的 processing 页面、文档详情页和普通知识库文档列表看到的是同一条状态流。
 - datasource node run 现在也已经切到 Go，补上了 draft/published 两套 `/datasource/nodes/{nodeId}/run` SSE 兼容接口，当前覆盖 `online_document / website_crawl / online_drive` 三类节点，create-from-pipeline 的在线数据源选择页不再需要走 Python fallback。
 - `/rag/pipelines/datasource-plugins` 现在会按 workspace plugin 安装态返回 datasource catalog：`local_file` 始终内建可用，其它 `online_document / website_crawl / online_drive` provider 只有在工作区已安装对应 plugin，或工作区里已经存在旧的 datasource credential / OAuth client 状态时才会继续暴露；这样前端 block selector、plugin install/uninstall、既有授权状态可以共用一套发现语义。

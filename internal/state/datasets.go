@@ -1502,6 +1502,29 @@ func restoreDatasetDocumentProcessing(document *DatasetDocument, timestamp int64
 	document.UpdatedAt = timestamp
 }
 
+func setDatasetDocumentPaused(document *DatasetDocument, userID string, timestamp int64, stopped bool) {
+	if document == nil {
+		return
+	}
+	document.IndexingStatus = documentIndexingStatusPaused
+	document.DisplayStatus = documentDisplayStatusPaused
+	document.PausedBy = userID
+	document.PausedAt = timestamp
+	if stopped {
+		document.StoppedAt = timestamp
+	} else {
+		document.StoppedAt = 0
+	}
+	document.UpdatedAt = timestamp
+}
+
+func datasetDocumentStopEligible(document DatasetDocument) bool {
+	if document.Archived {
+		return false
+	}
+	return datasetDocumentIndexingStatusIsActive(document.IndexingStatus) || document.IndexingStatus == documentIndexingStatusPaused
+}
+
 func (s *Store) SetDatasetDocumentProcessing(datasetID, workspaceID, documentID string, paused bool, user User, now time.Time) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -1517,14 +1540,12 @@ func (s *Store) SetDatasetDocumentProcessing(datasetID, workspaceID, documentID 
 		}
 		timestamp := now.UTC().Unix()
 		if paused {
-			document.IndexingStatus = documentIndexingStatusPaused
-			document.DisplayStatus = documentDisplayStatusPaused
-			document.PausedBy = user.ID
-			document.PausedAt = timestamp
+			setDatasetDocumentPaused(document, user.ID, timestamp, false)
 		} else {
 			restoreDatasetDocumentProcessing(document, timestamp)
 			document.PausedBy = ""
 			document.PausedAt = 0
+			document.StoppedAt = 0
 		}
 		document.UpdatedAt = timestamp
 		s.state.Datasets[datasetIndex].UpdatedAt = timestamp

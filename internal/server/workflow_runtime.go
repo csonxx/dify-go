@@ -693,6 +693,7 @@ func (s *server) streamWorkflowEvents(w http.ResponseWriter, r *http.Request, ev
 func (s *server) workflowRunHistoryResponse(run state.WorkflowRun) map[string]any {
 	return map[string]any{
 		"id":                 run.ID,
+		"task_id":            run.TaskID,
 		"version":            run.Version,
 		"conversation_id":    nullIfEmpty(run.ConversationID),
 		"message_id":         nullIfEmpty(run.MessageID),
@@ -713,6 +714,7 @@ func (s *server) workflowRunHistoryResponse(run state.WorkflowRun) map[string]an
 func (s *server) workflowRunDetailResponse(run state.WorkflowRun) map[string]any {
 	return map[string]any{
 		"id":                run.ID,
+		"task_id":           run.TaskID,
 		"version":           run.Version,
 		"graph":             cloneJSONObject(run.Graph),
 		"inputs":            stringifyWorkflowValue(run.Inputs),

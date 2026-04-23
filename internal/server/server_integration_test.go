@@ -2191,9 +2191,16 @@ func TestRAGPipelinePublishedRunCreatePreviewAndReprocess(t *testing.T) {
 	if stringFromAny(mapFromAny(reprocessRun["outputs"])["mode"]) != "reprocess" {
 		t.Fatalf("expected reprocess run history to persist reprocess mode, got %+v", reprocessRun)
 	}
+	reprocessTaskID := stringFromAny(reprocessRun["task_id"])
+	if reprocessTaskID == "" {
+		t.Fatalf("expected reprocess run history to expose task id, got %+v", reprocessRun)
+	}
 
 	reprocessRunID := stringFromAny(reprocessRun["id"])
 	reprocessRunDetail := getJSON[map[string]any](env, "/console/api/rag/pipelines/"+dataset.PipelineID+"/workflow-runs/"+reprocessRunID, true, http.StatusOK)
+	if stringFromAny(reprocessRunDetail["task_id"]) != reprocessTaskID {
+		t.Fatalf("expected reprocess run detail to expose matching task id, got %+v", reprocessRunDetail)
+	}
 	if !strings.Contains(stringFromAny(reprocessRunDetail["inputs"]), "\"original_document_id\":\""+documentID+"\"") {
 		t.Fatalf("expected reprocess run detail to persist original document id, got %+v", reprocessRunDetail)
 	}
@@ -2223,6 +2230,32 @@ func TestRAGPipelinePublishedRunCreatePreviewAndReprocess(t *testing.T) {
 	}
 	if enabled, ok := reprocessedLog.InputData["remove_extra_spaces"].(bool); !ok || enabled {
 		t.Fatalf("expected updated preprocessing flag, got %+v", reprocessedLog.InputData)
+	}
+
+	postJSON[map[string]any](env, http.MethodPost, "/console/api/rag/pipelines/"+dataset.PipelineID+"/workflow-runs/tasks/"+reprocessTaskID+"/stop", nil, true, http.StatusOK)
+
+	stoppedRunDetail := getJSON[map[string]any](env, "/console/api/rag/pipelines/"+dataset.PipelineID+"/workflow-runs/"+reprocessRunID, true, http.StatusOK)
+	if stringFromAny(stoppedRunDetail["status"]) != "stopped" {
+		t.Fatalf("expected stopped reprocess run detail status, got %+v", stoppedRunDetail)
+	}
+
+	stoppedNodeExecutions := getJSON[map[string]any](env, "/console/api/rag/pipelines/"+dataset.PipelineID+"/workflow-runs/"+reprocessRunID+"/node-executions", true, http.StatusOK)
+	stoppedNodes := objectListFromAny(stoppedNodeExecutions["data"])
+	if len(stoppedNodes) != 1 || stringFromAny(stoppedNodes[0]["status"]) != "stopped" {
+		t.Fatalf("expected stopped node execution status, got %+v", stoppedNodes)
+	}
+
+	stoppedDocumentStatus := getJSON[indexingStatusResponse](env, "/console/api/datasets/"+dataset.ID+"/documents/"+documentID+"/indexing-status", true, http.StatusOK)
+	if stoppedDocumentStatus.IndexingStatus != "paused" || stoppedDocumentStatus.StoppedAt == nil {
+		t.Fatalf("expected stopped document indexing status to become paused with stopped_at, got %+v", stoppedDocumentStatus)
+	}
+
+	stoppedBatchStatus := getJSON[indexingStatusBatchResponse](env, "/console/api/datasets/"+dataset.ID+"/batch/"+reprocessed.Batch+"/indexing-status", true, http.StatusOK)
+	if len(stoppedBatchStatus.Data) != 1 {
+		t.Fatalf("expected single stopped batch document, got %+v", stoppedBatchStatus.Data)
+	}
+	if stoppedBatchStatus.Data[0].IndexingStatus != "paused" || stoppedBatchStatus.Data[0].StoppedAt == nil {
+		t.Fatalf("expected stopped batch indexing status to become paused with stopped_at, got %+v", stoppedBatchStatus.Data[0])
 	}
 }
 
