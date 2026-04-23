@@ -129,6 +129,11 @@ func (s *server) publicRoutes() http.Handler {
 	r.Get("/system-features", s.handlePublicSystemFeatures)
 	r.Get("/login/status", s.handlePublicLoginStatus)
 	r.Post("/logout", s.handlePublicLogout)
+	r.Get("/webapp/access-mode", s.handlePublicWebAppAccessMode)
+	r.Get("/passport", s.handlePublicPassport)
+	r.Get("/site", s.handlePublicAppSite)
+	r.Get("/parameters", s.handlePublicAppParameters)
+	r.Get("/meta", s.handlePublicAppMeta)
 	r.Get("/files/upload", s.handleUploadConfig)
 	r.Post("/files/upload", s.handlePublicFileUpload)
 	r.Get("/files/support-type", s.handleFileSupportTypes)
@@ -511,9 +516,15 @@ func (s *server) handlePublicLoginStatus(w http.ResponseWriter, r *http.Request)
 	if token := readCookie(r, accessTokenCookie); token != "" {
 		_, loggedIn = s.sessions.Get(token)
 	}
+	appLoggedIn := false
+	if appCode := strings.TrimSpace(r.URL.Query().Get("app_code")); appCode != "" {
+		if app, ok := s.store.FindAppBySiteAccessToken(appCode); ok && strings.TrimSpace(app.AccessMode) == "public" {
+			appLoggedIn = true
+		}
+	}
 	writeJSON(w, http.StatusOK, map[string]any{
 		"logged_in":     loggedIn,
-		"app_logged_in": false,
+		"app_logged_in": appLoggedIn,
 	})
 }
 

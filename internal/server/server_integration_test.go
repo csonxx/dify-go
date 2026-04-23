@@ -41,6 +41,15 @@ type datasetCreateResponse struct {
 	ID string `json:"id"`
 }
 
+type publicWebAppInfoResponse struct {
+	AppID          string         `json:"app_id"`
+	CanReplaceLogo bool           `json:"can_replace_logo"`
+	CustomConfig   map[string]any `json:"custom_config"`
+	EnableSite     bool           `json:"enable_site"`
+	EndUserID      any            `json:"end_user_id"`
+	Site           map[string]any `json:"site"`
+}
+
 type ragPipelineDatasetResponse struct {
 	Name              string `json:"name"`
 	Description       string `json:"description"`
@@ -2259,6 +2268,123 @@ func TestRAGPipelinePublishedRunCreatePreviewAndReprocess(t *testing.T) {
 	}
 }
 
+func TestPublicWebAppBootstrapRoutes(t *testing.T) {
+	env := newServerTestEnv(t)
+	env.setupAndLogin()
+
+	app := postJSON[map[string]any](env, http.MethodPost, "/console/api/apps", map[string]any{
+		"name":            "Public Workflow",
+		"description":     "public bootstrap",
+		"mode":            "workflow",
+		"icon_type":       "emoji",
+		"icon":            "🧪",
+		"icon_background": "#E5F4FF",
+	}, true, http.StatusCreated)
+	appID := stringFromAny(app["id"])
+	appCode := stringFromAny(mapFromAny(app["site"])["access_token"])
+	if appID == "" || appCode == "" {
+		t.Fatalf("expected created app id and site access token, got %+v", app)
+	}
+
+	postJSON[map[string]any](env, http.MethodPost, "/console/api/apps/"+appID+"/site-enable", map[string]any{
+		"enable_site": true,
+	}, true, http.StatusOK)
+	postJSON[map[string]any](env, http.MethodPost, "/console/api/apps/"+appID+"/site", map[string]any{
+		"title":                   "Public Workflow App",
+		"description":             "workflow share bootstrap",
+		"default_language":        "ja-JP",
+		"copyright":               "open source",
+		"privacy_policy":          "https://example.com/privacy",
+		"custom_disclaimer":       "Generated in Go",
+		"show_workflow_steps":     true,
+		"use_icon_as_answer_icon": true,
+	}, true, http.StatusOK)
+
+	modelConfig := cloneJSONObject(mapFromAny(app["model_config"]))
+	modelConfig["opening_statement"] = "Hello from Go public runtime"
+	modelConfig["suggested_questions_after_answer"] = map[string]any{"enabled": true}
+	modelConfig["speech_to_text"] = map[string]any{"enabled": true}
+	modelConfig["retriever_resource"] = map[string]any{"enabled": true}
+	modelConfig["annotation_reply"] = map[string]any{"enabled": true}
+	modelConfig["more_like_this"] = map[string]any{"enabled": true}
+	modelConfig["user_input_form"] = []any{
+		map[string]any{
+			"paragraph": map[string]any{
+				"label":    "Query",
+				"variable": "query",
+				"required": true,
+				"default":  "",
+			},
+		},
+	}
+	modelConfig["file_upload"] = map[string]any{
+		"image": map[string]any{
+			"enabled":          true,
+			"number_limits":    2,
+			"detail":           "high",
+			"transfer_methods": []any{"remote_url", "local_file"},
+		},
+	}
+	modelConfig["system_parameters"] = map[string]any{
+		"audio_file_size_limit":      4096,
+		"file_size_limit":            2048,
+		"image_file_size_limit":      1024,
+		"video_file_size_limit":      8192,
+		"workflow_file_upload_limit": 5,
+	}
+	postJSON[map[string]any](env, http.MethodPost, "/console/api/apps/"+appID+"/model-config", modelConfig, true, http.StatusOK)
+
+	loginStatus := getJSON[map[string]any](env, "/api/login/status?app_code="+url.QueryEscape(appCode), false, http.StatusOK)
+	if loggedIn, ok := loginStatus["app_logged_in"].(bool); !ok || !loggedIn {
+		t.Fatalf("expected public app login status to resolve app_logged_in, got %+v", loginStatus)
+	}
+
+	accessMode := getJSON[map[string]any](env, "/api/webapp/access-mode?appCode="+url.QueryEscape(appCode), false, http.StatusOK)
+	if stringFromAny(accessMode["accessMode"]) != "public" {
+		t.Fatalf("expected public access mode response, got %+v", accessMode)
+	}
+
+	headers := map[string]string{webAppCodeHeader: appCode}
+	passport := getJSONWithHeaders[map[string]any](env, "/api/passport", headers, http.StatusOK)
+	if stringFromAny(passport["access_token"]) == "" {
+		t.Fatalf("expected passport access token, got %+v", passport)
+	}
+
+	appInfo := getJSONWithHeaders[publicWebAppInfoResponse](env, "/api/site", headers, http.StatusOK)
+	if appInfo.AppID != appID || !appInfo.EnableSite {
+		t.Fatalf("unexpected public app info response: %+v", appInfo)
+	}
+	if stringFromAny(appInfo.Site["title"]) != "Public Workflow App" || stringFromAny(appInfo.Site["default_language"]) != "ja-JP" {
+		t.Fatalf("expected public site payload to mirror site settings, got %+v", appInfo.Site)
+	}
+	if showWorkflowSteps, ok := appInfo.Site["show_workflow_steps"].(bool); !ok || !showWorkflowSteps {
+		t.Fatalf("expected workflow steps to be enabled in public site response, got %+v", appInfo.Site)
+	}
+
+	parameters := getJSONWithHeaders[map[string]any](env, "/api/parameters", headers, http.StatusOK)
+	if stringFromAny(parameters["opening_statement"]) != "Hello from Go public runtime" {
+		t.Fatalf("expected public parameters to expose updated opening statement, got %+v", parameters)
+	}
+	if _, hasModel := parameters["model"]; hasModel {
+		t.Fatalf("expected public parameters response to omit model payload, got %+v", parameters)
+	}
+	if enabled, ok := mapFromAny(parameters["speech_to_text"])["enabled"].(bool); !ok || !enabled {
+		t.Fatalf("expected speech_to_text config in public parameters, got %+v", parameters)
+	}
+	if enabled, ok := mapFromAny(parameters["more_like_this"])["enabled"].(bool); !ok || !enabled {
+		t.Fatalf("expected more_like_this config in public parameters, got %+v", parameters)
+	}
+	forms := anySlice(parameters["user_input_form"])
+	if len(forms) != 1 || stringFromAny(mapFromAny(forms[0])["paragraph"].(map[string]any)["variable"]) != "query" {
+		t.Fatalf("expected public parameters to expose user input form, got %+v", parameters["user_input_form"])
+	}
+
+	meta := getJSONWithHeaders[map[string]any](env, "/api/meta", headers, http.StatusOK)
+	if toolIcons := mapFromAny(meta["tool_icons"]); len(toolIcons) != 0 {
+		t.Fatalf("expected empty tool icon map for bootstrap meta response, got %+v", meta)
+	}
+}
+
 func ragPipelineRunInputs(language string, chunkSize int, removeExtraSpaces bool) map[string]any {
 	return map[string]any{
 		"separator":              "\n\n",
@@ -2412,6 +2538,26 @@ func getJSON[T any](e *serverTestEnv, path string, auth bool, wantStatus int) T 
 	var result T
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		e.t.Fatalf("decode get response for %s: %v", path, err)
+	}
+	return result
+}
+
+func getJSONWithHeaders[T any](e *serverTestEnv, path string, headers map[string]string, wantStatus int) T {
+	e.t.Helper()
+
+	req, err := http.NewRequest(http.MethodGet, e.server.URL+path, nil)
+	if err != nil {
+		e.t.Fatalf("create get request with headers: %v", err)
+	}
+	for key, value := range headers {
+		req.Header.Set(key, value)
+	}
+	resp := e.do(req, wantStatus)
+	defer resp.Body.Close()
+
+	var result T
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		e.t.Fatalf("decode get response with headers for %s: %v", path, err)
 	}
 	return result
 }

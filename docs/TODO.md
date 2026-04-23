@@ -436,11 +436,11 @@
 
 ## 阶段 6：公共运行时 API
 
-状态：待实现
+状态：进行中（public webapp bootstrap 第一批已落地）
 
 范围：
 
-- WebApp `/site`、`/meta`、`/parameters`
+- WebApp `/webapp/access-mode`、`/site`、`/meta`、`/parameters`
 - `/messages`
 - `/conversations*`
 - `/chat-messages*`
@@ -461,6 +461,23 @@
 
 - Public share/webapp 体验能通过 Go 后端执行 chat、completion、workflow。
 - 会话历史、重命名、pin/unpin、saved messages 可用。
+
+本轮已完成的子范围：
+
+- [x] `/api/webapp/access-mode`
+- [x] `/api/passport`
+- [x] `/api/site`
+- [x] `/api/parameters`
+- [x] `/api/meta`
+- [x] `/api/login/status` 的 public app `app_logged_in` 识别
+
+本阶段剩余重点：
+
+- [ ] 接上 `/api/chat-messages`、`/api/completion-messages`、`/api/messages` 的公开会话执行与消息历史
+- [ ] 接上 `/api/conversations*` 的会话列表、重命名、删除、pin/unpin
+- [ ] 接上 `/api/workflows/run` 与 `/api/workflows/tasks/{taskId}/stop`，复用 console workflow runtime 的 run/task 状态
+- [ ] 接上 `/api/audio-to-text`、`/api/text-to-audio` 与 `/api/saved-messages*`
+- [ ] 把当前 bootstrap passport 从兼容 token 推进到更贴近上游的 app/end-user/session 语义
 
 ## 阶段 7：账号、工作区与平台集成
 
@@ -518,12 +535,12 @@
 
 ## 下一步
 
-下一轮继续做“阶段 4：知识库与 Dataset 主链路”的剩余深水区。
+下一轮继续做“阶段 6：公共运行时 API”的执行链路。
 
 推荐顺序：
 
-1. `metadata*` 与 built-in metadata 开关
-2. `segments*` / `child_chunks*`
-3. 文档下载、重试、批量动作与更真实的索引状态流转
-4. `/datasets/external` 与 external knowledge base
-5. 为后续阶段 5 的 RAG pipeline 共享 dataset 状态做准备
+1. `/api/workflows/run` 与 `/api/workflows/tasks/{taskId}/stop`
+2. `/api/chat-messages` / `/api/completion-messages` 的 SSE 公开运行时
+3. `/api/messages`、`/api/conversations*` 的历史与会话管理
+4. `/api/saved-messages*`、`/api/audio-to-text`、`/api/text-to-audio`
+5. 收敛 passport、end-user 与 app session 状态模型

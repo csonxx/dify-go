@@ -236,6 +236,26 @@ func (s *Store) GetApp(id, workspaceID string) (App, bool) {
 	return App{}, false
 }
 
+func (s *Store) FindAppBySiteAccessToken(accessToken string) (App, bool) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	trimmed := strings.TrimSpace(accessToken)
+	if trimmed == "" {
+		return App{}, false
+	}
+
+	for _, app := range s.state.Apps {
+		if !app.EnableSite {
+			continue
+		}
+		if strings.TrimSpace(app.Site.AccessToken) == trimmed {
+			return app, true
+		}
+	}
+	return App{}, false
+}
+
 func (s *Store) CreateApp(workspaceID string, owner User, input CreateAppInput, now time.Time) (App, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()

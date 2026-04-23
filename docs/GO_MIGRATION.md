@@ -354,9 +354,16 @@ The Go server keeps Dify's existing API prefixes so the frontend can continue ca
 - `GET /api/system-features`
 - `GET /api/login/status`
 - `POST /api/logout`
+- `GET /api/webapp/access-mode`
+- `GET /api/passport`
+- `GET /api/site`
+- `GET /api/parameters`
+- `GET /api/meta`
 - `ANY /trigger/builders/{builderId}`
 - `ANY /trigger/subscriptions/{subscriptionId}`
 - `ANY /trigger/endpoints/{hookId}`
+
+补充：Public share/webapp bootstrap 现在也开始走 Go。`X-App-Code`、`app_code` 或 `appCode` 会解析到已启用站点的 app access token，`/api/site` 返回前端 `AppData` 兼容包装，`/api/parameters` 返回去掉 `model` 细节后的公开 model config，`/api/meta` 先提供稳定的空 `tool_icons`，`/api/webapp/access-mode` 和 `/api/passport` 可支撑 share 页面初始化；同时 `/api/login/status` 会在 public app 模式下返回 `app_logged_in=true`，让原样搬过来的前端可以继续启动。
 
 ## Compatibility Mode
 
