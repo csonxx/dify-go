@@ -283,6 +283,10 @@ The Go server keeps Dify's existing API prefixes so the frontend can continue ca
 补充：这一批成员迁移的核心做法是把“已激活账号”和“待激活邀请”拆成两份状态。活跃账号继续保存在 `Users`，待激活链接保存在新的 `WorkspaceInvitations`，这样成员页既能展示 pending invite，又不会把未激活邮箱混进可登录用户集合；邀请链接激活时，Go 会消费 invitation token、创建真实 user、签发 console session cookies，并把 pending invite 从状态里移除。
 
 补充：ownership transfer API 也已经接到 Go，但当前仍保持谨慎兼容策略。后端已经支持 `send-owner-transfer-confirm-email / owner-transfer-check / {memberId}/owner-transfer` 这一整条 API 闭环，不过由于真实邮件验证码链路还没迁完，`/console/api/features` 暂时仍把 `is_allow_transfer_workspace` 维持为 `false`，避免前端默认把这条能力当成已完全收口的生产语义。
+
+补充：Stage 7 第二批认证周边链路也已经切到 Go。当前 `POST /console/api/account/init`、`POST /console/api/email-register/send-email`、`/validity`、`/email-register`、`POST /console/api/forgot-password`、`/validity`、`/resets`、`POST /api/forgot-password`、`/validity`、`/resets`、以及 `POST /console/api/account/change-email*` 都已经由 Go 直接提供，注册、console/webapp 找回密码、以及账号页 change email 不再依赖 Python fallback。
+
+补充：这批认证接口当前采用的是 Go 侧 in-memory auth flow manager。后端会为 `register / forgot-password / change-email` 三类流程维护短期 token 状态，并在需要时把 pending token 提升成 verified token；这样前端原有的 “send code -> verify code -> reset/submit” 多步表单可以原样继续工作，同时又不必在 Stage 7 过早引入完整邮件系统或数据库 schema。
 - `GET /console/api/datasets/retrieval-setting`
 - `GET /console/api/datasets/process-rule`
 - `POST /console/api/datasets/indexing-estimate`

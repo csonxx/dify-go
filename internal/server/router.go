@@ -35,6 +35,7 @@ type server struct {
 	store     *state.Store
 	sessions  *sessionManager
 	transfers *ownerTransferManager
+	authFlows *authFlowManager
 	legacy    *legacyProxy
 }
 
@@ -54,6 +55,7 @@ func New(cfg config.Config) (http.Handler, error) {
 		store:     store,
 		sessions:  newSessionManager(cfg.AccessTokenTTL, cfg.RefreshTokenTTL),
 		transfers: newOwnerTransferManager(),
+		authFlows: newAuthFlowManager(),
 		legacy:    legacy,
 	}
 
@@ -99,6 +101,12 @@ func (s *server) consoleRoutes() http.Handler {
 	r.With(s.withAuth).Post("/logout", s.handleLogout)
 	r.Get("/activate/check", s.handleInvitationCheck)
 	r.Post("/activate", s.handleInvitationActivate)
+	r.Post("/email-register/send-email", s.handleEmailRegisterSend)
+	r.Post("/email-register/validity", s.handleEmailRegisterValidity)
+	r.Post("/email-register", s.handleEmailRegister)
+	r.Post("/forgot-password", s.handleForgotPasswordSend)
+	r.Post("/forgot-password/validity", s.handleForgotPasswordValidity)
+	r.Post("/forgot-password/resets", s.handleForgotPasswordReset)
 
 	r.Group(func(r chi.Router) {
 		r.Use(s.withAuth)
@@ -107,6 +115,11 @@ func (s *server) consoleRoutes() http.Handler {
 		r.Get("/account/avatar", s.handleAccountAvatar)
 		r.Get("/account/integrates", s.handleAccountIntegrates)
 		r.Get("/account/education", s.handleAccountEducationStatus)
+		r.Post("/account/init", s.handleAccountInit)
+		r.Post("/account/change-email", s.handleAccountChangeEmailSend)
+		r.Post("/account/change-email/validity", s.handleAccountChangeEmailValidity)
+		r.Post("/account/change-email/reset", s.handleAccountChangeEmailReset)
+		r.Post("/account/change-email/check-email-unique", s.handleAccountChangeEmailUnique)
 		r.Get("/workflow/{workflowRunID}/pause-details", s.handleWorkflowPauseDetails)
 		s.mountAppRoutes(r)
 		s.mountDatasetRoutes(r)
@@ -137,6 +150,9 @@ func (s *server) publicRoutes() http.Handler {
 	r.Get("/system-features", s.handlePublicSystemFeatures)
 	r.Get("/login/status", s.handlePublicLoginStatus)
 	r.Post("/logout", s.handlePublicLogout)
+	r.Post("/forgot-password", s.handleForgotPasswordSend)
+	r.Post("/forgot-password/validity", s.handleForgotPasswordValidity)
+	r.Post("/forgot-password/resets", s.handleForgotPasswordReset)
 	r.Get("/webapp/access-mode", s.handlePublicWebAppAccessMode)
 	r.Get("/passport", s.handlePublicPassport)
 	r.Get("/site", s.handlePublicAppSite)
@@ -567,14 +583,14 @@ func (s *server) systemFeaturesPayload() map[string]any {
 		"sso_enforced_for_web":             false,
 		"sso_enforced_for_web_protocol":    "",
 		"enable_marketplace":               false,
-		"enable_change_email":              false,
+		"enable_change_email":              true,
 		"enable_email_code_login":          false,
 		"enable_email_password_login":      true,
 		"enable_social_oauth_login":        false,
 		"enable_collaboration_mode":        false,
 		"is_allow_create_workspace":        false,
-		"is_allow_register":                false,
-		"is_email_setup":                   false,
+		"is_allow_register":                true,
+		"is_email_setup":                   true,
 		"license": map[string]any{
 			"status":     "none",
 			"expired_at": "",

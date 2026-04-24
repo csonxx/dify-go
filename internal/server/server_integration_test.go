@@ -2954,6 +2954,231 @@ func TestWorkspaceOwnershipTransferAPIs(t *testing.T) {
 	}
 }
 
+func TestAccountRegistrationInitAndForgotPasswordRoutes(t *testing.T) {
+	env := newServerTestEnv(t)
+	env.setupAndLogin()
+
+	features := getJSON[map[string]any](env, "/console/api/system-features", false, http.StatusOK)
+	if allowed, ok := features["is_allow_register"].(bool); !ok || !allowed {
+		t.Fatalf("expected registration feature enabled, got %+v", features)
+	}
+	if enabled, ok := features["enable_change_email"].(bool); !ok || !enabled {
+		t.Fatalf("expected change email feature enabled, got %+v", features)
+	}
+	if setup, ok := features["is_email_setup"].(bool); !ok || !setup {
+		t.Fatalf("expected email setup feature enabled, got %+v", features)
+	}
+
+	send := postJSON[map[string]any](env, http.MethodPost, "/console/api/email-register/send-email", map[string]any{
+		"email":    "signup@example.com",
+		"language": "en-US",
+	}, false, http.StatusOK)
+	registerToken, _ := send["data"].(string)
+	if registerToken == "" {
+		t.Fatalf("expected registration token, got %+v", send)
+	}
+
+	validity := postJSON[map[string]any](env, http.MethodPost, "/console/api/email-register/validity", map[string]any{
+		"email": "signup@example.com",
+		"code":  "123456",
+		"token": registerToken,
+	}, false, http.StatusOK)
+	if valid, ok := validity["is_valid"].(bool); !ok || !valid {
+		t.Fatalf("expected registration verification to succeed, got %+v", validity)
+	}
+	verifiedRegisterToken, _ := validity["token"].(string)
+	if verifiedRegisterToken == "" {
+		t.Fatalf("expected verified registration token, got %+v", validity)
+	}
+
+	postJSON[map[string]any](env, http.MethodPost, "/console/api/email-register", map[string]any{
+		"token":            verifiedRegisterToken,
+		"new_password":     "Signup#123",
+		"password_confirm": "Signup#123",
+	}, false, http.StatusOK)
+
+	profile := getJSON[map[string]any](env, "/console/api/account/profile", true, http.StatusOK)
+	if email, _ := profile["email"].(string); email != "signup@example.com" {
+		t.Fatalf("expected newly registered account profile, got %+v", profile)
+	}
+
+	postJSON[map[string]any](env, http.MethodPost, "/console/api/account/init", map[string]any{
+		"invitation_code":    "dify-go",
+		"interface_language": "zh-Hans",
+		"timezone":           "Asia/Shanghai",
+	}, true, http.StatusOK)
+	updatedProfile := getJSON[map[string]any](env, "/console/api/account/profile", true, http.StatusOK)
+	if language, _ := updatedProfile["interface_language"].(string); language != "zh-Hans" {
+		t.Fatalf("expected account init to update interface_language, got %+v", updatedProfile)
+	}
+	if timezone, _ := updatedProfile["timezone"].(string); timezone != "Asia/Shanghai" {
+		t.Fatalf("expected account init to update timezone, got %+v", updatedProfile)
+	}
+
+	sendForgot := postJSON[map[string]any](env, http.MethodPost, "/console/api/forgot-password", map[string]any{
+		"email":    "signup@example.com",
+		"language": "en-US",
+	}, false, http.StatusOK)
+	forgotToken, _ := sendForgot["data"].(string)
+	if forgotToken == "" {
+		t.Fatalf("expected forgot-password token, got %+v", sendForgot)
+	}
+
+	validateForgot := postJSON[map[string]any](env, http.MethodPost, "/console/api/forgot-password/validity", map[string]any{
+		"token": forgotToken,
+	}, false, http.StatusOK)
+	if valid, ok := validateForgot["is_valid"].(bool); !ok || !valid {
+		t.Fatalf("expected forgot-password token validation, got %+v", validateForgot)
+	}
+	if email, _ := validateForgot["email"].(string); email != "signup@example.com" {
+		t.Fatalf("expected forgot-password token email, got %+v", validateForgot)
+	}
+
+	verifyForgot := postJSON[map[string]any](env, http.MethodPost, "/console/api/forgot-password/validity", map[string]any{
+		"email": "signup@example.com",
+		"code":  "123456",
+		"token": forgotToken,
+	}, false, http.StatusOK)
+	if valid, ok := verifyForgot["is_valid"].(bool); !ok || !valid {
+		t.Fatalf("expected forgot-password code verification, got %+v", verifyForgot)
+	}
+	resetToken, _ := verifyForgot["token"].(string)
+	if resetToken == "" {
+		t.Fatalf("expected reset token, got %+v", verifyForgot)
+	}
+
+	postJSON[map[string]any](env, http.MethodPost, "/console/api/forgot-password/resets", map[string]any{
+		"token":            resetToken,
+		"new_password":     "Reset#123",
+		"password_confirm": "Reset#123",
+	}, false, http.StatusOK)
+
+	postJSON[map[string]any](env, http.MethodPost, "/console/api/logout", nil, true, http.StatusOK)
+	postJSON[map[string]any](env, http.MethodPost, "/console/api/login", map[string]any{
+		"email":    "signup@example.com",
+		"password": "Reset#123",
+	}, false, http.StatusOK)
+
+	reloginProfile := getJSON[map[string]any](env, "/console/api/account/profile", true, http.StatusOK)
+	if email, _ := reloginProfile["email"].(string); email != "signup@example.com" {
+		t.Fatalf("expected relogin with reset password to succeed, got %+v", reloginProfile)
+	}
+
+	publicForgot := postJSON[map[string]any](env, http.MethodPost, "/api/forgot-password", map[string]any{
+		"email":    "signup@example.com",
+		"language": "en-US",
+	}, false, http.StatusOK)
+	publicForgotToken, _ := publicForgot["data"].(string)
+	if publicForgotToken == "" {
+		t.Fatalf("expected public forgot-password token, got %+v", publicForgot)
+	}
+	publicValidity := postJSON[map[string]any](env, http.MethodPost, "/api/forgot-password/validity", map[string]any{
+		"token": publicForgotToken,
+	}, false, http.StatusOK)
+	if valid, ok := publicValidity["is_valid"].(bool); !ok || !valid {
+		t.Fatalf("expected public forgot-password token validation, got %+v", publicValidity)
+	}
+	postJSON[map[string]any](env, http.MethodPost, "/api/forgot-password/resets", map[string]any{
+		"token":            publicForgotToken,
+		"new_password":     "Reset#456",
+		"password_confirm": "Reset#456",
+	}, false, http.StatusOK)
+
+	postJSON[map[string]any](env, http.MethodPost, "/console/api/logout", nil, true, http.StatusOK)
+	postJSON[map[string]any](env, http.MethodPost, "/console/api/login", map[string]any{
+		"email":    "signup@example.com",
+		"password": "Reset#456",
+	}, false, http.StatusOK)
+}
+
+func TestAccountChangeEmailRoutes(t *testing.T) {
+	env := newServerTestEnv(t)
+	env.setupAndLogin()
+
+	signupSend := postJSON[map[string]any](env, http.MethodPost, "/console/api/email-register/send-email", map[string]any{
+		"email":    "occupied@example.com",
+		"language": "en-US",
+	}, false, http.StatusOK)
+	signupToken, _ := signupSend["data"].(string)
+	signupValidity := postJSON[map[string]any](env, http.MethodPost, "/console/api/email-register/validity", map[string]any{
+		"email": "occupied@example.com",
+		"code":  "123456",
+		"token": signupToken,
+	}, false, http.StatusOK)
+	postJSON[map[string]any](env, http.MethodPost, "/console/api/email-register", map[string]any{
+		"token":            stringFromAny(signupValidity["token"]),
+		"new_password":     "Occupied#123",
+		"password_confirm": "Occupied#123",
+	}, false, http.StatusOK)
+
+	postJSON[map[string]any](env, http.MethodPost, "/console/api/login", map[string]any{
+		"email":    "tester@example.com",
+		"password": "password123",
+	}, false, http.StatusOK)
+
+	duplicate := postJSON[errorResponse](env, http.MethodPost, "/console/api/account/change-email/check-email-unique", map[string]any{
+		"email": "occupied@example.com",
+	}, true, http.StatusBadRequest)
+	if duplicate.Code != "email_already_in_use" {
+		t.Fatalf("expected duplicate email check code, got %+v", duplicate)
+	}
+
+	sendOld := postJSON[map[string]any](env, http.MethodPost, "/console/api/account/change-email", map[string]any{
+		"email": "tester@example.com",
+		"phase": "old_email",
+	}, true, http.StatusOK)
+	oldToken, _ := sendOld["data"].(string)
+	if oldToken == "" {
+		t.Fatalf("expected old email token, got %+v", sendOld)
+	}
+
+	verifyOld := postJSON[map[string]any](env, http.MethodPost, "/console/api/account/change-email/validity", map[string]any{
+		"email": "tester@example.com",
+		"code":  "123456",
+		"token": oldToken,
+	}, true, http.StatusOK)
+	if valid, ok := verifyOld["is_valid"].(bool); !ok || !valid {
+		t.Fatalf("expected old email verification to succeed, got %+v", verifyOld)
+	}
+	oldVerifiedToken, _ := verifyOld["token"].(string)
+
+	sendNew := postJSON[map[string]any](env, http.MethodPost, "/console/api/account/change-email", map[string]any{
+		"email": "tester+new@example.com",
+		"phase": "new_email",
+		"token": oldVerifiedToken,
+	}, true, http.StatusOK)
+	newToken, _ := sendNew["data"].(string)
+	if newToken == "" {
+		t.Fatalf("expected new email token, got %+v", sendNew)
+	}
+
+	verifyNew := postJSON[map[string]any](env, http.MethodPost, "/console/api/account/change-email/validity", map[string]any{
+		"email": "tester+new@example.com",
+		"code":  "123456",
+		"token": newToken,
+	}, true, http.StatusOK)
+	if valid, ok := verifyNew["is_valid"].(bool); !ok || !valid {
+		t.Fatalf("expected new email verification to succeed, got %+v", verifyNew)
+	}
+	readyToken, _ := verifyNew["token"].(string)
+
+	postJSON[map[string]any](env, http.MethodPost, "/console/api/account/change-email/reset", map[string]any{
+		"new_email": "tester+new@example.com",
+		"token":     readyToken,
+	}, true, http.StatusOK)
+
+	profile := getJSON[map[string]any](env, "/console/api/account/profile", true, http.StatusOK)
+	if email, _ := profile["email"].(string); email != "tester+new@example.com" {
+		t.Fatalf("expected updated profile email, got %+v", profile)
+	}
+
+	postJSON[map[string]any](env, http.MethodPost, "/console/api/logout", nil, true, http.StatusOK)
+	postJSON[map[string]any](env, http.MethodPost, "/console/api/login", map[string]any{
+		"email":    "tester+new@example.com",
+		"password": "password123",
+	}, false, http.StatusOK)
+}
+
 func ragPipelineRunInputs(language string, chunkSize int, removeExtraSpaces bool) map[string]any {
 	return map[string]any{
 		"separator":              "\n\n",

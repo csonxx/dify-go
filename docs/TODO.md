@@ -514,6 +514,20 @@
 - [x] `GET /console/api/features`
 - [x] `GET /console/api/account/integrates`
 - [x] `GET /console/api/account/education`
+- [x] `POST /console/api/account/init`
+- [x] `POST /console/api/email-register/send-email`
+- [x] `POST /console/api/email-register/validity`
+- [x] `POST /console/api/email-register`
+- [x] `POST /console/api/forgot-password`
+- [x] `POST /console/api/forgot-password/validity`
+- [x] `POST /console/api/forgot-password/resets`
+- [x] `POST /api/forgot-password`
+- [x] `POST /api/forgot-password/validity`
+- [x] `POST /api/forgot-password/resets`
+- [x] `POST /console/api/account/change-email`
+- [x] `POST /console/api/account/change-email/validity`
+- [x] `POST /console/api/account/change-email/reset`
+- [x] `POST /console/api/account/change-email/check-email-unique`
 - [x] `GET /console/api/workspaces/current/members`
 - [x] `POST /console/api/workspaces/current/members/invite-email`
 - [x] `PUT /console/api/workspaces/current/members/{memberId}/update-role`
@@ -526,13 +540,11 @@
 
 本阶段剩余重点：
 
-- [ ] `account/init`、邀请 code 等登录补充链路
-- [ ] `email-register/send-email`、`email-register/validity`、`email-register`
-- [ ] `forgot-password`、`forgot-password/validity`
-- [ ] `account/change-email*`
+- [ ] `email-code-login`、`email-code-login/validity`
 - [ ] `account/education/verify`、`POST /account/education`、`/account/education/autocomplete`
 - [ ] `oauth/provider`、`oauth/provider/authorize` 与 SSO 入口
 - [ ] 把 ownership transfer 从当前 session-gated 验证占位继续推进到真实邮件验证码链路
+- [ ] 把 register / forgot-password / change-email 从当前 in-memory token manager 继续推进到真实邮件验证码投递与持久化状态
 
 ## 阶段 8：工程化加固与移除 Legacy
 

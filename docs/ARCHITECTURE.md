@@ -310,6 +310,40 @@ Tools、MCP、Endpoints、Triggers 在页面上看似分散，但本质上都属
 
 ownership transfer 则继续建立在同一份 workspace membership 状态之上，本质是一次受控的 role mutation。当前 API 已经迁到 Go，但真正的邮件验证码投递还没有完全迁完，所以能力开关仍保持保守默认值。
 
+### 12.6 Account Auth Flows
+
+Stage 7 的另一条主线是把账号周边的多步认证表单迁到 Go，包括：
+
+- `email-register`
+- `forgot-password`
+- `account/change-email`
+- `account/init`
+
+这些能力的共同点不是“字段长得像”，而是都依赖一条短生命周期的多阶段状态机：
+
+- 先发起 send-email / send-code
+- 再校验 code 或 token
+- 最后提交 reset / register / update
+
+如果一开始就把它们直接耦合进完整邮件系统、数据库表和异步投递链路，Stage 7 的迁移成本会明显膨胀。所以当前 Go 侧先引入了一个独立的 `authFlowManager`，专门维护这类短期 token 状态。
+
+它的设计原理是：
+
+- 把 register / forgot / change-email 的多步 token 统一抽象成同一类临时 flow record
+- 允许 token 在 `pending -> verified -> consumed` 之间显式演化
+- 让前端现有的多步表单协议保持不变
+- 避免过早把“接口迁移”绑死在“真实邮件基础设施必须同时完成”上
+
+`account/init` 虽然不是验证码流程，但它同样属于账号初始化域，所以放在这一批一起迁。当前实现已经把界面语言、时区等初始化状态接到 Go；邀请 code 等更深的账号引导语义后续还可以继续往里补。
+
+这套方案的边界也很明确：
+
+- 当前 flow manager 是 in-memory 的
+- 邮件验证码仍是兼容占位语义，不是真实投递
+- 多实例和重启持久化还没有解决
+
+因此它更像是 Stage 7 的“契约先行实现”：先把前端依赖的认证链路收回到 Go，再在后续阶段把邮件、持久化和安全加固逐步替换进来，而不是把前端重新推回 legacy fallback。
+
 ## 13. Dataset 域的设计思路
 
 Dataset 是第四阶段的核心业务域之一，也是当前刚开始推进的新域。
