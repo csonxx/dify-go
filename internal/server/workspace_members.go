@@ -107,6 +107,7 @@ func (s *server) handleFeatures(w http.ResponseWriter, r *http.Request) {
 	memberCount := s.store.CountWorkspaceMembers(workspace.ID)
 	appPage := s.store.ListApps(workspace.ID, state.AppListFilters{Page: 1, Limit: 1})
 	datasetPage := s.store.ListDatasets(workspace.ID, state.DatasetListFilters{Page: 1, Limit: 1})
+	education, _ := s.store.UserEducationStatus(user.ID, time.Now())
 
 	writeJSON(w, http.StatusOK, map[string]any{
 		"billing": map[string]any{
@@ -139,7 +140,7 @@ func (s *server) handleFeatures(w http.ResponseWriter, r *http.Request) {
 		"can_replace_logo":                   false,
 		"model_load_balancing_enabled":       false,
 		"dataset_operator_enabled":           true,
-		"education":                          map[string]any{"enabled": false, "activated": false},
+		"education":                          map[string]any{"enabled": true, "activated": education.IsStudent},
 		"webapp_copyright_enabled":           false,
 		"workspace_members":                  map[string]any{"size": memberCount, "limit": 0},
 		"is_allow_transfer_workspace":        false,
@@ -156,10 +157,17 @@ func (s *server) handleAccountIntegrates(w http.ResponseWriter, r *http.Request)
 }
 
 func (s *server) handleAccountEducationStatus(w http.ResponseWriter, r *http.Request) {
+	user := currentUser(r)
+	education, _ := s.store.UserEducationStatus(user.ID, time.Now())
+
+	expireAt := any(nil)
+	if education.ExpireAt > 0 {
+		expireAt = education.ExpireAt
+	}
 	writeJSON(w, http.StatusOK, map[string]any{
-		"is_student":    false,
-		"allow_refresh": false,
-		"expire_at":     nil,
+		"is_student":    education.IsStudent,
+		"allow_refresh": education.AllowRefresh,
+		"expire_at":     expireAt,
 	})
 }
 

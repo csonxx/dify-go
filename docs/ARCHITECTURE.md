@@ -315,9 +315,12 @@ ownership transfer 则继续建立在同一份 workspace membership 状态之上
 Stage 7 的另一条主线是把账号周边的多步认证表单迁到 Go，包括：
 
 - `email-register`
+- `email-code-login`
 - `forgot-password`
 - `account/change-email`
 - `account/init`
+- `account/education`
+- `oauth/provider`
 
 这些能力的共同点不是“字段长得像”，而是都依赖一条短生命周期的多阶段状态机：
 
@@ -325,16 +328,28 @@ Stage 7 的另一条主线是把账号周边的多步认证表单迁到 Go，包
 - 再校验 code 或 token
 - 最后提交 reset / register / update
 
-如果一开始就把它们直接耦合进完整邮件系统、数据库表和异步投递链路，Stage 7 的迁移成本会明显膨胀。所以当前 Go 侧先引入了一个独立的 `authFlowManager`，专门维护这类短期 token 状态。
+如果一开始就把它们直接耦合进完整邮件系统、数据库表和异步投递链路，Stage 7 的迁移成本会明显膨胀。所以当前 Go 侧先引入了一个独立的 `authFlowManager`，专门维护这类短期 token 状态；而 education 这类“账号附属状态”则直接并入 Go 用户模型，避免再额外引入一套孤立子域。
 
 它的设计原理是：
 
 - 把 register / forgot / change-email 的多步 token 统一抽象成同一类临时 flow record
+- 让 email-code-login 这种“验证后立即登录”的一步收口也能复用同一套 token 生命周期
 - 允许 token 在 `pending -> verified -> consumed` 之间显式演化
 - 让前端现有的多步表单协议保持不变
 - 避免过早把“接口迁移”绑死在“真实邮件基础设施必须同时完成”上
 
 `account/init` 虽然不是验证码流程，但它同样属于账号初始化域，所以放在这一批一起迁。当前实现已经把界面语言、时区等初始化状态接到 Go；邀请 code 等更深的账号引导语义后续还可以继续往里补。
+
+`account/education` 的设计思路则是把它当作“附着在 user 上的认证状态”而不是独立复杂服务。当前 Go 侧保存 institution、role、verified_at、expire_at，并同时驱动：
+
+- `/console/api/account/education`
+- `/console/api/account/education/verify`
+- `/console/api/account/education/autocomplete`
+- `/console/api/features` 里的 education feature flag
+
+这样 billing 页面、education apply 页面和账号状态提示就能共享同一份 Go 状态。
+
+`oauth/provider` 当前也是兼容优先实现。Go 侧先满足 authorize page 所依赖的 app metadata 与 authorization code 发放，保证前端页面和基础跳转链路可用；更完整的 token exchange、client registry、SSO protocol 仍留在后续阶段补齐。
 
 这套方案的边界也很明确：
 

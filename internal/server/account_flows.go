@@ -11,8 +11,11 @@ const authFlowTTL = 30 * time.Minute
 const (
 	authFlowRegisterPending   = "register_pending"
 	authFlowRegisterVerified  = "register_verified"
+	authFlowEmailLoginPending = "email_login_pending"
+	authFlowEmailLoginReady   = "email_login_ready"
 	authFlowForgotPending     = "forgot_password_pending"
 	authFlowForgotVerified    = "forgot_password_verified"
+	authFlowEducationVerify   = "education_verify"
 	authFlowChangeOldPending  = "change_email_old_pending"
 	authFlowChangeOldVerified = "change_email_old_verified"
 	authFlowChangeNewPending  = "change_email_new_pending"

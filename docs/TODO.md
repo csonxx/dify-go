@@ -528,6 +528,15 @@
 - [x] `POST /console/api/account/change-email/validity`
 - [x] `POST /console/api/account/change-email/reset`
 - [x] `POST /console/api/account/change-email/check-email-unique`
+- [x] `POST /console/api/email-code-login`
+- [x] `POST /console/api/email-code-login/validity`
+- [x] `POST /api/email-code-login`
+- [x] `POST /api/email-code-login/validity`
+- [x] `GET /console/api/account/education/verify`
+- [x] `POST /console/api/account/education`
+- [x] `GET /console/api/account/education/autocomplete`
+- [x] `POST /console/api/oauth/provider`
+- [x] `POST /console/api/oauth/provider/authorize`
 - [x] `GET /console/api/workspaces/current/members`
 - [x] `POST /console/api/workspaces/current/members/invite-email`
 - [x] `PUT /console/api/workspaces/current/members/{memberId}/update-role`
@@ -540,9 +549,7 @@
 
 本阶段剩余重点：
 
-- [ ] `email-code-login`、`email-code-login/validity`
-- [ ] `account/education/verify`、`POST /account/education`、`/account/education/autocomplete`
-- [ ] `oauth/provider`、`oauth/provider/authorize` 与 SSO 入口
+- [ ] SSO 入口与 enterprise webapp auth 真实协议
 - [ ] 把 ownership transfer 从当前 session-gated 验证占位继续推进到真实邮件验证码链路
 - [ ] 把 register / forgot-password / change-email 从当前 in-memory token manager 继续推进到真实邮件验证码投递与持久化状态
 

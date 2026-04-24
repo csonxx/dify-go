@@ -11,20 +11,24 @@ import (
 )
 
 type User struct {
-	ID                string `json:"id"`
-	Email             string `json:"email"`
-	Name              string `json:"name"`
-	PasswordHash      string `json:"password_hash"`
-	Avatar            string `json:"avatar"`
-	AvatarURL         string `json:"avatar_url"`
-	Role              string `json:"role"`
-	WorkspaceID       string `json:"workspace_id"`
-	InterfaceLanguage string `json:"interface_language"`
-	InterfaceTheme    string `json:"interface_theme"`
-	Timezone          string `json:"timezone"`
-	CreatedAt         string `json:"created_at"`
-	LastLoginAt       string `json:"last_login_at"`
-	LastActiveAt      string `json:"last_active_at"`
+	ID                   string `json:"id"`
+	Email                string `json:"email"`
+	Name                 string `json:"name"`
+	PasswordHash         string `json:"password_hash"`
+	Avatar               string `json:"avatar"`
+	AvatarURL            string `json:"avatar_url"`
+	Role                 string `json:"role"`
+	WorkspaceID          string `json:"workspace_id"`
+	InterfaceLanguage    string `json:"interface_language"`
+	InterfaceTheme       string `json:"interface_theme"`
+	Timezone             string `json:"timezone"`
+	EducationInstitution string `json:"education_institution"`
+	EducationRole        string `json:"education_role"`
+	EducationVerifiedAt  string `json:"education_verified_at"`
+	EducationExpireAt    int64  `json:"education_expire_at"`
+	CreatedAt            string `json:"created_at"`
+	LastLoginAt          string `json:"last_login_at"`
+	LastActiveAt         string `json:"last_active_at"`
 }
 
 type Workspace struct {

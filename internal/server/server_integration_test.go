@@ -3179,6 +3179,128 @@ func TestAccountChangeEmailRoutes(t *testing.T) {
 	}, false, http.StatusOK)
 }
 
+func TestAccountEmailCodeEducationAndOAuthRoutes(t *testing.T) {
+	env := newServerTestEnv(t)
+	env.setupAndLogin()
+
+	features := getJSON[map[string]any](env, "/console/api/system-features", false, http.StatusOK)
+	if enabled, ok := features["enable_email_code_login"].(bool); !ok || !enabled {
+		t.Fatalf("expected email code login feature enabled, got %+v", features)
+	}
+
+	postJSON[map[string]any](env, http.MethodPost, "/console/api/logout", nil, true, http.StatusOK)
+
+	sendConsole := postJSON[map[string]any](env, http.MethodPost, "/console/api/email-code-login", map[string]any{
+		"email":    "tester@example.com",
+		"language": "en-US",
+	}, false, http.StatusOK)
+	consoleToken, _ := sendConsole["data"].(string)
+	if consoleToken == "" {
+		t.Fatalf("expected console email login token, got %+v", sendConsole)
+	}
+
+	verifyConsole := postJSON[map[string]any](env, http.MethodPost, "/console/api/email-code-login/validity", map[string]any{
+		"email":    "tester@example.com",
+		"code":     base64.StdEncoding.EncodeToString([]byte("123456")),
+		"token":    consoleToken,
+		"language": "en-US",
+	}, false, http.StatusOK)
+	if result, _ := verifyConsole["result"].(string); result != "success" {
+		t.Fatalf("expected successful email code login, got %+v", verifyConsole)
+	}
+	if accessToken := nestedString(verifyConsole, "data", "access_token"); accessToken == "" {
+		t.Fatalf("expected email code login to issue access token, got %+v", verifyConsole)
+	}
+
+	profile := getJSON[map[string]any](env, "/console/api/account/profile", true, http.StatusOK)
+	if email, _ := profile["email"].(string); email != "tester@example.com" {
+		t.Fatalf("expected profile after email code login, got %+v", profile)
+	}
+
+	postJSON[map[string]any](env, http.MethodPost, "/console/api/logout", nil, true, http.StatusOK)
+
+	sendPublic := postJSON[map[string]any](env, http.MethodPost, "/api/email-code-login", map[string]any{
+		"email":    "tester@example.com",
+		"language": "en-US",
+	}, false, http.StatusOK)
+	publicToken, _ := sendPublic["data"].(string)
+	if publicToken == "" {
+		t.Fatalf("expected public email login token, got %+v", sendPublic)
+	}
+
+	verifyPublic := postJSON[map[string]any](env, http.MethodPost, "/api/email-code-login/validity", map[string]any{
+		"email": "tester@example.com",
+		"code":  base64.StdEncoding.EncodeToString([]byte("123456")),
+		"token": publicToken,
+	}, false, http.StatusOK)
+	if result, _ := verifyPublic["result"].(string); result != "success" {
+		t.Fatalf("expected successful public email code login, got %+v", verifyPublic)
+	}
+
+	publicProfile := getJSON[map[string]any](env, "/console/api/account/profile", true, http.StatusOK)
+	if email, _ := publicProfile["email"].(string); email != "tester@example.com" {
+		t.Fatalf("expected console session after public email code login, got %+v", publicProfile)
+	}
+
+	verifyEducation := getJSON[map[string]any](env, "/console/api/account/education/verify", true, http.StatusOK)
+	educationToken, _ := verifyEducation["token"].(string)
+	if educationToken == "" {
+		t.Fatalf("expected education verification token, got %+v", verifyEducation)
+	}
+
+	addEducation := postJSON[map[string]any](env, http.MethodPost, "/console/api/account/education", map[string]any{
+		"token":       educationToken,
+		"institution": "Stanford University",
+		"role":        "Student",
+	}, true, http.StatusOK)
+	if message, _ := addEducation["message"].(string); message != "success" {
+		t.Fatalf("expected education add success, got %+v", addEducation)
+	}
+
+	educationStatus := getJSON[map[string]any](env, "/console/api/account/education", true, http.StatusOK)
+	if isStudent, ok := educationStatus["is_student"].(bool); !ok || !isStudent {
+		t.Fatalf("expected student education status, got %+v", educationStatus)
+	}
+	if allowRefresh, ok := educationStatus["allow_refresh"].(bool); !ok || !allowRefresh {
+		t.Fatalf("expected education refresh enabled, got %+v", educationStatus)
+	}
+	if _, ok := educationStatus["expire_at"].(float64); !ok {
+		t.Fatalf("expected education expiry timestamp, got %+v", educationStatus)
+	}
+
+	workspaceFeatures := getJSON[map[string]any](env, "/console/api/features", true, http.StatusOK)
+	if enabled, ok := mapFromAny(workspaceFeatures["education"])["enabled"].(bool); !ok || !enabled {
+		t.Fatalf("expected education feature enabled, got %+v", workspaceFeatures)
+	}
+	if activated, ok := mapFromAny(workspaceFeatures["education"])["activated"].(bool); !ok || !activated {
+		t.Fatalf("expected education feature activated after verification, got %+v", workspaceFeatures)
+	}
+
+	autocomplete := getJSON[map[string]any](env, "/console/api/account/education/autocomplete?keywords=stan&page=0&limit=5", true, http.StatusOK)
+	options, _ := autocomplete["data"].([]any)
+	if len(options) == 0 || stringFromAny(options[0]) != "Stanford University" {
+		t.Fatalf("expected Stanford University autocomplete match, got %+v", autocomplete)
+	}
+
+	oauthInfo := postJSON[map[string]any](env, http.MethodPost, "/console/api/oauth/provider", map[string]any{
+		"client_id":    "demo-client",
+		"redirect_uri": "https://example.com/callback",
+	}, false, http.StatusOK)
+	if scope, _ := oauthInfo["scope"].(string); !strings.Contains(scope, "read:email") {
+		t.Fatalf("expected oauth provider scope payload, got %+v", oauthInfo)
+	}
+	if label := nestedString(oauthInfo, "app_label", "en_US"); label != "demo-client" {
+		t.Fatalf("expected oauth provider label to reflect client_id, got %+v", oauthInfo)
+	}
+
+	oauthAuthorize := postJSON[map[string]any](env, http.MethodPost, "/console/api/oauth/provider/authorize", map[string]any{
+		"client_id": "demo-client",
+	}, true, http.StatusOK)
+	if code, _ := oauthAuthorize["code"].(string); code == "" {
+		t.Fatalf("expected oauth authorize code, got %+v", oauthAuthorize)
+	}
+}
+
 func ragPipelineRunInputs(language string, chunkSize int, removeExtraSpaces bool) map[string]any {
 	return map[string]any{
 		"separator":              "\n\n",

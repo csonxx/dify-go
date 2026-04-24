@@ -2,6 +2,7 @@ package state
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 )
@@ -14,6 +15,32 @@ type CreateWorkspaceUserInput struct {
 	InterfaceLanguage string
 	InterfaceTheme    string
 	Timezone          string
+}
+
+type UserEducationStatus struct {
+	IsStudent    bool
+	AllowRefresh bool
+	ExpireAt     int64
+	Institution  string
+	Role         string
+}
+
+var defaultEducationInstitutions = []string{
+	"Carnegie Mellon University",
+	"ETH Zurich",
+	"Fudan University",
+	"Harvard University",
+	"Massachusetts Institute of Technology",
+	"National University of Singapore",
+	"Peking University",
+	"Shanghai Jiao Tong University",
+	"Stanford University",
+	"Tsinghua University",
+	"University of California, Berkeley",
+	"University of Cambridge",
+	"University of Oxford",
+	"University of Tokyo",
+	"Zhejiang University",
 }
 
 func (s *Store) CreateWorkspaceUser(workspaceID string, input CreateWorkspaceUserInput, now time.Time) (User, error) {
@@ -36,20 +63,24 @@ func (s *Store) CreateWorkspaceUser(workspaceID string, input CreateWorkspaceUse
 	}
 
 	user := User{
-		ID:                generateID("usr"),
-		Email:             email,
-		Name:              firstNonEmpty(strings.TrimSpace(input.Name), userDisplayName(email)),
-		PasswordHash:      strings.TrimSpace(input.PasswordHash),
-		Avatar:            "",
-		AvatarURL:         "",
-		Role:              role,
-		WorkspaceID:       workspaceID,
-		InterfaceLanguage: firstNonEmpty(strings.TrimSpace(input.InterfaceLanguage), "en-US"),
-		InterfaceTheme:    firstNonEmpty(strings.TrimSpace(input.InterfaceTheme), "light"),
-		Timezone:          firstNonEmpty(strings.TrimSpace(input.Timezone), "UTC"),
-		CreatedAt:         now.UTC().Format(time.RFC3339),
-		LastLoginAt:       now.UTC().Format(time.RFC3339),
-		LastActiveAt:      now.UTC().Format(time.RFC3339),
+		ID:                   generateID("usr"),
+		Email:                email,
+		Name:                 firstNonEmpty(strings.TrimSpace(input.Name), userDisplayName(email)),
+		PasswordHash:         strings.TrimSpace(input.PasswordHash),
+		Avatar:               "",
+		AvatarURL:            "",
+		Role:                 role,
+		WorkspaceID:          workspaceID,
+		InterfaceLanguage:    firstNonEmpty(strings.TrimSpace(input.InterfaceLanguage), "en-US"),
+		InterfaceTheme:       firstNonEmpty(strings.TrimSpace(input.InterfaceTheme), "light"),
+		Timezone:             firstNonEmpty(strings.TrimSpace(input.Timezone), "UTC"),
+		EducationInstitution: "",
+		EducationRole:        "",
+		EducationVerifiedAt:  "",
+		EducationExpireAt:    0,
+		CreatedAt:            now.UTC().Format(time.RFC3339),
+		LastLoginAt:          now.UTC().Format(time.RFC3339),
+		LastActiveAt:         now.UTC().Format(time.RFC3339),
 	}
 
 	s.state.Users = append(s.state.Users, user)
@@ -130,6 +161,83 @@ func (s *Store) UpdateUserAccountInit(userID, language, timezone string, now tim
 	}
 
 	return User{}, fmt.Errorf("user %s not found", userID)
+}
+
+func (s *Store) UpdateUserEducation(userID, institution, role string, expireAt time.Time, now time.Time) (User, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	for i, user := range s.state.Users {
+		if user.ID != userID {
+			continue
+		}
+		user.EducationInstitution = strings.TrimSpace(institution)
+		user.EducationRole = strings.TrimSpace(role)
+		user.EducationVerifiedAt = now.UTC().Format(time.RFC3339)
+		if !expireAt.IsZero() {
+			user.EducationExpireAt = expireAt.Unix()
+		}
+		user.LastActiveAt = now.UTC().Format(time.RFC3339)
+		s.state.Users[i] = user
+		if err := s.saveLocked(); err != nil {
+			return User{}, err
+		}
+		return user, nil
+	}
+
+	return User{}, fmt.Errorf("user %s not found", userID)
+}
+
+func (s *Store) UserEducationStatus(userID string, now time.Time) (UserEducationStatus, bool) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	for _, user := range s.state.Users {
+		if user.ID != userID {
+			continue
+		}
+		expireAt := user.EducationExpireAt
+		return UserEducationStatus{
+			IsStudent:    expireAt > now.Unix(),
+			AllowRefresh: expireAt > 0,
+			ExpireAt:     expireAt,
+			Institution:  user.EducationInstitution,
+			Role:         user.EducationRole,
+		}, true
+	}
+
+	return UserEducationStatus{}, false
+}
+
+func (s *Store) ListEducationInstitutions() []string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	seen := make(map[string]struct{}, len(defaultEducationInstitutions)+len(s.state.Users))
+	names := make([]string, 0, len(defaultEducationInstitutions)+len(s.state.Users))
+
+	add := func(name string) {
+		name = strings.TrimSpace(name)
+		if name == "" {
+			return
+		}
+		key := strings.ToLower(name)
+		if _, ok := seen[key]; ok {
+			return
+		}
+		seen[key] = struct{}{}
+		names = append(names, name)
+	}
+
+	for _, name := range defaultEducationInstitutions {
+		add(name)
+	}
+	for _, user := range s.state.Users {
+		add(user.EducationInstitution)
+	}
+
+	sort.Strings(names)
+	return names
 }
 
 func userDisplayName(email string) string {

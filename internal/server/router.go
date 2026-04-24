@@ -101,6 +101,9 @@ func (s *server) consoleRoutes() http.Handler {
 	r.With(s.withAuth).Post("/logout", s.handleLogout)
 	r.Get("/activate/check", s.handleInvitationCheck)
 	r.Post("/activate", s.handleInvitationActivate)
+	r.Post("/oauth/provider", s.handleOAuthProvider)
+	r.Post("/email-code-login", s.handleEmailCodeLoginSend)
+	r.Post("/email-code-login/validity", s.handleEmailCodeLoginValidity)
 	r.Post("/email-register/send-email", s.handleEmailRegisterSend)
 	r.Post("/email-register/validity", s.handleEmailRegisterValidity)
 	r.Post("/email-register", s.handleEmailRegister)
@@ -115,11 +118,15 @@ func (s *server) consoleRoutes() http.Handler {
 		r.Get("/account/avatar", s.handleAccountAvatar)
 		r.Get("/account/integrates", s.handleAccountIntegrates)
 		r.Get("/account/education", s.handleAccountEducationStatus)
+		r.Get("/account/education/verify", s.handleAccountEducationVerify)
+		r.Get("/account/education/autocomplete", s.handleAccountEducationAutocomplete)
+		r.Post("/account/education", s.handleAccountEducationAdd)
 		r.Post("/account/init", s.handleAccountInit)
 		r.Post("/account/change-email", s.handleAccountChangeEmailSend)
 		r.Post("/account/change-email/validity", s.handleAccountChangeEmailValidity)
 		r.Post("/account/change-email/reset", s.handleAccountChangeEmailReset)
 		r.Post("/account/change-email/check-email-unique", s.handleAccountChangeEmailUnique)
+		r.Post("/oauth/provider/authorize", s.handleOAuthProviderAuthorize)
 		r.Get("/workflow/{workflowRunID}/pause-details", s.handleWorkflowPauseDetails)
 		s.mountAppRoutes(r)
 		s.mountDatasetRoutes(r)
@@ -150,6 +157,8 @@ func (s *server) publicRoutes() http.Handler {
 	r.Get("/system-features", s.handlePublicSystemFeatures)
 	r.Get("/login/status", s.handlePublicLoginStatus)
 	r.Post("/logout", s.handlePublicLogout)
+	r.Post("/email-code-login", s.handleEmailCodeLoginSend)
+	r.Post("/email-code-login/validity", s.handleEmailCodeLoginValidity)
 	r.Post("/forgot-password", s.handleForgotPasswordSend)
 	r.Post("/forgot-password/validity", s.handleForgotPasswordValidity)
 	r.Post("/forgot-password/resets", s.handleForgotPasswordReset)
@@ -584,7 +593,7 @@ func (s *server) systemFeaturesPayload() map[string]any {
 		"sso_enforced_for_web_protocol":    "",
 		"enable_marketplace":               false,
 		"enable_change_email":              true,
-		"enable_email_code_login":          false,
+		"enable_email_code_login":          true,
 		"enable_email_password_login":      true,
 		"enable_social_oauth_login":        false,
 		"enable_collaboration_mode":        false,

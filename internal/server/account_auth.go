@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -54,7 +55,7 @@ func (s *server) handleEmailRegisterValidity(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	next, ok := s.authFlows.Promote(payload.Token, authFlowRegisterPending, authFlowRegisterVerified, payload.Email, "", "", payload.Code, time.Now())
+	next, ok := s.authFlows.Promote(payload.Token, authFlowRegisterPending, authFlowRegisterVerified, payload.Email, "", "", normalizedVerificationCode(payload.Code), time.Now())
 	writeJSON(w, http.StatusOK, map[string]any{
 		"is_valid": ok,
 		"token":    firstNonEmpty(next.Token),
@@ -116,6 +117,78 @@ func (s *server) handleEmailRegister(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (s *server) handleEmailCodeLoginSend(w http.ResponseWriter, r *http.Request) {
+	var payload struct {
+		Email    string `json:"email"`
+		Language string `json:"language"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_request", "Invalid JSON payload.")
+		return
+	}
+
+	email := strings.ToLower(strings.TrimSpace(payload.Email))
+	if email == "" {
+		writeError(w, http.StatusBadRequest, "invalid_request", "Email is required.")
+		return
+	}
+	if _, exists := s.store.FindUserByEmail(email); !exists {
+		writeError(w, http.StatusBadRequest, "account_not_found", "Account not found.")
+		return
+	}
+
+	record := s.authFlows.Issue(authFlowEmailLoginPending, email, "", "", time.Now())
+	writeJSON(w, http.StatusOK, map[string]any{
+		"result": "success",
+		"data":   record.Token,
+	})
+}
+
+func (s *server) handleEmailCodeLoginValidity(w http.ResponseWriter, r *http.Request) {
+	var payload struct {
+		Email    string `json:"email"`
+		Code     string `json:"code"`
+		Token    string `json:"token"`
+		Language string `json:"language"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_request", "Invalid JSON payload.")
+		return
+	}
+
+	now := time.Now()
+	next, ok := s.authFlows.Promote(payload.Token, authFlowEmailLoginPending, authFlowEmailLoginReady, payload.Email, "", "", normalizedVerificationCode(payload.Code), now)
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "authentication_failed", "The email verification code is invalid.")
+		return
+	}
+
+	record, ok := s.authFlows.Consume(next.Token, authFlowEmailLoginReady, now)
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "authentication_failed", "The email verification code is invalid.")
+		return
+	}
+
+	user, ok := s.store.FindUserByEmail(record.Email)
+	if !ok {
+		writeError(w, http.StatusBadRequest, "account_not_found", "Account not found.")
+		return
+	}
+
+	session, err := s.issueAuthSession(w, user.ID, now)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "internal_error", "Failed to complete sign in.")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"result": "success",
+		"data": map[string]any{
+			"access_token": session.AccessToken,
+		},
+	})
+}
+
 func (s *server) handleForgotPasswordSend(w http.ResponseWriter, r *http.Request) {
 	var payload struct {
 		Email    string `json:"email"`
@@ -155,7 +228,7 @@ func (s *server) handleForgotPasswordValidity(w http.ResponseWriter, r *http.Req
 	}
 
 	if strings.TrimSpace(payload.Code) != "" || strings.TrimSpace(payload.Email) != "" {
-		next, ok := s.authFlows.Promote(payload.Token, authFlowForgotPending, authFlowForgotVerified, payload.Email, "", "", payload.Code, time.Now())
+		next, ok := s.authFlows.Promote(payload.Token, authFlowForgotPending, authFlowForgotVerified, payload.Email, "", "", normalizedVerificationCode(payload.Code), time.Now())
 		writeJSON(w, http.StatusOK, map[string]any{
 			"result":   "success",
 			"is_valid": ok,
@@ -238,6 +311,81 @@ func (s *server) handleAccountInit(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (s *server) handleAccountEducationVerify(w http.ResponseWriter, r *http.Request) {
+	user := currentUser(r)
+	record := s.authFlows.Issue(authFlowEducationVerify, user.Email, user.ID, "", time.Now())
+	writeJSON(w, http.StatusOK, map[string]any{
+		"token": record.Token,
+	})
+}
+
+func (s *server) handleAccountEducationAdd(w http.ResponseWriter, r *http.Request) {
+	user := currentUser(r)
+
+	var payload struct {
+		Token       string `json:"token"`
+		Institution string `json:"institution"`
+		Role        string `json:"role"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_request", "Invalid JSON payload.")
+		return
+	}
+	if strings.TrimSpace(payload.Institution) == "" || strings.TrimSpace(payload.Role) == "" {
+		writeError(w, http.StatusBadRequest, "invalid_request", "Institution and role are required.")
+		return
+	}
+
+	record, ok := s.authFlows.Consume(payload.Token, authFlowEducationVerify, time.Now())
+	if !ok || record.UserID != user.ID {
+		writeError(w, http.StatusBadRequest, "invalid_request", "The education verification token is invalid.")
+		return
+	}
+
+	expireAt := time.Now().AddDate(1, 0, 0)
+	if _, err := s.store.UpdateUserEducation(user.ID, payload.Institution, payload.Role, expireAt, time.Now()); err != nil {
+		writeError(w, http.StatusInternalServerError, "internal_error", "Failed to update education information.")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"message": "success",
+	})
+}
+
+func (s *server) handleAccountEducationAutocomplete(w http.ResponseWriter, r *http.Request) {
+	keywords := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("keywords")))
+	page := max(parsePositiveInt(r.URL.Query().Get("page")), 0)
+	limit := parsePositiveInt(r.URL.Query().Get("limit"))
+	if limit <= 0 {
+		limit = 40
+	}
+
+	allInstitutions := s.store.ListEducationInstitutions()
+	filtered := make([]string, 0, len(allInstitutions))
+	for _, institution := range allInstitutions {
+		if keywords != "" && !strings.Contains(strings.ToLower(institution), keywords) {
+			continue
+		}
+		filtered = append(filtered, institution)
+	}
+
+	start := page * limit
+	if start > len(filtered) {
+		start = len(filtered)
+	}
+	end := start + limit
+	if end > len(filtered) {
+		end = len(filtered)
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"data":      filtered[start:end],
+		"has_next":  end < len(filtered),
+		"curr_page": page,
+	})
+}
+
 func (s *server) handleAccountChangeEmailSend(w http.ResponseWriter, r *http.Request) {
 	user := currentUser(r)
 
@@ -300,7 +448,9 @@ func (s *server) handleAccountChangeEmailValidity(w http.ResponseWriter, r *http
 		return
 	}
 
-	if next, ok := s.authFlows.Promote(payload.Token, authFlowChangeOldPending, authFlowChangeOldVerified, payload.Email, user.ID, "", payload.Code, time.Now()); ok {
+	code := normalizedVerificationCode(payload.Code)
+
+	if next, ok := s.authFlows.Promote(payload.Token, authFlowChangeOldPending, authFlowChangeOldVerified, payload.Email, user.ID, "", code, time.Now()); ok {
 		writeJSON(w, http.StatusOK, map[string]any{
 			"result":   "success",
 			"is_valid": true,
@@ -310,7 +460,7 @@ func (s *server) handleAccountChangeEmailValidity(w http.ResponseWriter, r *http
 		return
 	}
 
-	if next, ok := s.authFlows.Promote(payload.Token, authFlowChangeNewPending, authFlowChangeReady, "", user.ID, payload.Email, payload.Code, time.Now()); ok {
+	if next, ok := s.authFlows.Promote(payload.Token, authFlowChangeNewPending, authFlowChangeReady, "", user.ID, payload.Email, code, time.Now()); ok {
 		writeJSON(w, http.StatusOK, map[string]any{
 			"result":   "success",
 			"is_valid": true,
@@ -380,6 +530,80 @@ func (s *server) handleAccountChangeEmailUnique(w http.ResponseWriter, r *http.R
 	writeJSON(w, http.StatusOK, map[string]any{
 		"result": "success",
 	})
+}
+
+func (s *server) handleOAuthProvider(w http.ResponseWriter, r *http.Request) {
+	var payload struct {
+		ClientID    string `json:"client_id"`
+		RedirectURI string `json:"redirect_uri"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_request", "Invalid JSON payload.")
+		return
+	}
+	if strings.TrimSpace(payload.ClientID) == "" || strings.TrimSpace(payload.RedirectURI) == "" {
+		writeError(w, http.StatusBadRequest, "invalid_request", "OAuth client_id and redirect_uri are required.")
+		return
+	}
+
+	label := oauthAppLabel(payload.ClientID)
+	writeJSON(w, http.StatusOK, map[string]any{
+		"app_icon": "",
+		"app_label": map[string]string{
+			"en_US":   label,
+			"en-US":   label,
+			"zh_Hans": label,
+			"zh-Hans": label,
+		},
+		"scope": "read:name read:email read:avatar read:interface_language read:timezone",
+	})
+}
+
+func (s *server) handleOAuthProviderAuthorize(w http.ResponseWriter, r *http.Request) {
+	var payload struct {
+		ClientID string `json:"client_id"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_request", "Invalid JSON payload.")
+		return
+	}
+	if strings.TrimSpace(payload.ClientID) == "" {
+		writeError(w, http.StatusBadRequest, "invalid_request", "OAuth client_id is required.")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"code": generateRuntimeID("oauth"),
+	})
+}
+
+func (s *server) issueAuthSession(w http.ResponseWriter, userID string, now time.Time) (sessionTokens, error) {
+	if _, err := s.store.TouchLogin(userID, now); err != nil {
+		return sessionTokens{}, err
+	}
+	session := s.sessions.Issue(userID)
+	s.setAuthCookies(w, session)
+	return session, nil
+}
+
+func normalizedVerificationCode(code string) string {
+	return strings.TrimSpace(decodeMaybeBase64(strings.TrimSpace(code)))
+}
+
+func oauthAppLabel(clientID string) string {
+	clientID = strings.TrimSpace(clientID)
+	if clientID == "" {
+		return "OAuth Application"
+	}
+	return clientID
+}
+
+func parsePositiveInt(value string) int {
+	number, err := strconv.Atoi(strings.TrimSpace(value))
+	if err != nil || number < 0 {
+		return 0
+	}
+	return number
 }
 
 func userFacingAuthError(err error) string {
