@@ -308,7 +308,7 @@ Tools、MCP、Endpoints、Triggers 在页面上看似分散，但本质上都属
 
 邀请激活时，Go 会消费 invitation token，把 invitation 转成真实 user，并立即签发 console session cookies；也就是说，这条链路本质上是“状态迁移 + 登录态建立”的组合，而不是单纯的表单提交。
 
-ownership transfer 则继续建立在同一份 workspace membership 状态之上，本质是一次受控的 role mutation。当前 API 已经迁到 Go，但真正的邮件验证码投递还没有完全迁完，所以能力开关仍保持保守默认值。
+ownership transfer 则继续建立在同一份 workspace membership 状态之上，本质是一次受控的 role mutation。当前 API 已经迁到 Go，并复用持久化 auth flow 保存 pending / verified transfer token；但真正的邮件验证码投递还没有完全迁完，所以能力开关仍保持保守默认值。
 
 ### 12.6 Account Auth Flows
 
@@ -328,7 +328,7 @@ Stage 7 的另一条主线是把账号周边的多步认证表单迁到 Go，包
 - 再校验 code 或 token
 - 最后提交 reset / register / update
 
-如果一开始就把它们直接耦合进完整邮件系统、数据库表和异步投递链路，Stage 7 的迁移成本会明显膨胀。所以当前 Go 侧先引入了一个独立的 `authFlowManager`，专门维护这类短期 token 状态；而 education 这类“账号附属状态”则直接并入 Go 用户模型，避免再额外引入一套孤立子域。
+如果一开始就把它们直接耦合进完整邮件系统、数据库表和异步投递链路，Stage 7 的迁移成本会明显膨胀。所以当前 Go 侧先引入了一个独立的 `authFlowManager`，专门维护这类短期 token 状态，并把 flow record 写入同一份 file-backed `StateFile`；而 education 这类“账号附属状态”则直接并入 Go 用户模型，避免再额外引入一套孤立子域。
 
 它的设计原理是：
 
@@ -349,15 +349,15 @@ Stage 7 的另一条主线是把账号周边的多步认证表单迁到 Go，包
 
 这样 billing 页面、education apply 页面和账号状态提示就能共享同一份 Go 状态。
 
-`oauth/provider` 当前也是兼容优先实现。Go 侧先满足 authorize page 所依赖的 app metadata 与 authorization code 发放，保证前端页面和基础跳转链路可用；更完整的 token exchange、client registry、SSO protocol 仍留在后续阶段补齐。
+`oauth/provider` 和 enterprise SSO 当前也是兼容优先实现。Go 侧先满足 authorize page 所依赖的 app metadata、authorization code 发放、console SSO 登录入口、webapp SSO redirect 和 bearer token 登录状态识别，保证前端页面和基础跳转链路可用；更完整的 token exchange、client registry、外部 IdP metadata/callback、SSO protocol 仍留在后续阶段补齐。
 
 这套方案的边界也很明确：
 
-- 当前 flow manager 是 in-memory 的
+- 当前 flow manager 已经随 `StateFile` 持久化，但仍不是多实例共享存储
 - 邮件验证码仍是兼容占位语义，不是真实投递
-- 多实例和重启持久化还没有解决
+- Session manager 仍是进程内存态，服务重启后需要重新登录
 
-因此它更像是 Stage 7 的“契约先行实现”：先把前端依赖的认证链路收回到 Go，再在后续阶段把邮件、持久化和安全加固逐步替换进来，而不是把前端重新推回 legacy fallback。
+因此它更像是 Stage 7 的“契约先行实现”：先把前端依赖的认证链路收回到 Go，再在后续阶段把邮件、共享存储、外部 IdP 协议和安全加固逐步替换进来，而不是把前端重新推回 legacy fallback。
 
 ## 13. Dataset 域的设计思路
 

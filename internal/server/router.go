@@ -34,7 +34,6 @@ type server struct {
 	cfg       config.Config
 	store     *state.Store
 	sessions  *sessionManager
-	transfers *ownerTransferManager
 	authFlows *authFlowManager
 	legacy    *legacyProxy
 }
@@ -54,8 +53,7 @@ func New(cfg config.Config) (http.Handler, error) {
 		cfg:       cfg,
 		store:     store,
 		sessions:  newSessionManager(cfg.AccessTokenTTL, cfg.RefreshTokenTTL),
-		transfers: newOwnerTransferManager(),
-		authFlows: newAuthFlowManager(),
+		authFlows: newAuthFlowManager(store),
 		legacy:    legacy,
 	}
 
@@ -97,6 +95,7 @@ func (s *server) consoleRoutes() http.Handler {
 	r.Post("/init", s.handleInitValidate)
 	r.Get("/version", s.handleVersion)
 	r.Post("/login", s.handleLogin)
+	r.Get("/enterprise/sso/{protocol}/login", s.handleConsoleSSOLogin)
 	r.Post("/refresh-token", s.handleRefreshToken)
 	r.With(s.withAuth).Post("/logout", s.handleLogout)
 	r.Get("/activate/check", s.handleInvitationCheck)
@@ -162,6 +161,8 @@ func (s *server) publicRoutes() http.Handler {
 	r.Post("/forgot-password", s.handleForgotPasswordSend)
 	r.Post("/forgot-password/validity", s.handleForgotPasswordValidity)
 	r.Post("/forgot-password/resets", s.handleForgotPasswordReset)
+	r.Get("/enterprise/sso/{protocol}/login", s.handlePublicWebSSOLogin)
+	r.Get("/enterprise/sso/members/{protocol}/login", s.handlePublicWebSSOLogin)
 	r.Get("/webapp/access-mode", s.handlePublicWebAppAccessMode)
 	r.Get("/passport", s.handlePublicPassport)
 	r.Get("/site", s.handlePublicAppSite)
@@ -568,6 +569,11 @@ func (s *server) handlePublicLoginStatus(w http.ResponseWriter, r *http.Request)
 	if token := readCookie(r, accessTokenCookie); token != "" {
 		_, loggedIn = s.sessions.Get(token)
 	}
+	if !loggedIn {
+		if token := bearerToken(r); token != "" {
+			_, loggedIn = s.sessions.Get(token)
+		}
+	}
 	appLoggedIn := false
 	if appCode := strings.TrimSpace(r.URL.Query().Get("app_code")); appCode != "" {
 		if app, ok := s.store.FindAppBySiteAccessToken(appCode); ok && strings.TrimSpace(app.AccessMode) == "public" {
@@ -699,6 +705,18 @@ func readCookie(r *http.Request, name string) string {
 		return ""
 	}
 	return cookie.Value
+}
+
+func bearerToken(r *http.Request) string {
+	value := strings.TrimSpace(r.Header.Get("Authorization"))
+	if value == "" {
+		return ""
+	}
+	prefix := "Bearer "
+	if !strings.HasPrefix(strings.ToLower(value), strings.ToLower(prefix)) {
+		return ""
+	}
+	return strings.TrimSpace(value[len(prefix):])
 }
 
 func requiresCSRF(method string) bool {

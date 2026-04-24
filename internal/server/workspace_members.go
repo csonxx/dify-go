@@ -7,84 +7,12 @@ import (
 	neturl "net/url"
 	"slices"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 
 	"github.com/langgenius/dify-go/internal/state"
 )
-
-const ownerTransferTTL = 15 * time.Minute
-
-type ownerTransferManager struct {
-	mu         sync.Mutex
-	challenges map[string]ownerTransferChallenge
-}
-
-type ownerTransferChallenge struct {
-	Token     string
-	UserID    string
-	Email     string
-	Verified  bool
-	ExpiresAt time.Time
-}
-
-func newOwnerTransferManager() *ownerTransferManager {
-	return &ownerTransferManager{
-		challenges: make(map[string]ownerTransferChallenge),
-	}
-}
-
-func (m *ownerTransferManager) Issue(user state.User, now time.Time) ownerTransferChallenge {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	challenge := ownerTransferChallenge{
-		Token:     generateRuntimeID("owner_transfer"),
-		UserID:    user.ID,
-		Email:     user.Email,
-		ExpiresAt: now.Add(ownerTransferTTL),
-	}
-	m.challenges[challenge.Token] = challenge
-	return challenge
-}
-
-func (m *ownerTransferManager) Verify(userID, email, token, code string, now time.Time) (ownerTransferChallenge, bool) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	if len(strings.TrimSpace(code)) != 6 {
-		return ownerTransferChallenge{}, false
-	}
-
-	challenge, ok := m.challenges[strings.TrimSpace(token)]
-	if !ok || challenge.UserID != userID || !strings.EqualFold(challenge.Email, strings.TrimSpace(email)) || now.After(challenge.ExpiresAt) {
-		delete(m.challenges, strings.TrimSpace(token))
-		return ownerTransferChallenge{}, false
-	}
-
-	delete(m.challenges, strings.TrimSpace(token))
-	challenge.Token = generateRuntimeID("owner_transfer_verified")
-	challenge.Verified = true
-	challenge.ExpiresAt = now.Add(ownerTransferTTL)
-	m.challenges[challenge.Token] = challenge
-	return challenge, true
-}
-
-func (m *ownerTransferManager) ConsumeVerified(userID, token string, now time.Time) (ownerTransferChallenge, bool) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	challenge, ok := m.challenges[strings.TrimSpace(token)]
-	if !ok || challenge.UserID != userID || !challenge.Verified || now.After(challenge.ExpiresAt) {
-		delete(m.challenges, strings.TrimSpace(token))
-		return ownerTransferChallenge{}, false
-	}
-
-	delete(m.challenges, strings.TrimSpace(token))
-	return challenge, true
-}
 
 func (s *server) mountWorkspaceMemberRoutes(r chi.Router) {
 	r.Get("/workspaces/current/members", s.handleWorkspaceMembers)
@@ -383,7 +311,11 @@ func (s *server) handleWorkspaceOwnerTransferConfirmEmail(w http.ResponseWriter,
 		return
 	}
 
-	challenge := s.transfers.Issue(user, time.Now())
+	challenge, err := s.authFlows.Issue(authFlowOwnerTransferPending, user.Email, user.ID, "", time.Now())
+	if err != nil {
+		writeAuthFlowError(w)
+		return
+	}
 	writeJSON(w, http.StatusOK, map[string]any{
 		"result": "success",
 		"data":   challenge.Token,
@@ -406,7 +338,11 @@ func (s *server) handleWorkspaceOwnerTransferCheck(w http.ResponseWriter, r *htt
 		return
 	}
 
-	challenge, ok := s.transfers.Verify(user.ID, user.Email, payload.Token, payload.Code, time.Now())
+	challenge, ok, err := s.authFlows.Promote(payload.Token, authFlowOwnerTransferPending, authFlowOwnerTransferVerified, user.Email, user.ID, "", normalizedVerificationCode(payload.Code), time.Now())
+	if err != nil {
+		writeAuthFlowError(w)
+		return
+	}
 	writeJSON(w, http.StatusOK, map[string]any{
 		"result":   "success",
 		"is_valid": ok,
@@ -446,8 +382,12 @@ func (s *server) handleWorkspaceOwnerTransfer(w http.ResponseWriter, r *http.Req
 		writeError(w, http.StatusBadRequest, "invalid_request", "Ownership can only be transferred to an active workspace member.")
 		return
 	}
-	challenge, valid := s.transfers.ConsumeVerified(user.ID, payload.Token, time.Now())
-	if !valid {
+	challenge, valid, err := s.authFlows.Consume(payload.Token, authFlowOwnerTransferVerified, time.Now())
+	if err != nil {
+		writeAuthFlowError(w)
+		return
+	}
+	if !valid || challenge.UserID != user.ID {
 		writeError(w, http.StatusBadRequest, "invalid_request", "The ownership transfer verification token is invalid.")
 		return
 	}

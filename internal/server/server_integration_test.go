@@ -3301,6 +3301,137 @@ func TestAccountEmailCodeEducationAndOAuthRoutes(t *testing.T) {
 	}
 }
 
+func TestPersistentAuthFlowsAndSSORoutes(t *testing.T) {
+	env := newServerTestEnv(t)
+	env.setupAndLogin()
+
+	forgot := postJSON[map[string]any](env, http.MethodPost, "/console/api/forgot-password", map[string]any{
+		"email":    "tester@example.com",
+		"language": "en-US",
+	}, false, http.StatusOK)
+	forgotToken, _ := forgot["data"].(string)
+	if forgotToken == "" {
+		t.Fatalf("expected forgot-password token, got %+v", forgot)
+	}
+
+	restarted := env.restart()
+	forgotValidity := postJSON[map[string]any](restarted, http.MethodPost, "/console/api/forgot-password/validity", map[string]any{
+		"token": forgotToken,
+	}, false, http.StatusOK)
+	if valid, ok := forgotValidity["is_valid"].(bool); !ok || !valid {
+		t.Fatalf("expected persisted forgot-password token to validate after restart, got %+v", forgotValidity)
+	}
+
+	verifyForgot := postJSON[map[string]any](restarted, http.MethodPost, "/console/api/forgot-password/validity", map[string]any{
+		"email": "tester@example.com",
+		"code":  base64.StdEncoding.EncodeToString([]byte("123456")),
+		"token": forgotToken,
+	}, false, http.StatusOK)
+	resetToken, _ := verifyForgot["token"].(string)
+	if resetToken == "" {
+		t.Fatalf("expected persisted forgot-password flow to promote after restart, got %+v", verifyForgot)
+	}
+
+	postJSON[map[string]any](restarted, http.MethodPost, "/console/api/login", map[string]any{
+		"email":    "tester@example.com",
+		"password": "password123",
+	}, false, http.StatusOK)
+	invite := postJSON[map[string]any](restarted, http.MethodPost, "/console/api/workspaces/current/members/invite-email", map[string]any{
+		"emails": []string{"persistent-owner@example.com"},
+		"role":   "admin",
+	}, true, http.StatusOK)
+	results, _ := invite["invitation_results"].([]any)
+	if len(results) != 1 {
+		t.Fatalf("expected invitation result, got %+v", invite)
+	}
+	token := invitationToken(t, stringFromAny(mapFromAny(results[0])["url"]))
+	postJSON[map[string]any](restarted, http.MethodPost, "/console/api/activate", map[string]any{
+		"token":              token,
+		"name":               "Persistent Owner",
+		"interface_language": "en-US",
+		"timezone":           "UTC",
+	}, false, http.StatusOK)
+	postJSON[map[string]any](restarted, http.MethodPost, "/console/api/login", map[string]any{
+		"email":    "tester@example.com",
+		"password": "password123",
+	}, false, http.StatusOK)
+
+	members := getJSON[map[string]any](restarted, "/console/api/workspaces/current/members", true, http.StatusOK)
+	newOwnerID := accountIDByEmail(anySlice(members["accounts"]), "persistent-owner@example.com")
+	if newOwnerID == "" {
+		t.Fatalf("expected persistent owner member, got %+v", members)
+	}
+
+	sendTransfer := postJSON[map[string]any](restarted, http.MethodPost, "/console/api/workspaces/current/members/send-owner-transfer-confirm-email", map[string]any{}, true, http.StatusOK)
+	transferToken, _ := sendTransfer["data"].(string)
+	if transferToken == "" {
+		t.Fatalf("expected owner transfer token, got %+v", sendTransfer)
+	}
+
+	restartedAgain := restarted.restart()
+	postJSON[map[string]any](restartedAgain, http.MethodPost, "/console/api/login", map[string]any{
+		"email":    "tester@example.com",
+		"password": "password123",
+	}, false, http.StatusOK)
+	transferCheck := postJSON[map[string]any](restartedAgain, http.MethodPost, "/console/api/workspaces/current/members/owner-transfer-check", map[string]any{
+		"code":  base64.StdEncoding.EncodeToString([]byte("123456")),
+		"token": transferToken,
+	}, true, http.StatusOK)
+	verifiedTransferToken, _ := transferCheck["token"].(string)
+	if valid, ok := transferCheck["is_valid"].(bool); !ok || !valid || verifiedTransferToken == "" {
+		t.Fatalf("expected persisted owner transfer token to verify after restart, got %+v", transferCheck)
+	}
+	postJSON[map[string]any](restartedAgain, http.MethodPost, "/console/api/workspaces/current/members/"+newOwnerID+"/owner-transfer", map[string]any{
+		"token": verifiedTransferToken,
+	}, true, http.StatusOK)
+
+	postJSON[map[string]any](restartedAgain, http.MethodPost, "/console/api/logout", nil, true, http.StatusOK)
+	consoleSSO := getJSON[map[string]any](restartedAgain, "/console/api/enterprise/sso/oidc/login", false, http.StatusOK)
+	if url, _ := consoleSSO["url"].(string); url != "/apps" {
+		t.Fatalf("expected console SSO local redirect, got %+v", consoleSSO)
+	}
+	if state, _ := consoleSSO["state"].(string); state == "" {
+		t.Fatalf("expected console SSO state, got %+v", consoleSSO)
+	}
+	profile := getJSON[map[string]any](restartedAgain, "/console/api/account/profile", true, http.StatusOK)
+	if email, _ := profile["email"].(string); email == "" {
+		t.Fatalf("expected console SSO to establish session, got %+v", profile)
+	}
+
+	app := postJSON[map[string]any](restartedAgain, http.MethodPost, "/console/api/apps", map[string]any{
+		"name": "SSO Webapp",
+		"mode": "advanced-chat",
+		"icon": "🤝",
+	}, true, http.StatusCreated)
+	appCode := stringFromAny(mapFromAny(app["site"])["access_token"])
+	if appCode == "" {
+		t.Fatalf("expected app code, got %+v", app)
+	}
+	postJSON[map[string]any](restartedAgain, http.MethodPost, "/console/api/apps/"+stringFromAny(app["id"])+"/site-enable", map[string]any{
+		"enable_site": true,
+	}, true, http.StatusOK)
+	redirectURL := "/chat/" + appCode
+	publicSSO := getJSON[map[string]any](restartedAgain, "/api/enterprise/sso/oidc/login?app_code="+url.QueryEscape(appCode)+"&redirect_url="+url.QueryEscape(redirectURL), false, http.StatusOK)
+	publicRedirect, _ := publicSSO["url"].(string)
+	if !strings.Contains(publicRedirect, "web_sso_token=") {
+		t.Fatalf("expected public SSO redirect to carry web_sso_token, got %+v", publicSSO)
+	}
+	parsedRedirect, err := url.Parse(publicRedirect)
+	if err != nil {
+		t.Fatalf("parse public SSO redirect: %v", err)
+	}
+	webSSOToken := parsedRedirect.Query().Get("web_sso_token")
+	if webSSOToken == "" {
+		t.Fatalf("expected web_sso_token in redirect URL, got %s", publicRedirect)
+	}
+	status := getJSONWithHeaders[map[string]any](restartedAgain, "/api/login/status?app_code="+url.QueryEscape(appCode), map[string]string{
+		"Authorization": "Bearer " + webSSOToken,
+	}, http.StatusOK)
+	if loggedIn, ok := status["logged_in"].(bool); !ok || !loggedIn {
+		t.Fatalf("expected public SSO bearer token to be accepted, got %+v", status)
+	}
+}
+
 func ragPipelineRunInputs(language string, chunkSize int, removeExtraSpaces bool) map[string]any {
 	return map[string]any{
 		"separator":              "\n\n",
@@ -3366,6 +3497,41 @@ func (e *serverTestEnv) setupAndLogin() {
 		"email":    "tester@example.com",
 		"password": "password123",
 	}, false, http.StatusOK)
+}
+
+func (e *serverTestEnv) restart() *serverTestEnv {
+	e.t.Helper()
+
+	handler, err := New(config.Config{
+		Addr:                 ":0",
+		AppVersion:           "test",
+		AppTitle:             "dify-go-test",
+		Edition:              "SELF_HOSTED",
+		EnvName:              "TEST",
+		StateFile:            e.stateFile,
+		UploadDir:            filepath.Join(filepath.Dir(e.stateFile), "uploads-restarted"),
+		DefaultWorkspaceName: "Default Workspace",
+		WebOrigins:           []string{"http://localhost"},
+		AccessTokenTTL:       time.Hour,
+		RefreshTokenTTL:      24 * time.Hour,
+	})
+	if err != nil {
+		e.t.Fatalf("restart server handler: %v", err)
+	}
+
+	jar, err := cookiejar.New(nil)
+	if err != nil {
+		e.t.Fatalf("create restarted cookie jar: %v", err)
+	}
+	server := httptest.NewServer(handler)
+	e.t.Cleanup(server.Close)
+
+	return &serverTestEnv{
+		t:         e.t,
+		server:    server,
+		client:    &http.Client{Jar: jar},
+		stateFile: e.stateFile,
+	}
 }
 
 func (e *serverTestEnv) uploadFile(path string, auth bool, filename string, contentType string, content []byte) uploadResponse {

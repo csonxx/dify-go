@@ -90,6 +90,16 @@ func (s *Store) CreateWorkspaceUser(workspaceID string, input CreateWorkspaceUse
 	return user, nil
 }
 
+func (s *Store) PrimaryUser() (User, bool) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	if len(s.state.Users) == 0 {
+		return User{}, false
+	}
+	return s.state.Users[0], true
+}
+
 func (s *Store) UpdateUserPasswordByEmail(email, passwordHash string, now time.Time) (User, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()

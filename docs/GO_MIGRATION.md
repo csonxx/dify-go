@@ -286,11 +286,14 @@ The Go server keeps Dify's existing API prefixes so the frontend can continue ca
 
 补充：Stage 7 第二批认证周边链路也已经切到 Go。当前 `POST /console/api/account/init`、`POST /console/api/email-register/send-email`、`/validity`、`/email-register`、`POST /console/api/forgot-password`、`/validity`、`/resets`、`POST /api/forgot-password`、`/validity`、`/resets`、以及 `POST /console/api/account/change-email*` 都已经由 Go 直接提供，注册、console/webapp 找回密码、以及账号页 change email 不再依赖 Python fallback。
 
-补充：这批认证接口当前采用的是 Go 侧 in-memory auth flow manager。后端会为 `register / forgot-password / change-email` 三类流程维护短期 token 状态，并在需要时把 pending token 提升成 verified token；这样前端原有的 “send code -> verify code -> reset/submit” 多步表单可以原样继续工作，同时又不必在 Stage 7 过早引入完整邮件系统或数据库 schema。
+补充：这批认证接口当前采用 Go 侧 auth flow manager 统一维护短期 token 状态。后端会为 `register / forgot-password / change-email` 三类流程维护 pending / verified / consumed 生命周期，并在需要时把 pending token 提升成 verified token；这样前端原有的 “send code -> verify code -> reset/submit” 多步表单可以原样继续工作，同时又不必在 Stage 7 过早引入完整邮件系统。
 
 补充：Stage 7 第三批账号周边链路也已经接到 Go。当前 `POST /console/api/email-code-login`、`/validity`、`POST /api/email-code-login`、`/validity`、`GET /console/api/account/education/verify`、`POST /console/api/account/education`、`GET /console/api/account/education/autocomplete`、以及 `POST /console/api/oauth/provider`、`/authorize` 都已经由 Go 直接返回。控制台验证码登录、public email-code-login、education 认证页、以及 OAuth authorize page 不再依赖 Python fallback。
 
 补充：这批实现沿用了同一套 auth flow manager，并把 education 状态落到 Go 用户模型里。当前 OAuth provider 仍是兼容实现：后端会返回前端 authorize page 所需的 app metadata，并发放一次性 authorization code，但完整 token exchange / SSO protocol 仍留在 Stage 7 后续收口。
+
+补充：Stage 7 第四批把 auth flow 状态从进程内存推进到 Go 文件状态。`AuthFlows` 现在会随 `StateFile` 持久化，覆盖 register、forgot-password、change-email、email-code-login、education 周边复用 flow，以及 ownership transfer 的 pending / verified token；重启后短期 token 不会立刻丢失。与此同时，Go 侧新增了 `GET /console/api/enterprise/sso/{protocol}/login`、`GET /api/enterprise/sso/{protocol}/login`、`GET /api/enterprise/sso/members/{protocol}/login` 三个 SSO 兼容入口，先完成本地 session 建立、webapp bearer token 下发和前端 redirect 协议；真实外部 IdP metadata、callback、token exchange 仍保留为后续收口项。
+
 - `GET /console/api/datasets/retrieval-setting`
 - `GET /console/api/datasets/process-rule`
 - `POST /console/api/datasets/indexing-estimate`

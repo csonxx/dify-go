@@ -37,7 +37,11 @@ func (s *server) handleEmailRegisterSend(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	record := s.authFlows.Issue(authFlowRegisterPending, email, "", "", time.Now())
+	record, err := s.authFlows.Issue(authFlowRegisterPending, email, "", "", time.Now())
+	if err != nil {
+		writeAuthFlowError(w)
+		return
+	}
 	writeJSON(w, http.StatusOK, map[string]any{
 		"result": "success",
 		"data":   record.Token,
@@ -55,7 +59,11 @@ func (s *server) handleEmailRegisterValidity(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	next, ok := s.authFlows.Promote(payload.Token, authFlowRegisterPending, authFlowRegisterVerified, payload.Email, "", "", normalizedVerificationCode(payload.Code), time.Now())
+	next, ok, err := s.authFlows.Promote(payload.Token, authFlowRegisterPending, authFlowRegisterVerified, payload.Email, "", "", normalizedVerificationCode(payload.Code), time.Now())
+	if err != nil {
+		writeAuthFlowError(w)
+		return
+	}
 	writeJSON(w, http.StatusOK, map[string]any{
 		"is_valid": ok,
 		"token":    firstNonEmpty(next.Token),
@@ -77,7 +85,11 @@ func (s *server) handleEmailRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	record, ok := s.authFlows.Consume(payload.Token, authFlowRegisterVerified, time.Now())
+	record, ok, err := s.authFlows.Consume(payload.Token, authFlowRegisterVerified, time.Now())
+	if err != nil {
+		writeAuthFlowError(w)
+		return
+	}
 	if !ok {
 		writeError(w, http.StatusBadRequest, "invalid_request", "The email registration token is invalid.")
 		return
@@ -137,7 +149,11 @@ func (s *server) handleEmailCodeLoginSend(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	record := s.authFlows.Issue(authFlowEmailLoginPending, email, "", "", time.Now())
+	record, err := s.authFlows.Issue(authFlowEmailLoginPending, email, "", "", time.Now())
+	if err != nil {
+		writeAuthFlowError(w)
+		return
+	}
 	writeJSON(w, http.StatusOK, map[string]any{
 		"result": "success",
 		"data":   record.Token,
@@ -157,13 +173,21 @@ func (s *server) handleEmailCodeLoginValidity(w http.ResponseWriter, r *http.Req
 	}
 
 	now := time.Now()
-	next, ok := s.authFlows.Promote(payload.Token, authFlowEmailLoginPending, authFlowEmailLoginReady, payload.Email, "", "", normalizedVerificationCode(payload.Code), now)
+	next, ok, err := s.authFlows.Promote(payload.Token, authFlowEmailLoginPending, authFlowEmailLoginReady, payload.Email, "", "", normalizedVerificationCode(payload.Code), now)
+	if err != nil {
+		writeAuthFlowError(w)
+		return
+	}
 	if !ok {
 		writeError(w, http.StatusUnauthorized, "authentication_failed", "The email verification code is invalid.")
 		return
 	}
 
-	record, ok := s.authFlows.Consume(next.Token, authFlowEmailLoginReady, now)
+	record, ok, err := s.authFlows.Consume(next.Token, authFlowEmailLoginReady, now)
+	if err != nil {
+		writeAuthFlowError(w)
+		return
+	}
 	if !ok {
 		writeError(w, http.StatusUnauthorized, "authentication_failed", "The email verification code is invalid.")
 		return
@@ -209,7 +233,11 @@ func (s *server) handleForgotPasswordSend(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	record := s.authFlows.Issue(authFlowForgotPending, email, "", "", time.Now())
+	record, err := s.authFlows.Issue(authFlowForgotPending, email, "", "", time.Now())
+	if err != nil {
+		writeAuthFlowError(w)
+		return
+	}
 	writeJSON(w, http.StatusOK, map[string]any{
 		"result": "success",
 		"data":   record.Token,
@@ -228,7 +256,11 @@ func (s *server) handleForgotPasswordValidity(w http.ResponseWriter, r *http.Req
 	}
 
 	if strings.TrimSpace(payload.Code) != "" || strings.TrimSpace(payload.Email) != "" {
-		next, ok := s.authFlows.Promote(payload.Token, authFlowForgotPending, authFlowForgotVerified, payload.Email, "", "", normalizedVerificationCode(payload.Code), time.Now())
+		next, ok, err := s.authFlows.Promote(payload.Token, authFlowForgotPending, authFlowForgotVerified, payload.Email, "", "", normalizedVerificationCode(payload.Code), time.Now())
+		if err != nil {
+			writeAuthFlowError(w)
+			return
+		}
 		writeJSON(w, http.StatusOK, map[string]any{
 			"result":   "success",
 			"is_valid": ok,
@@ -237,9 +269,17 @@ func (s *server) handleForgotPasswordValidity(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	record, ok := s.authFlows.Get(payload.Token, authFlowForgotVerified, time.Now())
+	record, ok, err := s.authFlows.Get(payload.Token, authFlowForgotVerified, time.Now())
+	if err != nil {
+		writeAuthFlowError(w)
+		return
+	}
 	if !ok {
-		record, ok = s.authFlows.Get(payload.Token, authFlowForgotPending, time.Now())
+		record, ok, err = s.authFlows.Get(payload.Token, authFlowForgotPending, time.Now())
+		if err != nil {
+			writeAuthFlowError(w)
+			return
+		}
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
 		"result":   "success",
@@ -263,9 +303,17 @@ func (s *server) handleForgotPasswordReset(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	record, ok := s.authFlows.Consume(payload.Token, authFlowForgotVerified, time.Now())
+	record, ok, err := s.authFlows.Consume(payload.Token, authFlowForgotVerified, time.Now())
+	if err != nil {
+		writeAuthFlowError(w)
+		return
+	}
 	if !ok {
-		record, ok = s.authFlows.Consume(payload.Token, authFlowForgotPending, time.Now())
+		record, ok, err = s.authFlows.Consume(payload.Token, authFlowForgotPending, time.Now())
+		if err != nil {
+			writeAuthFlowError(w)
+			return
+		}
 	}
 	if !ok {
 		writeError(w, http.StatusBadRequest, "invalid_request", "The password reset token is invalid.")
@@ -313,7 +361,11 @@ func (s *server) handleAccountInit(w http.ResponseWriter, r *http.Request) {
 
 func (s *server) handleAccountEducationVerify(w http.ResponseWriter, r *http.Request) {
 	user := currentUser(r)
-	record := s.authFlows.Issue(authFlowEducationVerify, user.Email, user.ID, "", time.Now())
+	record, err := s.authFlows.Issue(authFlowEducationVerify, user.Email, user.ID, "", time.Now())
+	if err != nil {
+		writeAuthFlowError(w)
+		return
+	}
 	writeJSON(w, http.StatusOK, map[string]any{
 		"token": record.Token,
 	})
@@ -336,7 +388,11 @@ func (s *server) handleAccountEducationAdd(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	record, ok := s.authFlows.Consume(payload.Token, authFlowEducationVerify, time.Now())
+	record, ok, err := s.authFlows.Consume(payload.Token, authFlowEducationVerify, time.Now())
+	if err != nil {
+		writeAuthFlowError(w)
+		return
+	}
 	if !ok || record.UserID != user.ID {
 		writeError(w, http.StatusBadRequest, "invalid_request", "The education verification token is invalid.")
 		return
@@ -406,13 +462,21 @@ func (s *server) handleAccountChangeEmailSend(w http.ResponseWriter, r *http.Req
 			writeError(w, http.StatusBadRequest, "invalid_request", "Original email verification is invalid.")
 			return
 		}
-		record := s.authFlows.Issue(authFlowChangeOldPending, user.Email, user.ID, "", time.Now())
+		record, err := s.authFlows.Issue(authFlowChangeOldPending, user.Email, user.ID, "", time.Now())
+		if err != nil {
+			writeAuthFlowError(w)
+			return
+		}
 		writeJSON(w, http.StatusOK, map[string]any{
 			"result": "success",
 			"data":   record.Token,
 		})
 	case "new_email":
-		oldRecord, ok := s.authFlows.Get(payload.Token, authFlowChangeOldVerified, time.Now())
+		oldRecord, ok, err := s.authFlows.Get(payload.Token, authFlowChangeOldVerified, time.Now())
+		if err != nil {
+			writeAuthFlowError(w)
+			return
+		}
 		if !ok || oldRecord.UserID != user.ID {
 			writeError(w, http.StatusBadRequest, "invalid_request", "Original email verification is required.")
 			return
@@ -425,7 +489,11 @@ func (s *server) handleAccountChangeEmailSend(w http.ResponseWriter, r *http.Req
 			writeError(w, http.StatusBadRequest, "email_already_in_use", "Email already in use.")
 			return
 		}
-		record := s.authFlows.Issue(authFlowChangeNewPending, user.Email, user.ID, email, time.Now())
+		record, err := s.authFlows.Issue(authFlowChangeNewPending, user.Email, user.ID, email, time.Now())
+		if err != nil {
+			writeAuthFlowError(w)
+			return
+		}
 		writeJSON(w, http.StatusOK, map[string]any{
 			"result": "success",
 			"data":   record.Token,
@@ -450,7 +518,10 @@ func (s *server) handleAccountChangeEmailValidity(w http.ResponseWriter, r *http
 
 	code := normalizedVerificationCode(payload.Code)
 
-	if next, ok := s.authFlows.Promote(payload.Token, authFlowChangeOldPending, authFlowChangeOldVerified, payload.Email, user.ID, "", code, time.Now()); ok {
+	if next, ok, err := s.authFlows.Promote(payload.Token, authFlowChangeOldPending, authFlowChangeOldVerified, payload.Email, user.ID, "", code, time.Now()); err != nil {
+		writeAuthFlowError(w)
+		return
+	} else if ok {
 		writeJSON(w, http.StatusOK, map[string]any{
 			"result":   "success",
 			"is_valid": true,
@@ -460,7 +531,10 @@ func (s *server) handleAccountChangeEmailValidity(w http.ResponseWriter, r *http
 		return
 	}
 
-	if next, ok := s.authFlows.Promote(payload.Token, authFlowChangeNewPending, authFlowChangeReady, "", user.ID, payload.Email, code, time.Now()); ok {
+	if next, ok, err := s.authFlows.Promote(payload.Token, authFlowChangeNewPending, authFlowChangeReady, "", user.ID, payload.Email, code, time.Now()); err != nil {
+		writeAuthFlowError(w)
+		return
+	} else if ok {
 		writeJSON(w, http.StatusOK, map[string]any{
 			"result":   "success",
 			"is_valid": true,
@@ -490,7 +564,11 @@ func (s *server) handleAccountChangeEmailReset(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	record, ok := s.authFlows.Consume(payload.Token, authFlowChangeReady, time.Now())
+	record, ok, err := s.authFlows.Consume(payload.Token, authFlowChangeReady, time.Now())
+	if err != nil {
+		writeAuthFlowError(w)
+		return
+	}
 	if !ok || record.UserID != user.ID || !strings.EqualFold(record.NewEmail, strings.TrimSpace(payload.NewEmail)) {
 		writeError(w, http.StatusBadRequest, "invalid_request", "The email change token is invalid.")
 		return

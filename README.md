@@ -2,7 +2,7 @@
 
 `dify-go` 是一个面向 [Dify](https://github.com/langgenius/dify) 的增量式 Go 后端迁移项目。
 
-本仓库直接复用上游 Dify 的前端工作区，并在尽量不改动前端的前提下，把后端能力按业务域逐步迁移到 Go。项目基于并致敬 [langgenius/dify](https://github.com/langgenius/dify)，感谢 Dify 团队和社区把原始产品开放出来，也让这条迁移路线成为可能。
+本仓库直接复用上游 Dify 的前端工作区，并在尽量不改动前端的前提下，把后端能力按业务域逐步迁移到 Go。项目基于并致敬 [https://github.com/langgenius/dify](https://github.com/langgenius/dify)，感谢 Dify 团队和社区把原始产品开放出来，也让这条迁移路线成为可能。
 
 ## 目标
 
@@ -21,6 +21,7 @@
 - Workspace Model Provider、默认模型、凭证、模型启停、参数规则
 - Workspace Tools、MCP、Endpoints、Triggers
 - Plugin 平台的基础兼容链路
+- 账号周边认证 flow、工作区成员、邀请激活、ownership transfer 与 SSO 兼容入口
 - Dataset 主链路的第一批基础路由：列表、创建、详情、更新、删除、文档主列表、命中测试和部分索引状态接口
 
 更细的迁移清单见：

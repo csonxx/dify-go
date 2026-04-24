@@ -546,12 +546,17 @@
 - [x] `POST /console/api/workspaces/current/members/{memberId}/owner-transfer`
 - [x] `GET /console/api/activate/check`
 - [x] `POST /console/api/activate`
+- [x] `GET /console/api/enterprise/sso/{protocol}/login`
+- [x] `GET /api/enterprise/sso/{protocol}/login`
+- [x] `GET /api/enterprise/sso/members/{protocol}/login`
+- [x] Auth flow token 状态持久化，覆盖 register / forgot-password / change-email / email-code-login
+- [x] Ownership transfer 验证 token 状态持久化
 
 本阶段剩余重点：
 
-- [ ] SSO 入口与 enterprise webapp auth 真实协议
-- [ ] 把 ownership transfer 从当前 session-gated 验证占位继续推进到真实邮件验证码链路
-- [ ] 把 register / forgot-password / change-email 从当前 in-memory token manager 继续推进到真实邮件验证码投递与持久化状态
+- [ ] 接入真实外部 IdP 的 SSO metadata、callback、token exchange 与 enterprise webapp auth 策略
+- [ ] 把 register / forgot-password / change-email / ownership transfer 从兼容验证码语义继续推进到真实邮件投递链路
+- [ ] 把账号 flow / session 从单进程文件状态继续推进到共享存储或数据库状态
 
 ## 阶段 8：工程化加固与移除 Legacy
 
