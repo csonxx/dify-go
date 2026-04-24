@@ -256,6 +256,8 @@ The Go server keeps Dify's existing API prefixes so the frontend can continue ca
 
 补充：RAG pipeline 的 `published/run` 现已接到 Go，支持 published preview、首次创建文档、以及基于 `original_document_id` 的文档重处理；运行请求会同时把 datasource 和 processing inputs 写回 dataset document 的 pipeline execution log，前端 create-from-pipeline 与 document settings 可以直接复用这条链路。
 
+补充：`published/run` 的在线 datasource 授权边界也开始和 datasource catalog/auth 统一。现在 `online_document / website_crawl / online_drive` 在 preview、创建和重处理前都会确认 provider 对当前 workspace 可见，并逐项校验 `credential_id` 仍然存在；这样 datasource node run、published preview 和正式文档处理不会各自接受不同的授权状态。
+
 补充：Go 侧的 published run 和 dataset document 处理流现在开始共用一套 processing 状态机。新建或重处理出来的文档会先以 `waiting` 返回，随后通过 `document detail / document list / documents/{id}/indexing-status / batch/{batchId}/indexing-status` 这些读路径在 Go 侧推进到 `parsing / cleaning / splitting / indexing / completed`，不再是一开始就直接落成 `completed`。这让 create-from-pipeline 的 processing 页面、文档详情页和普通 dataset 文档列表看到的是同一条状态轨迹。
 
 补充：RAG pipeline `published/run` 写入的 workflow run 现在也不再只是通用兼容占位结果。Go 侧会把 `pipeline_id / dataset_id / datasource_type / datasource_info_list / start_node_id / processing_inputs / batch / document_ids / original_document_id / preview_result` 一并持久化到 `/rag/pipelines/{pipelineId}/workflow-runs`、`/{runId}` 和 `/{runId}/node-executions`，这样前端 run history、详情和 trace panel 看到的是更接近上游 Dify 的 pipeline 语义。

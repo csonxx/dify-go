@@ -54,6 +54,10 @@ func (s *server) handleRAGPipelinePublishedRun(w http.ResponseWriter, r *http.Re
 		writeError(w, http.StatusBadRequest, "invalid_request", "Datasource info list is required.")
 		return
 	}
+	if err := s.validateRAGPipelinePublishedDatasource(workspace.ID, datasourceType, datasourceInfoList); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_request", err.Error())
+		return
+	}
 
 	inputs := mapFromAny(payload["inputs"])
 	startNodeID := firstImportValue(strings.TrimSpace(stringFromAny(payload["start_node_id"])), ragPipelineDatasourceNodeID(datasourceType))
@@ -147,6 +151,27 @@ func (s *server) handleRAGPipelinePublishedRun(w http.ResponseWriter, r *http.Re
 		},
 		"documents": ragPipelineInitialDocumentListPayload(documents),
 	})
+}
+
+func (s *server) validateRAGPipelinePublishedDatasource(workspaceID, datasourceType string, datasourceInfoList []map[string]any) error {
+	if !requiresDatasourceCredential(datasourceType) {
+		return nil
+	}
+
+	spec, ok := s.ragPipelineDatasourceAvailableSpecByType(workspaceID, datasourceType)
+	if !ok {
+		return fmt.Errorf("datasource provider is not available in the current workspace")
+	}
+	for _, item := range datasourceInfoList {
+		credentialID := strings.TrimSpace(stringFromAny(item["credential_id"]))
+		if credentialID == "" {
+			return fmt.Errorf("credential is required")
+		}
+		if _, ok := s.findWorkspaceDatasourceCredential(workspaceID, spec.PluginID, spec.Provider, credentialID); !ok {
+			return fmt.Errorf("credential not found or no longer available")
+		}
+	}
+	return nil
 }
 
 type ragPipelinePublishedRunContext struct {

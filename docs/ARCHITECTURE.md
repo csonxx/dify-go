@@ -412,6 +412,8 @@ RAG pipeline 在 Go 侧不是一套孤立接口，而是 dataset 与 workflow ap
 
 这条边界让 create-from-pipeline 的页面可以继续沿用上游前端逻辑：选择 datasource 时写入 datasource node last-run，变量检查面板从同一个 node outputs 派生 inspect vars，正式 published run 再把 datasource / processing inputs 落到 dataset document 和 workflow run history。
 
+在线 datasource 的授权也在这条边界里收口：`published/run` 不再只信任前端传入的 `datasource_info_list`，而是先检查 provider 是否仍对 workspace 可见，再校验每个 datasource item 里的 `credential_id` 是否还存在。这样 datasource node run、preview、正式创建文档和重处理共享同一套 plugin/credential 状态。
+
 它的设计原则是“同一个业务事实只落一份 Go 状态”。例如 knowledge-index 节点里的 chunk / retrieval / embedding 配置会同步回 linked dataset；publish / copy / delete 这类 app 生命周期也会同步影响 pipeline dataset。这样 pipeline editor、dataset detail、document processing 页面和 tracing panel 不会各自维护一套互相漂移的兼容状态。
 
 ## 14. 为什么坚持“前端不动”

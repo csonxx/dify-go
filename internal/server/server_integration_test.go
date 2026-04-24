@@ -2300,6 +2300,88 @@ func TestRAGPipelinePublishedRunCreatePreviewAndReprocess(t *testing.T) {
 	}
 }
 
+func TestRAGPipelinePublishedRunValidatesDatasourceCredentials(t *testing.T) {
+	env := newServerTestEnv(t)
+	env.setupAndLogin()
+
+	dataset := postJSON[ragPipelineDatasetResponse](env, http.MethodPost, "/console/api/rag/pipeline/empty-dataset", nil, true, http.StatusCreated)
+	postJSON[workflowSyncResponse](env, http.MethodPost, "/console/api/rag/pipelines/"+dataset.PipelineID+"/workflows/draft", map[string]any{
+		"graph": map[string]any{
+			"nodes": []map[string]any{
+				{
+					"id": "knowledge-node",
+					"data": map[string]any{
+						"title": "Knowledge Index",
+						"type":  "knowledge-index",
+					},
+				},
+			},
+			"edges": []any{},
+		},
+	}, true, http.StatusOK)
+	postJSON[map[string]any](env, http.MethodPost, "/console/api/rag/pipelines/"+dataset.PipelineID+"/workflows/publish", map[string]any{
+		"marked_name": "published-v1",
+	}, true, http.StatusOK)
+
+	publishedRunPath := "/console/api/rag/pipelines/" + dataset.PipelineID + "/workflows/published/run"
+	onlineDocumentPayload := func(credentialID string) map[string]any {
+		info := map[string]any{
+			"workspace_id": "workspace-1",
+			"page": map[string]any{
+				"page_id":   "page-1",
+				"page_name": "Architecture Notes",
+				"type":      "page",
+			},
+		}
+		if credentialID != "" {
+			info["credential_id"] = credentialID
+		}
+		return map[string]any{
+			"pipeline_id":     dataset.PipelineID,
+			"inputs":          ragPipelineRunInputs("English", 600, true),
+			"start_node_id":   "datasource-online-document",
+			"datasource_type": "online_document",
+			"datasource_info_list": []map[string]any{
+				info,
+			},
+			"is_preview": true,
+		}
+	}
+
+	providerUnavailable := postJSON[errorResponse](env, http.MethodPost, publishedRunPath, onlineDocumentPayload("credential-missing"), true, http.StatusBadRequest)
+	if !strings.Contains(providerUnavailable.Message, "provider is not available") {
+		t.Fatalf("expected unavailable datasource provider error, got %+v", providerUnavailable)
+	}
+
+	installDatasourcePluginFromSpec(t, env, "langgenius/notion_datasource", "notion_datasource")
+	missingCredential := postJSON[errorResponse](env, http.MethodPost, publishedRunPath, onlineDocumentPayload(""), true, http.StatusBadRequest)
+	if !strings.Contains(missingCredential.Message, "credential is required") {
+		t.Fatalf("expected missing datasource credential error, got %+v", missingCredential)
+	}
+	unknownCredential := postJSON[errorResponse](env, http.MethodPost, publishedRunPath, onlineDocumentPayload("credential-missing"), true, http.StatusBadRequest)
+	if !strings.Contains(unknownCredential.Message, "credential not found") {
+		t.Fatalf("expected unknown datasource credential error, got %+v", unknownCredential)
+	}
+
+	callbackReq, err := http.NewRequest(http.MethodGet, env.server.URL+"/console/api/oauth/plugin/langgenius/notion_datasource/notion_datasource/datasource/callback?redirect_origin=http://localhost", nil)
+	if err != nil {
+		t.Fatalf("create notion datasource callback request: %v", err)
+	}
+	env.doNoRedirect(callbackReq, http.StatusFound).Body.Close()
+	credentials := getJSON[datasourceCredentialListResponse](env, "/console/api/auth/plugin/datasource/langgenius/notion_datasource/notion_datasource", true, http.StatusOK)
+	if len(credentials.Result) != 1 {
+		t.Fatalf("expected notion datasource credential, got %+v", credentials.Result)
+	}
+
+	preview := postJSON[publishedPipelineRunPreviewResponse](env, http.MethodPost, publishedRunPath, onlineDocumentPayload(credentials.Result[0].ID), true, http.StatusOK)
+	if preview.WorkflowRunID == "" || preview.Data.Status != "succeeded" {
+		t.Fatalf("expected online document preview run after credential validation, got %+v", preview)
+	}
+	if stringFromAny(preview.Data.Outputs["chunk_structure"]) == "" {
+		t.Fatalf("expected preview outputs after credential validation, got %+v", preview.Data.Outputs)
+	}
+}
+
 func TestPublicWebAppBootstrapRoutes(t *testing.T) {
 	env := newServerTestEnv(t)
 	env.setupAndLogin()
