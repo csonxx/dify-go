@@ -487,7 +487,7 @@
 
 ## 阶段 7：账号、工作区与平台集成
 
-状态：待实现
+状态：进行中（成员管理、邀请激活、基础 account features 已落地）
 
 范围：
 
@@ -508,6 +508,31 @@
 
 - 工作区成员与账号管理页面不再依赖 Python。
 - 登录周边流程和 provider auth 能从 Go 提供。
+
+本阶段已完成：
+
+- [x] `GET /console/api/features`
+- [x] `GET /console/api/account/integrates`
+- [x] `GET /console/api/account/education`
+- [x] `GET /console/api/workspaces/current/members`
+- [x] `POST /console/api/workspaces/current/members/invite-email`
+- [x] `PUT /console/api/workspaces/current/members/{memberId}/update-role`
+- [x] `DELETE /console/api/workspaces/current/members/{memberId}`
+- [x] `POST /console/api/workspaces/current/members/send-owner-transfer-confirm-email`
+- [x] `POST /console/api/workspaces/current/members/owner-transfer-check`
+- [x] `POST /console/api/workspaces/current/members/{memberId}/owner-transfer`
+- [x] `GET /console/api/activate/check`
+- [x] `POST /console/api/activate`
+
+本阶段剩余重点：
+
+- [ ] `account/init`、邀请 code 等登录补充链路
+- [ ] `email-register/send-email`、`email-register/validity`、`email-register`
+- [ ] `forgot-password`、`forgot-password/validity`
+- [ ] `account/change-email*`
+- [ ] `account/education/verify`、`POST /account/education`、`/account/education/autocomplete`
+- [ ] `oauth/provider`、`oauth/provider/authorize` 与 SSO 入口
+- [ ] 把 ownership transfer 从当前 session-gated 验证占位继续推进到真实邮件验证码链路
 
 ## 阶段 8：工程化加固与移除 Legacy
 

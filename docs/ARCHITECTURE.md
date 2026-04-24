@@ -288,6 +288,28 @@ Tools、MCP、Endpoints、Triggers 在页面上看似分散，但本质上都属
 
 等这些链路都稳定后，再把真实 daemon 语义往里替换。
 
+### 12.5 Workspace Member / Invite Activation
+
+成员域的关键设计点是把“账号”和“邀请”拆开，而不是把 pending invite 直接塞进 user 表示。
+
+当前 Go 侧采用两份状态：
+
+- `Users`
+  只表示已经真正可登录、可拿到 session 的账号。
+- `WorkspaceInvitations`
+  表示还没有激活的邮箱邀请、目标 role 和 activation token。
+
+这样做的原理是：
+
+- 成员页仍然可以直接展示 pending 状态
+- 邀请链接校验与激活可以独立闭环
+- 未激活邮箱不会污染真实登录用户集合
+- 后续接 email register / forgot-password / change-email 时边界更清楚
+
+邀请激活时，Go 会消费 invitation token，把 invitation 转成真实 user，并立即签发 console session cookies；也就是说，这条链路本质上是“状态迁移 + 登录态建立”的组合，而不是单纯的表单提交。
+
+ownership transfer 则继续建立在同一份 workspace membership 状态之上，本质是一次受控的 role mutation。当前 API 已经迁到 Go，但真正的邮件验证码投递还没有完全迁完，所以能力开关仍保持保守默认值。
+
 ## 13. Dataset 域的设计思路
 
 Dataset 是第四阶段的核心业务域之一，也是当前刚开始推进的新域。

@@ -46,6 +46,7 @@ type State struct {
 	SetupAt               string                 `json:"setup_at"`
 	Users                 []User                 `json:"users"`
 	Workspaces            []Workspace            `json:"workspaces"`
+	WorkspaceInvitations  []WorkspaceInvitation  `json:"workspace_invitations"`
 	Apps                  []App                  `json:"apps"`
 	Datasets              []Dataset              `json:"datasets"`
 	PipelineTemplates     []PipelineTemplate     `json:"pipeline_templates"`
@@ -66,6 +67,7 @@ func Open(path string) (*Store, error) {
 		state: State{
 			Users:                 []User{},
 			Workspaces:            []Workspace{},
+			WorkspaceInvitations:  []WorkspaceInvitation{},
 			Apps:                  []App{},
 			Datasets:              []Dataset{},
 			PipelineTemplates:     []PipelineTemplate{},
@@ -102,6 +104,12 @@ func Open(path string) (*Store, error) {
 	for i := range store.state.Workspaces {
 		normalizeWorkspaceModelSettings(&store.state.Workspaces[i].ModelSettings)
 		normalizeWorkspaceToolSettings(&store.state.Workspaces[i].ToolSettings)
+	}
+	if store.state.WorkspaceInvitations == nil {
+		store.state.WorkspaceInvitations = []WorkspaceInvitation{}
+	}
+	for i := range store.state.WorkspaceInvitations {
+		normalizeWorkspaceInvitation(&store.state.WorkspaceInvitations[i])
 	}
 	if store.state.Apps == nil {
 		store.state.Apps = []App{}

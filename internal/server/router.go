@@ -31,10 +31,11 @@ const userContextKey ctxKey = "user"
 const resolvedAppContextKey ctxKey = "resolved_app"
 
 type server struct {
-	cfg      config.Config
-	store    *state.Store
-	sessions *sessionManager
-	legacy   *legacyProxy
+	cfg       config.Config
+	store     *state.Store
+	sessions  *sessionManager
+	transfers *ownerTransferManager
+	legacy    *legacyProxy
 }
 
 func New(cfg config.Config) (http.Handler, error) {
@@ -49,10 +50,11 @@ func New(cfg config.Config) (http.Handler, error) {
 	}
 
 	s := &server{
-		cfg:      cfg,
-		store:    store,
-		sessions: newSessionManager(cfg.AccessTokenTTL, cfg.RefreshTokenTTL),
-		legacy:   legacy,
+		cfg:       cfg,
+		store:     store,
+		sessions:  newSessionManager(cfg.AccessTokenTTL, cfg.RefreshTokenTTL),
+		transfers: newOwnerTransferManager(),
+		legacy:    legacy,
 	}
 
 	r := chi.NewRouter()
@@ -95,17 +97,23 @@ func (s *server) consoleRoutes() http.Handler {
 	r.Post("/login", s.handleLogin)
 	r.Post("/refresh-token", s.handleRefreshToken)
 	r.With(s.withAuth).Post("/logout", s.handleLogout)
+	r.Get("/activate/check", s.handleInvitationCheck)
+	r.Post("/activate", s.handleInvitationActivate)
 
 	r.Group(func(r chi.Router) {
 		r.Use(s.withAuth)
+		r.Get("/features", s.handleFeatures)
 		r.Get("/account/profile", s.handleAccountProfile)
 		r.Get("/account/avatar", s.handleAccountAvatar)
+		r.Get("/account/integrates", s.handleAccountIntegrates)
+		r.Get("/account/education", s.handleAccountEducationStatus)
 		r.Get("/workflow/{workflowRunID}/pause-details", s.handleWorkflowPauseDetails)
 		s.mountAppRoutes(r)
 		s.mountDatasetRoutes(r)
 		r.Post("/workspaces/current", s.handleCurrentWorkspace)
 		r.Get("/workspaces", s.handleWorkspaces)
 		r.Get("/workspaces/current/permission", s.handleWorkspacePermission)
+		s.mountWorkspaceMemberRoutes(r)
 		s.mountWorkspaceModelRoutes(r)
 		s.mountWorkspaceToolRoutes(r)
 		s.mountWorkspaceExtensionRoutes(r)
@@ -422,8 +430,8 @@ func (s *server) handleAccountProfile(w http.ResponseWriter, r *http.Request) {
 		"name":               user.Name,
 		"email":              user.Email,
 		"avatar":             user.Avatar,
-		"avatar_url":         nil,
-		"is_password_set":    true,
+		"avatar_url":         nilIfEmpty(user.AvatarURL),
+		"is_password_set":    strings.TrimSpace(user.PasswordHash) != "",
 		"interface_language": user.InterfaceLanguage,
 		"interface_theme":    user.InterfaceTheme,
 		"timezone":           user.Timezone,
@@ -487,8 +495,8 @@ func (s *server) handleWorkspacePermission(w http.ResponseWriter, r *http.Reques
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
 		"workspace_id":         workspace.ID,
-		"allow_member_invite":  false,
-		"allow_owner_transfer": false,
+		"allow_member_invite":  canManageWorkspaceMembers(user.Role),
+		"allow_owner_transfer": user.Role == "owner",
 	})
 }
 

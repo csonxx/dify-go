@@ -2761,6 +2761,199 @@ func TestPublicCompletionAndAudioRoutes(t *testing.T) {
 	}
 }
 
+func TestWorkspaceMemberInvitationActivationAndFeatureRoutes(t *testing.T) {
+	env := newServerTestEnv(t)
+	env.setupAndLogin()
+
+	features := getJSON[map[string]any](env, "/console/api/features", true, http.StatusOK)
+	if enabled, ok := features["dataset_operator_enabled"].(bool); !ok || !enabled {
+		t.Fatalf("expected dataset_operator_enabled feature, got %+v", features)
+	}
+	if size := nestedInt(features, "workspace_members", "size"); size != 1 {
+		t.Fatalf("expected one initial workspace member, got %+v", features["workspace_members"])
+	}
+
+	permissions := getJSON[map[string]any](env, "/console/api/workspaces/current/permission", true, http.StatusOK)
+	if allowed, ok := permissions["allow_member_invite"].(bool); !ok || !allowed {
+		t.Fatalf("expected allow_member_invite=true, got %+v", permissions)
+	}
+
+	invite := postJSON[map[string]any](env, http.MethodPost, "/console/api/workspaces/current/members/invite-email", map[string]any{
+		"emails":   []string{"member@example.com", "pending@example.com", "tester@example.com"},
+		"role":     "editor",
+		"language": "en-US",
+	}, true, http.StatusOK)
+	results, ok := invite["invitation_results"].([]any)
+	if !ok || len(results) != 3 {
+		t.Fatalf("expected three invitation results, got %+v", invite)
+	}
+
+	var activationURL string
+	successCount := 0
+	failedCount := 0
+	for _, raw := range results {
+		item, ok := raw.(map[string]any)
+		if !ok {
+			t.Fatalf("unexpected invitation result type: %#v", raw)
+		}
+		switch item["status"] {
+		case "success":
+			successCount++
+			if email, _ := item["email"].(string); email == "member@example.com" {
+				activationURL, _ = item["url"].(string)
+			}
+		case "failed":
+			failedCount++
+		}
+	}
+	if successCount != 2 || failedCount != 1 || activationURL == "" {
+		t.Fatalf("unexpected invitation result summary: %+v", results)
+	}
+
+	members := getJSON[map[string]any](env, "/console/api/workspaces/current/members", true, http.StatusOK)
+	accounts, ok := members["accounts"].([]any)
+	if !ok || len(accounts) != 3 {
+		t.Fatalf("expected owner + two pending members, got %+v", members)
+	}
+	pendingID := accountIDByEmail(accounts, "pending@example.com")
+	if pendingID == "" {
+		t.Fatalf("expected pending invitation account, got %+v", accounts)
+	}
+
+	postJSON[map[string]any](env, http.MethodPut, "/console/api/workspaces/current/members/"+pendingID+"/update-role", map[string]any{
+		"role": "dataset_operator",
+	}, true, http.StatusOK)
+	updatedMembers := getJSON[map[string]any](env, "/console/api/workspaces/current/members", true, http.StatusOK)
+	updatedAccounts, _ := updatedMembers["accounts"].([]any)
+	if role := accountFieldByEmail(updatedAccounts, "pending@example.com", "role"); role != "dataset_operator" {
+		t.Fatalf("expected pending invitation role update, got %+v", updatedAccounts)
+	}
+
+	postJSON[map[string]any](env, http.MethodDelete, "/console/api/workspaces/current/members/"+pendingID, nil, true, http.StatusOK)
+	prunedMembers := getJSON[map[string]any](env, "/console/api/workspaces/current/members", true, http.StatusOK)
+	prunedAccounts, _ := prunedMembers["accounts"].([]any)
+	if len(prunedAccounts) != 2 {
+		t.Fatalf("expected one pending invitation to be removed, got %+v", prunedAccounts)
+	}
+
+	token := invitationToken(t, activationURL)
+	check := getJSON[map[string]any](env, "/console/api/activate/check?token="+url.QueryEscape(token), false, http.StatusOK)
+	if valid, ok := check["is_valid"].(bool); !ok || !valid {
+		t.Fatalf("expected invitation token to be valid, got %+v", check)
+	}
+	if workspaceName := nestedString(check, "data", "workspace_name"); workspaceName != "Default Workspace" {
+		t.Fatalf("unexpected invitation workspace name: %+v", check)
+	}
+
+	postJSON[map[string]any](env, http.MethodPost, "/console/api/activate", map[string]any{
+		"token":              token,
+		"name":               "Invited Member",
+		"interface_language": "zh-Hans",
+		"timezone":           "Asia/Shanghai",
+	}, false, http.StatusOK)
+
+	profile := getJSON[map[string]any](env, "/console/api/account/profile", true, http.StatusOK)
+	if email, _ := profile["email"].(string); email != "member@example.com" {
+		t.Fatalf("expected activated member profile, got %+v", profile)
+	}
+	if isPasswordSet, ok := profile["is_password_set"].(bool); !ok || isPasswordSet {
+		t.Fatalf("expected invited member to have no password set, got %+v", profile)
+	}
+
+	currentWorkspace := postJSON[map[string]any](env, http.MethodPost, "/console/api/workspaces/current", map[string]any{}, true, http.StatusOK)
+	if role, _ := currentWorkspace["role"].(string); role != "editor" {
+		t.Fatalf("expected activated member workspace role editor, got %+v", currentWorkspace)
+	}
+
+	education := getJSON[map[string]any](env, "/console/api/account/education", true, http.StatusOK)
+	if isStudent, ok := education["is_student"].(bool); !ok || isStudent {
+		t.Fatalf("expected non-student education status, got %+v", education)
+	}
+	integrates := getJSON[map[string]any](env, "/console/api/account/integrates", true, http.StatusOK)
+	if data, ok := integrates["data"].([]any); !ok || len(data) != 0 {
+		t.Fatalf("expected no bound account integrations, got %+v", integrates)
+	}
+}
+
+func TestWorkspaceOwnershipTransferAPIs(t *testing.T) {
+	env := newServerTestEnv(t)
+	env.setupAndLogin()
+
+	invite := postJSON[map[string]any](env, http.MethodPost, "/console/api/workspaces/current/members/invite-email", map[string]any{
+		"emails": []string{"new-owner@example.com"},
+		"role":   "admin",
+	}, true, http.StatusOK)
+	results, ok := invite["invitation_results"].([]any)
+	if !ok || len(results) != 1 {
+		t.Fatalf("expected one invitation result, got %+v", invite)
+	}
+	result, ok := results[0].(map[string]any)
+	if !ok {
+		t.Fatalf("unexpected invitation result payload: %#v", results[0])
+	}
+	token := invitationToken(t, stringFromAny(result["url"]))
+
+	postJSON[map[string]any](env, http.MethodPost, "/console/api/activate", map[string]any{
+		"token":              token,
+		"name":               "Next Owner",
+		"interface_language": "en-US",
+		"timezone":           "UTC",
+	}, false, http.StatusOK)
+
+	postJSON[map[string]any](env, http.MethodPost, "/console/api/login", map[string]any{
+		"email":    "tester@example.com",
+		"password": "password123",
+	}, false, http.StatusOK)
+
+	members := getJSON[map[string]any](env, "/console/api/workspaces/current/members", true, http.StatusOK)
+	accounts, _ := members["accounts"].([]any)
+	newOwnerID := accountIDByEmail(accounts, "new-owner@example.com")
+	if newOwnerID == "" {
+		t.Fatalf("expected activated member in workspace list, got %+v", accounts)
+	}
+
+	send := postJSON[map[string]any](env, http.MethodPost, "/console/api/workspaces/current/members/send-owner-transfer-confirm-email", map[string]any{}, true, http.StatusOK)
+	transferToken, _ := send["data"].(string)
+	if transferToken == "" {
+		t.Fatalf("expected owner transfer token, got %+v", send)
+	}
+
+	verify := postJSON[map[string]any](env, http.MethodPost, "/console/api/workspaces/current/members/owner-transfer-check", map[string]any{
+		"code":  "123456",
+		"token": transferToken,
+	}, true, http.StatusOK)
+	if valid, ok := verify["is_valid"].(bool); !ok || !valid {
+		t.Fatalf("expected owner transfer verification to succeed, got %+v", verify)
+	}
+	verifiedToken, _ := verify["token"].(string)
+	if verifiedToken == "" {
+		t.Fatalf("expected verified owner transfer token, got %+v", verify)
+	}
+
+	postJSON[map[string]any](env, http.MethodPost, "/console/api/workspaces/current/members/"+newOwnerID+"/owner-transfer", map[string]any{
+		"token": verifiedToken,
+	}, true, http.StatusOK)
+
+	currentWorkspace := postJSON[map[string]any](env, http.MethodPost, "/console/api/workspaces/current", map[string]any{}, true, http.StatusOK)
+	if role, _ := currentWorkspace["role"].(string); role != "admin" {
+		t.Fatalf("expected previous owner to become admin, got %+v", currentWorkspace)
+	}
+
+	updatedMembers := getJSON[map[string]any](env, "/console/api/workspaces/current/members", true, http.StatusOK)
+	updatedAccounts, _ := updatedMembers["accounts"].([]any)
+	if role := accountFieldByEmail(updatedAccounts, "tester@example.com", "role"); role != "admin" {
+		t.Fatalf("expected original owner role admin, got %+v", updatedAccounts)
+	}
+	if role := accountFieldByEmail(updatedAccounts, "new-owner@example.com", "role"); role != "owner" {
+		t.Fatalf("expected new owner role owner, got %+v", updatedAccounts)
+	}
+
+	permissions := getJSON[map[string]any](env, "/console/api/workspaces/current/permission", true, http.StatusOK)
+	if allowed, ok := permissions["allow_owner_transfer"].(bool); !ok || allowed {
+		t.Fatalf("expected transferred admin to lose owner transfer permission, got %+v", permissions)
+	}
+}
+
 func ragPipelineRunInputs(language string, chunkSize int, removeExtraSpaces bool) map[string]any {
 	return map[string]any{
 		"separator":              "\n\n",
@@ -3136,6 +3329,58 @@ func (e *serverTestEnv) csrfToken() string {
 		}
 	}
 	e.t.Fatal("csrf token cookie not found")
+	return ""
+}
+
+func nestedInt(payload map[string]any, parent, field string) int {
+	parentMap, _ := payload[parent].(map[string]any)
+	value, _ := parentMap[field].(float64)
+	return int(value)
+}
+
+func nestedString(payload map[string]any, parent, field string) string {
+	parentMap, _ := payload[parent].(map[string]any)
+	value, _ := parentMap[field].(string)
+	return value
+}
+
+func invitationToken(t *testing.T, raw string) string {
+	t.Helper()
+
+	parsed, err := url.Parse(raw)
+	if err != nil {
+		t.Fatalf("parse invitation url %q: %v", raw, err)
+	}
+	token := parsed.Query().Get("token")
+	if token == "" {
+		t.Fatalf("expected invitation token in %q", raw)
+	}
+	return token
+}
+
+func accountIDByEmail(accounts []any, email string) string {
+	for _, raw := range accounts {
+		item, ok := raw.(map[string]any)
+		if !ok {
+			continue
+		}
+		if strings.EqualFold(stringFromAny(item["email"]), email) {
+			return stringFromAny(item["id"])
+		}
+	}
+	return ""
+}
+
+func accountFieldByEmail(accounts []any, email, field string) string {
+	for _, raw := range accounts {
+		item, ok := raw.(map[string]any)
+		if !ok {
+			continue
+		}
+		if strings.EqualFold(stringFromAny(item["email"]), email) {
+			return stringFromAny(item[field])
+		}
+	}
 	return ""
 }
 

@@ -277,6 +277,12 @@ The Go server keeps Dify's existing API prefixes so the frontend can continue ca
 补充：datasource auth 相关的 `list / default-list / credential CRUD / default / custom-client / oauth authorization-url / oauth callback` 也已经切到 Go。当前实现除了把 datasource 凭证和自定义 OAuth client 配置保存在 workspace 本地状态里，还会和 workspace plugin 安装态一起决定 provider 是否对前端可见；provider 卸载后，如果没有遗留 credential 状态就会直接从 auth list 消失，如果仍有已有 credential，则会继续以 `is_installed=false` 的兼容形态保留出来。
 
 补充：RAG pipeline datasource node run 也已经迁到 Go。当前新增的 draft/published `/datasource/nodes/{nodeId}/run` SSE 兼容层已覆盖 `online_document / website_crawl / online_drive` 三类在线数据源，会结合 workspace plugin 安装态和 datasource credential 状态做基础校验，并返回前端 create-from-pipeline 已可直接消费的 notion workspace/page、website crawl result、online drive bucket/file 结构。
+
+补充：阶段 7 的第一批账号/工作区接口也已经开始切到 Go。当前 `GET /console/api/features`、`GET /console/api/account/integrates`、`GET /console/api/account/education`、`GET /console/api/workspaces/current/members`、`POST /invite-email`、`PUT /update-role`、`DELETE /members/{memberId}`、`GET /console/api/activate/check`、`POST /console/api/activate` 都已经由 Go 直接返回，前端成员页和 invite-activate 流程不再需要走 Python fallback。
+
+补充：这一批成员迁移的核心做法是把“已激活账号”和“待激活邀请”拆成两份状态。活跃账号继续保存在 `Users`，待激活链接保存在新的 `WorkspaceInvitations`，这样成员页既能展示 pending invite，又不会把未激活邮箱混进可登录用户集合；邀请链接激活时，Go 会消费 invitation token、创建真实 user、签发 console session cookies，并把 pending invite 从状态里移除。
+
+补充：ownership transfer API 也已经接到 Go，但当前仍保持谨慎兼容策略。后端已经支持 `send-owner-transfer-confirm-email / owner-transfer-check / {memberId}/owner-transfer` 这一整条 API 闭环，不过由于真实邮件验证码链路还没迁完，`/console/api/features` 暂时仍把 `is_allow_transfer_workspace` 维持为 `false`，避免前端默认把这条能力当成已完全收口的生产语义。
 - `GET /console/api/datasets/retrieval-setting`
 - `GET /console/api/datasets/process-rule`
 - `POST /console/api/datasets/indexing-estimate`
