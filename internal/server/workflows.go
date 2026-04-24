@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"net/http"
+	"sort"
 	"strings"
 	"time"
 
@@ -166,11 +167,23 @@ func (s *server) handleWorkflowDraftVariables(w http.ResponseWriter, r *http.Req
 }
 
 func (s *server) handleWorkflowDraftNodeVariables(w http.ResponseWriter, r *http.Request) {
-	if _, ok := s.currentUserApp(r); !ok {
+	app, ok := s.currentUserApp(r)
+	if !ok {
 		writeError(w, http.StatusNotFound, "app_not_found", "App not found.")
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"items": []any{}})
+
+	nodeID := strings.TrimSpace(chi.URLParam(r, "nodeID"))
+	execution, found, exists := s.store.GetWorkflowNodeRun(app.ID, app.WorkspaceID, nodeID)
+	if !exists {
+		writeError(w, http.StatusNotFound, "app_not_found", "App not found.")
+		return
+	}
+	if !found {
+		writeJSON(w, http.StatusOK, map[string]any{"items": []any{}})
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"items": inspectVarsFromNodeOutputs(execution)})
 }
 
 func (s *server) handleWorkflowDraftConversationVariablesUpdate(w http.ResponseWriter, r *http.Request) {
@@ -455,6 +468,72 @@ func buildInspectVars(items []map[string]any, kind string) []map[string]any {
 		out = append(out, inspectVar(stringValueAny(item["id"], name), prefix, name, description, []string{prefix, name}, valueType, value, true))
 	}
 	return out
+}
+
+func inspectVarsFromNodeOutputs(execution state.WorkflowNodeExecution) []map[string]any {
+	if len(execution.Outputs) == 0 {
+		return []map[string]any{}
+	}
+
+	keys := make([]string, 0, len(execution.Outputs))
+	for key := range execution.Outputs {
+		if strings.TrimSpace(key) != "" {
+			keys = append(keys, key)
+		}
+	}
+	sort.Strings(keys)
+
+	items := make([]map[string]any, 0, len(keys))
+	for _, key := range keys {
+		value := execution.Outputs[key]
+		items = append(items, inspectVar(
+			execution.NodeID+"."+key,
+			"node",
+			key,
+			"Output from "+firstImportValue(execution.Title, execution.NodeID),
+			[]string{execution.NodeID, key},
+			inspectValueType(value),
+			value,
+			false,
+		))
+	}
+	return items
+}
+
+func inspectValueType(value any) string {
+	switch typed := value.(type) {
+	case bool:
+		return "boolean"
+	case int, int8, int16, int32, int64:
+		return "integer"
+	case uint, uint8, uint16, uint32, uint64:
+		return "integer"
+	case float32, float64:
+		return "number"
+	case []any:
+		if len(typed) == 0 {
+			return "array"
+		}
+		return "array[" + inspectArrayValueType(typed) + "]"
+	case []map[string]any:
+		return "array[object]"
+	case map[string]any:
+		return "object"
+	case nil:
+		return "any"
+	default:
+		return "string"
+	}
+}
+
+func inspectArrayValueType(items []any) string {
+	valueType := inspectValueType(items[0])
+	switch valueType {
+	case "string", "number", "integer", "boolean", "object", "file", "any":
+		return valueType
+	default:
+		return "any"
+	}
 }
 
 func inspectVar(id, kind, name, description string, selector []string, valueType string, value any, edited bool) map[string]any {

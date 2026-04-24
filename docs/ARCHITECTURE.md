@@ -402,6 +402,18 @@ Dataset 是第四阶段的核心业务域之一，也是当前刚开始推进的
 - 后续可在不改前端的情况下逐步增强真实语义
 - RAG pipeline 的后续迁移有了可复用的数据底座
 
+### 13.4 RAG pipeline 与 dataset / workflow 的共享状态
+
+RAG pipeline 在 Go 侧不是一套孤立接口，而是 dataset 与 workflow app 的组合视图：
+
+- dataset 保存知识库元数据、文档、索引状态和 pipeline execution log
+- workflow app 保存 draft / published graph、节点运行结果和 workflow run history
+- pipeline API 负责把 `pipelineId` 解析到底层 workflow app，再把 linked dataset 的状态同步进去
+
+这条边界让 create-from-pipeline 的页面可以继续沿用上游前端逻辑：选择 datasource 时写入 datasource node last-run，变量检查面板从同一个 node outputs 派生 inspect vars，正式 published run 再把 datasource / processing inputs 落到 dataset document 和 workflow run history。
+
+它的设计原则是“同一个业务事实只落一份 Go 状态”。例如 knowledge-index 节点里的 chunk / retrieval / embedding 配置会同步回 linked dataset；publish / copy / delete 这类 app 生命周期也会同步影响 pipeline dataset。这样 pipeline editor、dataset detail、document processing 页面和 tracing panel 不会各自维护一套互相漂移的兼容状态。
+
 ## 14. 为什么坚持“前端不动”
 
 这是整个项目最关键的工程策略之一。

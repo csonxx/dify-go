@@ -278,6 +278,8 @@ The Go server keeps Dify's existing API prefixes so the frontend can continue ca
 
 补充：RAG pipeline datasource node run 也已经迁到 Go。当前新增的 draft/published `/datasource/nodes/{nodeId}/run` SSE 兼容层已覆盖 `online_document / website_crawl / online_drive` 三类在线数据源，会结合 workspace plugin 安装态和 datasource credential 状态做基础校验，并返回前端 create-from-pipeline 已可直接消费的 notion workspace/page、website crawl result、online drive bucket/file 结构。
 
+补充：RAG pipeline draft datasource 的 `/workflows/draft/datasource/variables-inspect` 也已经迁到 Go。前端单跑 datasource 节点时会拿到标准 `NodeRunResult`，Go 会同步把 datasource outputs 保存为该节点 last-run，并让 `/workflows/draft/nodes/{nodeId}/variables` 从 last-run outputs 生成变量检查项，使数据源选择、节点最近运行结果和变量面板共享同一份状态。
+
 补充：阶段 7 的第一批账号/工作区接口也已经开始切到 Go。当前 `GET /console/api/features`、`GET /console/api/account/integrates`、`GET /console/api/account/education`、`GET /console/api/workspaces/current/members`、`POST /invite-email`、`PUT /update-role`、`DELETE /members/{memberId}`、`GET /console/api/activate/check`、`POST /console/api/activate` 都已经由 Go 直接返回，前端成员页和 invite-activate 流程不再需要走 Python fallback。
 
 补充：这一批成员迁移的核心做法是把“已激活账号”和“待激活邀请”拆成两份状态。活跃账号继续保存在 `Users`，待激活链接保存在新的 `WorkspaceInvitations`，这样成员页既能展示 pending invite，又不会把未激活邮箱混进可登录用户集合；邀请链接激活时，Go 会消费 invitation token、创建真实 user、签发 console session cookies，并把 pending invite 从状态里移除。

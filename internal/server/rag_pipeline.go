@@ -52,6 +52,7 @@ func (s *server) mountRAGPipelineRoutes(r chi.Router) {
 		r.Post("/workflows/draft/run", s.handleWorkflowDraftRun)
 		r.Post("/workflows/draft/trigger/run", s.handleWorkflowDraftTriggerRun)
 		r.Post("/workflows/draft/trigger/run-all", s.handleWorkflowDraftTriggerRunAll)
+		r.Post("/workflows/draft/datasource/variables-inspect", s.handleRAGPipelineDraftDatasourceVariablesInspect)
 		r.Post("/workflows/draft/datasource/nodes/{nodeID}/run", s.handleRAGPipelineDraftDatasourceNodeRun)
 		r.Get("/workflows/draft/pre-processing/parameters", s.handleRAGPipelineDraftPreProcessingParameters)
 		r.Get("/workflows/draft/processing/parameters", s.handleRAGPipelineDraftProcessingParameters)

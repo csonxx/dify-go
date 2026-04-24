@@ -824,7 +824,7 @@ func TestCreateEmptyRAGPipelineDatasetAndDraftAliases(t *testing.T) {
 	sync := postJSON[workflowSyncResponse](env, http.MethodPost, "/console/api/rag/pipelines/"+dataset.PipelineID+"/workflows/draft", map[string]any{
 		"graph": map[string]any{
 			"nodes": []map[string]any{
-				{"id": "source-node", "data": map[string]any{"title": "Source"}},
+				{"id": "source-node", "data": map[string]any{"type": "datasource", "title": "Source"}},
 				{"id": "process-node", "data": map[string]any{"title": "Process"}},
 			},
 			"edges":    []any{},
@@ -866,6 +866,37 @@ func TestCreateEmptyRAGPipelineDatasetAndDraftAliases(t *testing.T) {
 	}
 	if stringFromAny(processing.Variables[0]["variable"]) != "shared_query" || stringFromAny(processing.Variables[1]["variable"]) != "chunk_size" {
 		t.Fatalf("unexpected processing variables: %+v", processing.Variables)
+	}
+
+	inspectRun := postJSON[map[string]any](env, http.MethodPost, "/console/api/rag/pipelines/"+dataset.PipelineID+"/workflows/draft/datasource/variables-inspect", map[string]any{
+		"start_node_id":    "source-node",
+		"start_node_title": "Source",
+		"datasource_type":  "local_file",
+		"datasource_info": map[string]any{
+			"related_id": "file-123",
+			"name":       "pipeline-source.md",
+			"extension":  "md",
+			"mime_type":  "text/markdown",
+			"size":       42,
+		},
+	}, true, http.StatusOK)
+	if stringFromAny(inspectRun["status"]) != "succeeded" || stringFromAny(inspectRun["node_type"]) != "datasource" {
+		t.Fatalf("unexpected datasource variables inspect run: %+v", inspectRun)
+	}
+	outputs := mapFromAny(inspectRun["outputs"])
+	if stringFromAny(outputs["datasource_type"]) != "local_file" || stringFromAny(outputs["related_id"]) != "file-123" {
+		t.Fatalf("expected datasource inspect outputs to expose local file info, got %+v", outputs)
+	}
+
+	nodeVars := getJSON[map[string]any](env, "/console/api/rag/pipelines/"+dataset.PipelineID+"/workflows/draft/nodes/source-node/variables", true, http.StatusOK)
+	relatedIDVar := inspectVarByName(t, objectListFromAny(nodeVars["items"]), "related_id")
+	if stringFromAny(relatedIDVar["value"]) != "file-123" || stringFromAny(relatedIDVar["value_type"]) != "string" {
+		t.Fatalf("expected source-node inspect vars to expose related_id, got %+v", relatedIDVar)
+	}
+
+	lastRun := getJSON[map[string]any](env, "/console/api/rag/pipelines/"+dataset.PipelineID+"/workflows/draft/nodes/source-node/last-run", true, http.StatusOK)
+	if stringFromAny(mapFromAny(lastRun["outputs"])["related_id"]) != "file-123" {
+		t.Fatalf("expected datasource variables inspect run to persist node last-run, got %+v", lastRun)
 	}
 }
 
@@ -3920,6 +3951,19 @@ func findDatasourcePluginItem(t *testing.T, items []map[string]any, pluginID str
 	}
 
 	t.Fatalf("expected datasource plugin item %s in %+v", pluginID, items)
+	return nil
+}
+
+func inspectVarByName(t *testing.T, items []map[string]any, name string) map[string]any {
+	t.Helper()
+
+	for _, item := range items {
+		if stringFromAny(item["name"]) == name {
+			return item
+		}
+	}
+
+	t.Fatalf("expected inspect var %s in %+v", name, items)
 	return nil
 }
 

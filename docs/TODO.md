@@ -400,6 +400,7 @@
 - [x] `/rag/pipelines/{pipelineId}/workflows/published/pre-processing/parameters`
 - [x] `/rag/pipelines/{pipelineId}/workflows/draft/processing/parameters`
 - [x] `/rag/pipelines/{pipelineId}/workflows/published/processing/parameters`
+- [x] `/rag/pipelines/{pipelineId}/workflows/draft/datasource/variables-inspect`
 - [x] `/rag/pipelines/{pipelineId}/workflows/draft/datasource/nodes/{nodeId}/run`
 - [x] `/rag/pipelines/{pipelineId}/workflows/published/datasource/nodes/{nodeId}/run`
 - [x] `/rag/pipelines/{pipelineId}/workflows/published/run`
@@ -427,6 +428,7 @@
 - console workflow stop 现在也开始有真实语义了：`/apps/{appId}/workflow-runs/tasks/{taskId}/stop` 和 `/rag/pipelines/{pipelineId}/workflow-runs/tasks/{taskId}/stop` 会把已持久化的 run 与 node execution 改成 `stopped`，并且在 run history/detail 一起暴露 `task_id`；如果这是 RAG pipeline 的 create/reprocess run，还会把 linked dataset document/batch 一并落到 `paused + stopped_at`，避免 processing 页和 run trace 各说各话。
 - Published run 创建/重处理出来的 dataset document 现在不再直接落成 `completed`，而是会先进入 `waiting`，再通过 Go 侧统一的 document processing 状态推进器在 `document detail / document list / document indexing-status / batch indexing-status` 这些读路径上推进到 `parsing / cleaning / splitting / indexing / completed`；这样 create-from-pipeline 的 processing 页面、文档详情页和普通知识库文档列表看到的是同一条状态流。
 - datasource node run 现在也已经切到 Go，补上了 draft/published 两套 `/datasource/nodes/{nodeId}/run` SSE 兼容接口，当前覆盖 `online_document / website_crawl / online_drive` 三类节点，create-from-pipeline 的在线数据源选择页不再需要走 Python fallback。
+- draft datasource `variables-inspect` 现在也已经接入 Go：前端在 create-from-pipeline 里单跑 datasource 节点时，会得到 `NodeRunResult`，Go 同时把 datasource outputs 保存成该节点 last-run，并让 `/workflows/draft/nodes/{nodeId}/variables` 从 last-run outputs 生成变量检查项，数据源选择、节点 last run 和变量面板不再割裂。
 - `/rag/pipelines/datasource-plugins` 现在会按 workspace plugin 安装态返回 datasource catalog：`local_file` 始终内建可用，其它 `online_document / website_crawl / online_drive` provider 只有在工作区已安装对应 plugin，或工作区里已经存在旧的 datasource credential / OAuth client 状态时才会继续暴露；这样前端 block selector、plugin install/uninstall、既有授权状态可以共用一套发现语义。
 - datasource auth 相关的 `list / default-list / credential CRUD / default / custom-client / oauth authorization-url / oauth callback` 也已经切到 Go，当前除了把 datasource 凭证和自定义 OAuth client 配置保存在 workspace 本地状态里，还会与 workspace plugin 安装态联动；provider 卸载后如果没有遗留 credential 状态会直接从 auth 列表消失，如果仍有既有 credential 则会以 `is_installed=false` 的兼容姿态继续可见，避免把历史工作区状态直接“藏掉”。
 - RAG pipeline dataset 与底层 workflow app 的名称、描述、图标元数据现在也已经开始共用一份 Go 状态：`PATCH /datasets/{id}` 会同步回写 `/apps/{pipelineId}`，`PUT /apps/{pipelineId}` 也会反向更新 dataset 的 `name / description / icon_info`，避免 pipeline 编辑器、dataset 详情、app detail 看到不同步的元数据。

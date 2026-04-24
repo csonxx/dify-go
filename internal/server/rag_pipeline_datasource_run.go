@@ -4,6 +4,7 @@ import (
 	"net/http"
 	neturl "net/url"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 
@@ -16,6 +17,75 @@ func (s *server) handleRAGPipelineDraftDatasourceNodeRun(w http.ResponseWriter, 
 
 func (s *server) handleRAGPipelinePublishedDatasourceNodeRun(w http.ResponseWriter, r *http.Request) {
 	s.handleRAGPipelineDatasourceNodeRun(w, r, false)
+}
+
+func (s *server) handleRAGPipelineDraftDatasourceVariablesInspect(w http.ResponseWriter, r *http.Request) {
+	app, ok := s.currentUserApp(r)
+	if !ok {
+		writeError(w, http.StatusNotFound, "app_not_found", "App not found.")
+		return
+	}
+	if !isWorkflowApp(app) {
+		writeError(w, http.StatusBadRequest, "invalid_request", "Workflow is not enabled for this app.")
+		return
+	}
+	if app.WorkflowDraft == nil {
+		writeError(w, http.StatusNotFound, "draft_workflow_not_exist", "Draft workflow does not exist.")
+		return
+	}
+
+	payload, err := decodeJSONObjectBody(r)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_request", "Invalid JSON payload.")
+		return
+	}
+
+	datasourceType := strings.TrimSpace(stringFromAny(payload["datasource_type"]))
+	if datasourceType == "" {
+		writeError(w, http.StatusBadRequest, "invalid_request", "Datasource type is required.")
+		return
+	}
+	datasourceInfo := mapFromAny(payload["datasource_info"])
+	if len(datasourceInfo) == 0 {
+		writeError(w, http.StatusBadRequest, "invalid_request", "Datasource info is required.")
+		return
+	}
+
+	nodeID := firstImportValue(strings.TrimSpace(stringFromAny(payload["start_node_id"])), ragPipelineDatasourceNodeID(datasourceType))
+	title := firstImportValue(strings.TrimSpace(stringFromAny(payload["start_node_title"])), workflowNodeDefinition(app.WorkflowDraft.Graph, nodeID).Title)
+	now := time.Now()
+	execution := state.WorkflowNodeExecution{
+		ID:                runtimeID("node"),
+		Index:             0,
+		PredecessorNodeID: "",
+		NodeID:            nodeID,
+		NodeType:          "datasource",
+		Title:             title,
+		Inputs: map[string]any{
+			"datasource_type": datasourceType,
+			"datasource_info": cloneJSONObject(datasourceInfo),
+		},
+		ProcessData: map[string]any{
+			"summary":         "Datasource variables inspected.",
+			"mode":            "datasource-variables-inspect",
+			"datasource_type": datasourceType,
+		},
+		Outputs:     datasourceVariablesInspectOutputs(datasourceType, datasourceInfo),
+		Status:      "succeeded",
+		ElapsedTime: 0.08,
+		TotalTokens: 0,
+		TotalPrice:  0,
+		Currency:    "USD",
+		CreatedAt:   now.UTC().Unix(),
+		FinishedAt:  now.UTC().Unix(),
+		CreatedBy:   currentUser(r).ID,
+	}
+	if _, err := s.store.SaveWorkflowNodeRun(app.ID, app.WorkspaceID, currentUser(r), execution, now); err != nil {
+		writeError(w, http.StatusInternalServerError, "internal_error", "Failed to persist datasource variables.")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, s.nodeTracingResponse(execution))
 }
 
 func (s *server) handleRAGPipelineDatasourceNodeRun(w http.ResponseWriter, r *http.Request, isDraft bool) {
@@ -106,6 +176,41 @@ type datasourceNodeRunContext struct {
 	Inputs         map[string]any
 	Spec           ragPipelineDatasourceProviderSpec
 	Credential     state.WorkspaceDatasourceCredential
+}
+
+func datasourceVariablesInspectOutputs(datasourceType string, datasourceInfo map[string]any) map[string]any {
+	info := cloneJSONObject(datasourceInfo)
+	outputs := map[string]any{
+		"datasource_type":      datasourceType,
+		"datasource_info":      info,
+		"datasource_info_list": []map[string]any{info},
+	}
+	switch strings.TrimSpace(datasourceType) {
+	case "local_file":
+		outputs["related_id"] = firstImportValue(stringFromAny(info["related_id"]), stringFromAny(info["id"]))
+		outputs["name"] = stringFromAny(info["name"])
+		outputs["extension"] = stringFromAny(info["extension"])
+		outputs["mime_type"] = stringFromAny(info["mime_type"])
+		outputs["size"] = info["size"]
+	case "online_document":
+		outputs["workspace_id"] = stringFromAny(info["workspace_id"])
+		outputs["page"] = cloneJSONObject(mapFromAny(info["page"]))
+		outputs["credential_id"] = stringFromAny(info["credential_id"])
+	case "website_crawl":
+		outputs["title"] = firstImportValue(stringFromAny(info["title"]), datasourceWebsiteTitle(stringFromAny(info["source_url"])))
+		outputs["source_url"] = stringFromAny(info["source_url"])
+		outputs["description"] = stringFromAny(info["description"])
+		outputs["content"] = firstImportValue(stringFromAny(info["content"]), stringFromAny(info["markdown"]))
+		outputs["credential_id"] = stringFromAny(info["credential_id"])
+	case "online_drive":
+		outputs["id"] = stringFromAny(info["id"])
+		outputs["type"] = stringFromAny(info["type"])
+		outputs["bucket"] = info["bucket"]
+		outputs["name"] = stringFromAny(info["name"])
+		outputs["size"] = info["size"]
+		outputs["credential_id"] = stringFromAny(info["credential_id"])
+	}
+	return outputs
 }
 
 func (s *server) datasourceNodeRunEvents(ctx datasourceNodeRunContext) []map[string]any {
