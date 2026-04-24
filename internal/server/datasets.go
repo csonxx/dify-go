@@ -1379,35 +1379,34 @@ func (s *server) fetchDatasetExternalHitTestingRecords(r *http.Request, dataset 
 		return nil, fmt.Errorf("%s", message)
 	}
 
-	var response struct {
-		Records []struct {
-			Content  string         `json:"content"`
-			Title    string         `json:"title"`
-			Score    *float64       `json:"score"`
-			Metadata map[string]any `json:"metadata"`
-		} `json:"records"`
-	}
+	var response map[string]any
 	if err := json.Unmarshal(responseBody, &response); err != nil {
 		return nil, fmt.Errorf("Invalid external knowledge API response.")
 	}
+	responseRecords, ok := externalRetrievalResponseItems(response)
+	if !ok {
+		return nil, fmt.Errorf("Invalid external knowledge API response.")
+	}
 
-	records := make([]map[string]any, 0, len(response.Records))
-	for _, item := range response.Records {
-		if model.ScoreThresholdEnabled && item.Score != nil && *item.Score < model.ScoreThreshold {
+	records := make([]map[string]any, 0, len(responseRecords))
+	for _, item := range responseRecords {
+		score, hasScore := externalRetrievalRecordScore(item)
+		if model.ScoreThresholdEnabled && hasScore && score < model.ScoreThreshold {
 			continue
 		}
+		metadata := externalRetrievalRecordMetadata(item)
 
 		record := map[string]any{
-			"content":  item.Content,
-			"title":    externalHitTestingRecordTitle(dataset, item.Title, item.Metadata),
+			"content":  externalRetrievalRecordContent(item),
+			"title":    externalHitTestingRecordTitle(dataset, externalRetrievalRecordTitle(item), metadata),
 			"score":    nil,
 			"metadata": nil,
 		}
-		if item.Score != nil {
-			record["score"] = *item.Score
+		if hasScore {
+			record["score"] = score
 		}
-		if len(item.Metadata) > 0 {
-			record["metadata"] = item.Metadata
+		if len(metadata) > 0 {
+			record["metadata"] = metadata
 		}
 		records = append(records, record)
 		if len(records) >= model.TopK {
@@ -1416,6 +1415,104 @@ func (s *server) fetchDatasetExternalHitTestingRecords(r *http.Request, dataset 
 	}
 
 	return records, nil
+}
+
+func externalRetrievalResponseItems(response map[string]any) ([]map[string]any, bool) {
+	for _, key := range []string{"records", "retrievalResults", "retrieval_results", "results"} {
+		if value, exists := response[key]; exists {
+			return objectListFromAny(value), true
+		}
+	}
+	if value, exists := response["data"]; exists {
+		if data := mapFromAny(value); len(data) > 0 {
+			for _, key := range []string{"records", "retrievalResults", "retrieval_results", "results"} {
+				if nested, nestedExists := data[key]; nestedExists {
+					return objectListFromAny(nested), true
+				}
+			}
+			return nil, false
+		}
+		return objectListFromAny(value), true
+	}
+	return nil, false
+}
+
+func externalRetrievalRecordContent(item map[string]any) string {
+	if content := strings.TrimSpace(stringFromAny(item["content"])); content != "" {
+		return content
+	}
+	for _, key := range []string{"content", "document", "chunk"} {
+		if value := externalRetrievalTextFromMap(mapFromAny(item[key])); value != "" {
+			return value
+		}
+	}
+	return firstNonEmpty(
+		stringFromAny(item["text"]),
+		stringFromAny(item["page_content"]),
+		stringFromAny(item["snippet"]),
+		stringFromAny(item["answer"]),
+	)
+}
+
+func externalRetrievalTextFromMap(value map[string]any) string {
+	if len(value) == 0 {
+		return ""
+	}
+	return firstNonEmpty(
+		stringFromAny(value["text"]),
+		stringFromAny(value["content"]),
+		stringFromAny(value["page_content"]),
+		stringFromAny(value["snippet"]),
+	)
+}
+
+func externalRetrievalRecordTitle(item map[string]any) string {
+	return firstNonEmpty(
+		stringFromAny(item["title"]),
+		stringFromAny(item["name"]),
+		stringFromAny(item["source"]),
+		stringFromAny(item["source_url"]),
+		stringFromAny(item["url"]),
+	)
+}
+
+func externalRetrievalRecordScore(item map[string]any) (float64, bool) {
+	for _, key := range []string{"score", "relevance_score", "similarity"} {
+		if score, ok := numberValue(item[key]); ok {
+			return score, true
+		}
+	}
+	return 0, false
+}
+
+func externalRetrievalRecordMetadata(item map[string]any) map[string]any {
+	metadata := cloneJSONObject(mapFromAny(item["metadata"]))
+	if source := externalRetrievalLocationSource(mapFromAny(item["location"])); source != "" {
+		if strings.TrimSpace(stringFromAny(metadata["x-amz-bedrock-kb-source-uri"])) == "" {
+			metadata["x-amz-bedrock-kb-source-uri"] = source
+		}
+		if strings.TrimSpace(stringFromAny(metadata["source"])) == "" {
+			metadata["source"] = source
+		}
+	}
+	return metadata
+}
+
+func externalRetrievalLocationSource(location map[string]any) string {
+	if len(location) == 0 {
+		return ""
+	}
+	for _, key := range []string{"uri", "url", "source", "source_url"} {
+		if source := strings.TrimSpace(stringFromAny(location[key])); source != "" {
+			return source
+		}
+	}
+	for _, value := range location {
+		if source := externalRetrievalLocationSource(mapFromAny(value)); source != "" {
+			return source
+		}
+	}
+	return ""
 }
 
 func escapeDatasetHitTestingSearchQuery(query string) string {
@@ -1428,6 +1525,12 @@ func externalHitTestingRecordTitle(dataset state.Dataset, title string, metadata
 		return title
 	}
 	if source := strings.TrimSpace(stringFromAny(metadata["x-amz-bedrock-kb-source-uri"])); source != "" {
+		return source
+	}
+	if source := strings.TrimSpace(stringFromAny(metadata["source_url"])); source != "" {
+		return source
+	}
+	if source := strings.TrimSpace(stringFromAny(metadata["url"])); source != "" {
 		return source
 	}
 	if source := strings.TrimSpace(stringFromAny(metadata["source"])); source != "" {

@@ -696,6 +696,79 @@ func TestExternalDatasetHitTestingUsesExternalAPIContract(t *testing.T) {
 	}
 }
 
+func TestExternalDatasetHitTestingParsesBedrockRetrievalResults(t *testing.T) {
+	env := newServerTestEnv(t)
+	env.setupAndLogin()
+
+	externalKnowledgeServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"retrievalResults": []map[string]any{
+				{
+					"content": map[string]any{
+						"text": "bedrock policy primary result",
+					},
+					"score": 0.91,
+					"location": map[string]any{
+						"s3Location": map[string]any{
+							"uri": "s3://kb/policy.md",
+						},
+					},
+					"metadata": map[string]any{
+						"category": "policy",
+					},
+				},
+				{
+					"content": map[string]any{
+						"text": "bedrock policy low score result",
+					},
+					"score": 0.43,
+					"location": map[string]any{
+						"webLocation": map[string]any{
+							"url": "https://example.com/low-score",
+						},
+					},
+				},
+			},
+		})
+	}))
+	defer externalKnowledgeServer.Close()
+
+	api := postJSON[externalKnowledgeAPIResponse](env, http.MethodPost, "/console/api/datasets/external-knowledge-api", map[string]any{
+		"name": "Bedrock External KB",
+		"settings": map[string]any{
+			"endpoint": externalKnowledgeServer.URL,
+			"api_key":  "secret-token",
+		},
+	}, true, http.StatusCreated)
+	dataset := postJSON[datasetCreateResponse](env, http.MethodPost, "/console/api/datasets/external", map[string]any{
+		"name":                      "Bedrock Dataset",
+		"external_knowledge_id":     "kb-bedrock",
+		"external_knowledge_api_id": api.ID,
+		"external_retrieval_model": map[string]any{
+			"top_k":                   3,
+			"score_threshold":         0.5,
+			"score_threshold_enabled": true,
+		},
+	}, true, http.StatusCreated)
+
+	hitResult := postJSON[externalDatasetHitTestingResponse](env, http.MethodPost, "/console/api/datasets/"+dataset.ID+"/external-hit-testing", map[string]any{
+		"query": "policy",
+	}, true, http.StatusOK)
+	if len(hitResult.Records) != 1 {
+		t.Fatalf("expected bedrock score threshold to keep one record, got %+v", hitResult.Records)
+	}
+	if hitResult.Records[0].Content != "bedrock policy primary result" {
+		t.Fatalf("expected bedrock content.text to map to content, got %+v", hitResult.Records[0])
+	}
+	if hitResult.Records[0].Title != "s3://kb/policy.md" {
+		t.Fatalf("expected bedrock location uri to become title fallback, got %+v", hitResult.Records[0])
+	}
+	if hitResult.Records[0].Metadata["category"] != "policy" || hitResult.Records[0].Metadata["x-amz-bedrock-kb-source-uri"] != "s3://kb/policy.md" {
+		t.Fatalf("expected bedrock metadata and source uri to be preserved, got %+v", hitResult.Records[0].Metadata)
+	}
+}
+
 func TestExternalDatasetHitTestingValidatesQuery(t *testing.T) {
 	env := newServerTestEnv(t)
 	env.setupAndLogin()

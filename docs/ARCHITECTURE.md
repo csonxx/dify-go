@@ -395,6 +395,7 @@ Dataset 是第四阶段的核心业务域之一，也是当前刚开始推进的
 - 文档创建后即可持久化为 Go 侧状态
 - 索引状态先用简化生命周期表达
 - hit testing 先走轻量检索与记录落库
+- external hit testing 先统一请求契约，再逐步补 provider-specific response parser
 
 这样做的收益是：
 
