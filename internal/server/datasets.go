@@ -145,7 +145,7 @@ func (s *server) handleDatasetIndexingEstimate(w http.ResponseWriter, r *http.Re
 
 func (s *server) handleDatasetAPIBaseInfo(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{
-		"api_base_url": "http://localhost:5001/v1/datasets",
+		"api_base_url": requestBaseURL(r) + "/v1/datasets",
 	})
 }
 

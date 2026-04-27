@@ -330,7 +330,7 @@
 - [ ] 把批量导入、外部知识库命中链路继续从兼容壳推进到更贴近上游的真实语义
   当前 `external-hit-testing` 已经按上游契约请求外部 `endpoint/retrieval`，会透传 `knowledge_id`、`top_k`、`score_threshold`，并补上 query 校验、HTTP 集成测试，以及 Bedrock 风格 `retrievalResults / content.text / location.*` 响应解析
 - [ ] 收敛 dataset service API、索引状态流转、命中测试记录与后续 pipeline 之间的共享模型
-  当前已经支持 console/public 本地上传、`remote-files/upload`、以及 hit-testing 记录里的 `attachment_ids -> image_query -> file_info/source_url` 回写链路
+  当前已经支持 console/public 本地上传、`remote-files/upload`、hit-testing 记录里的 `attachment_ids -> image_query -> file_info/source_url` 回写链路，以及 dataset service API 的动态 base URL、workspace API key CRUD、dataset enable/disable 状态回写
 - [ ] 继续压缩知识库详情页剩余 fallback，优先补 provider-specific external retrieval 和 remote file 行为
   当前 external retrieval response parser 已经支持标准 `records`、`retrievalResults`、`retrieval_results`、`results` 和 `data` 包装，并把 AWS Bedrock location uri/url 合并进 metadata/title fallback
 - [ ] 为 dataset metadata / segments / child chunks 增加更系统的集成测试覆盖

@@ -568,6 +568,56 @@ func TestDatasetMetadataSegmentsChildChunksAndBatchImportFlows(t *testing.T) {
 	}
 }
 
+func TestDatasetServiceAPIKeysAndBaseInfo(t *testing.T) {
+	env := newServerTestEnv(t)
+	env.setupAndLogin()
+
+	baseInfo := getJSONWithHeaders[map[string]any](env, "/console/api/datasets/api-base-info", map[string]string{
+		"X-Forwarded-Proto": "https",
+	}, http.StatusOK)
+	apiBaseURL := stringFromAny(baseInfo["api_base_url"])
+	if !strings.HasPrefix(apiBaseURL, "https://") || !strings.HasSuffix(apiBaseURL, "/v1/datasets") {
+		t.Fatalf("expected dataset api base url to follow request base url, got %+v", baseInfo)
+	}
+
+	initialKeys := getJSON[map[string]any](env, "/console/api/datasets/api-keys", true, http.StatusOK)
+	if len(objectListFromAny(initialKeys["data"])) != 0 {
+		t.Fatalf("expected no dataset api keys initially, got %+v", initialKeys)
+	}
+
+	createdKey := postJSON[map[string]any](env, http.MethodPost, "/console/api/datasets/api-keys", nil, true, http.StatusCreated)
+	keyID := stringFromAny(createdKey["id"])
+	if keyID == "" || !strings.HasPrefix(stringFromAny(createdKey["token"]), "dataset-") {
+		t.Fatalf("unexpected dataset api key create response: %+v", createdKey)
+	}
+	keysAfterCreate := getJSON[map[string]any](env, "/console/api/datasets/api-keys", true, http.StatusOK)
+	keyItems := objectListFromAny(keysAfterCreate["data"])
+	if len(keyItems) != 1 || stringFromAny(keyItems[0]["id"]) != keyID {
+		t.Fatalf("expected created dataset api key in list, got %+v", keysAfterCreate)
+	}
+
+	dataset := postJSON[datasetCreateResponse](env, http.MethodPost, "/console/api/datasets", map[string]any{
+		"name":        "Dataset Service API",
+		"description": "integration test",
+	}, true, http.StatusCreated)
+	postJSON[map[string]any](env, http.MethodPost, "/console/api/datasets/"+dataset.ID+"/api-keys/enable", nil, true, http.StatusOK)
+	enabledDetail := getJSON[map[string]any](env, "/console/api/datasets/"+dataset.ID, true, http.StatusOK)
+	if enabled, ok := enabledDetail["enable_api"].(bool); !ok || !enabled {
+		t.Fatalf("expected dataset api to be enabled, got %+v", enabledDetail)
+	}
+	postJSON[map[string]any](env, http.MethodPost, "/console/api/datasets/"+dataset.ID+"/api-keys/disable", nil, true, http.StatusOK)
+	disabledDetail := getJSON[map[string]any](env, "/console/api/datasets/"+dataset.ID, true, http.StatusOK)
+	if enabled, ok := disabledDetail["enable_api"].(bool); !ok || enabled {
+		t.Fatalf("expected dataset api to be disabled, got %+v", disabledDetail)
+	}
+
+	postJSON[map[string]any](env, http.MethodDelete, "/console/api/datasets/api-keys/"+keyID, nil, true, http.StatusNoContent)
+	keysAfterDelete := getJSON[map[string]any](env, "/console/api/datasets/api-keys", true, http.StatusOK)
+	if len(objectListFromAny(keysAfterDelete["data"])) != 0 {
+		t.Fatalf("expected dataset api key delete to remove key, got %+v", keysAfterDelete)
+	}
+}
+
 func TestExternalDatasetHitTestingUsesExternalAPIContract(t *testing.T) {
 	env := newServerTestEnv(t)
 	env.setupAndLogin()

@@ -384,7 +384,7 @@ Dataset 是第四阶段的核心业务域之一，也是当前刚开始推进的
 - 文档列表、详情、索引状态和基础批量动作
 - process rule、indexing estimate 的兼容实现
 - hit testing 与 testing records
-- use-check、related apps、dataset service API 的基础接口
+- use-check、related apps、dataset service API 的 key 与 enable 状态
 
 其原理是先让知识库页面具备“看得见、建得出、点得进、能做基础操作”的能力，再继续补 metadata、segments、external knowledge、pipeline execution log 等更深层链路。
 
