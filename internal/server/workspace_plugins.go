@@ -737,11 +737,33 @@ func (s *server) handlePluginPermissionFetch(w http.ResponseWriter, r *http.Requ
 }
 
 func (s *server) handlePluginDynamicOptions(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]any{"options": []any{}})
+	workspace, ok := s.currentUserWorkspace(r)
+	if !ok {
+		writeError(w, http.StatusNotFound, "workspace_not_found", "Workspace not found.")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"options": s.pluginDynamicOptions(workspace, pluginDynamicOptionsRequestFromQuery(r)),
+	})
 }
 
 func (s *server) handlePluginDynamicOptionsWithCredentials(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]any{"options": []any{}})
+	workspace, ok := s.currentUserWorkspace(r)
+	if !ok {
+		writeError(w, http.StatusNotFound, "workspace_not_found", "Workspace not found.")
+		return
+	}
+
+	request, err := decodePluginDynamicOptionsRequest(r)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_request", "Invalid JSON payload.")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"options": s.pluginDynamicOptions(workspace, request),
+	})
 }
 
 func (s *server) handlePluginPreferencesChange(w http.ResponseWriter, r *http.Request) {

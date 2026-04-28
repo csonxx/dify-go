@@ -184,6 +184,10 @@ type datasourceOAuthURLResponse struct {
 	ContextID        string `json:"context_id"`
 }
 
+type pluginDynamicOptionsResponse struct {
+	Options []map[string]any `json:"options"`
+}
+
 type pipelineTemplateListResponse struct {
 	PipelineTemplates []struct {
 		ID             string         `json:"id"`
@@ -1292,6 +1296,55 @@ func TestDatasourceAuthLifecycleAndOAuthCallback(t *testing.T) {
 	if len(mapFromAny(notionOAuth["oauth_custom_client_params"])) != 0 {
 		t.Fatalf("expected cleared notion oauth custom client params, got %+v", notionOAuth["oauth_custom_client_params"])
 	}
+}
+
+func TestPluginDynamicOptionsUseRuntimeCatalogState(t *testing.T) {
+	env := newServerTestEnv(t)
+	env.setupAndLogin()
+
+	triggerEvents := postJSON[pluginDynamicOptionsResponse](env, http.MethodPost, "/console/api/workspaces/current/plugin/parameters/dynamic-options-with-credentials", map[string]any{
+		"provider":    "langgenius/github/github",
+		"action":      "provider",
+		"parameter":   "event_types",
+		"credentials": map[string]any{"token": "github-token"},
+	}, true, http.StatusOK)
+	assertDynamicOptionValues(t, triggerEvents.Options, "push", "issues", "issue_comment")
+
+	builder := postJSON[map[string]any](env, http.MethodPost, "/console/api/workspaces/current/trigger-provider/langgenius/http/http/subscriptions/builder/create", map[string]any{
+		"credential_type": "unauthorized",
+	}, true, http.StatusOK)
+	builderID := stringFromAny(mapFromAny(builder["subscription_builder"])["id"])
+	if builderID == "" {
+		t.Fatalf("expected trigger subscription builder id, got %+v", builder)
+	}
+	built := postJSON[map[string]any](env, http.MethodPost, "/console/api/workspaces/current/trigger-provider/langgenius/http/http/subscriptions/builder/build/"+builderID, map[string]any{
+		"name":       "Incoming HTTP",
+		"parameters": map[string]any{"method": "POST"},
+	}, true, http.StatusOK)
+	subscriptionID := stringFromAny(built["id"])
+	if subscriptionID == "" {
+		t.Fatalf("expected trigger subscription id, got %+v", built)
+	}
+	subscriptionOptions := getJSON[pluginDynamicOptionsResponse](env, "/console/api/workspaces/current/plugin/parameters/dynamic-options?provider_type=trigger&provider=langgenius/http/http&action=provider&parameter=subscription_id", true, http.StatusOK)
+	assertDynamicOptionValues(t, subscriptionOptions.Options, subscriptionID)
+
+	timezoneOptions := getJSON[pluginDynamicOptionsResponse](env, "/console/api/workspaces/current/plugin/parameters/dynamic-options?provider_type=tool&provider=current_time&action=get_current_time&parameter=timezone", true, http.StatusOK)
+	assertDynamicOptionValues(t, timezoneOptions.Options, "UTC", "Asia/Shanghai", "America/Los_Angeles")
+
+	installDatasourcePluginFromSpec(t, env, "langgenius/firecrawl_datasource", "firecrawl")
+	postJSON[map[string]any](env, http.MethodPost, "/console/api/auth/plugin/datasource/langgenius/firecrawl_datasource/firecrawl", map[string]any{
+		"type": "api-key",
+		"name": "Crawler Primary",
+		"credentials": map[string]any{
+			"api_key": "firecrawl-secret",
+		},
+	}, true, http.StatusOK)
+	firecrawlCredentials := getJSON[datasourceCredentialListResponse](env, "/console/api/auth/plugin/datasource/langgenius/firecrawl_datasource/firecrawl", true, http.StatusOK)
+	if len(firecrawlCredentials.Result) != 1 {
+		t.Fatalf("expected firecrawl credential, got %+v", firecrawlCredentials.Result)
+	}
+	credentialOptions := getJSON[pluginDynamicOptionsResponse](env, "/console/api/workspaces/current/plugin/parameters/dynamic-options?provider_type=datasource&plugin_id=langgenius/firecrawl_datasource&provider=firecrawl&parameter=credential_id", true, http.StatusOK)
+	assertDynamicOptionValues(t, credentialOptions.Options, firecrawlCredentials.Result[0].ID)
 }
 
 func TestRAGPipelineDatasourceNodeRunCompatibility(t *testing.T) {
@@ -4226,6 +4279,20 @@ func datasourcePluginAuthorized(t *testing.T, items []map[string]any, pluginID s
 
 	t.Fatalf("expected datasource plugin %s in %+v", pluginID, items)
 	return false
+}
+
+func assertDynamicOptionValues(t *testing.T, options []map[string]any, expected ...string) {
+	t.Helper()
+
+	values := make([]string, 0, len(options))
+	for _, option := range options {
+		values = append(values, stringFromAny(option["value"]))
+	}
+	for _, value := range expected {
+		if !slices.Contains(values, value) {
+			t.Fatalf("expected dynamic option %q in %v from %+v", value, values, options)
+		}
+	}
 }
 
 func findWorkflowRunByBatch(t *testing.T, items []map[string]any, batchID string) map[string]any {

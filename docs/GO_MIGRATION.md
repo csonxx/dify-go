@@ -134,6 +134,8 @@ The Go server keeps Dify's existing API prefixes so the frontend can continue ca
 - `GET /console/api/workspaces/current/plugin/preferences/fetch`
 - `POST /console/api/workspaces/current/plugin/preferences/autoupgrade/exclude`
 - `GET /console/api/workspaces/current/plugin/readme`
+
+补充：plugin dynamic options 已经从固定空数组推进到 Go 运行时推导。当前会按 `provider_type` 从 trigger catalog / 已创建 subscription、tool provider/action 参数、datasource credential 与本地 datasource preview 数据生成前端 `dynamic-select` 可直接消费的 `{ label, value }` 选项；这让未改动前端在插件表单、trigger subscription 和 datasource 选择场景里能看到 Go 状态。
 - `GET /console/api/apps`
 - `POST /console/api/apps`
 - `GET /console/api/apps/{id}`
