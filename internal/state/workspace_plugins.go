@@ -9,7 +9,11 @@ import (
 
 const (
 	WorkspacePluginInstallPermissionEveryone = "everyone"
+	WorkspacePluginInstallPermissionAdmins   = "admins"
+	WorkspacePluginInstallPermissionNoOne    = "noone"
 	WorkspacePluginDebugPermissionEveryone   = "everyone"
+	WorkspacePluginDebugPermissionAdmins     = "admins"
+	WorkspacePluginDebugPermissionNoOne      = "noone"
 	WorkspacePluginAutoUpgradeDisabled       = "disabled"
 	WorkspacePluginAutoUpgradeFixOnly        = "fix_only"
 	WorkspacePluginAutoUpgradeLatest         = "latest"

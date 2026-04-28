@@ -223,6 +223,7 @@
   当前已经支持从 bundle 压缩包内的 JSON/YAML 依赖声明做兼容解析，并且 app/pipeline dependency check 会从现有 app model config 与 workflow graph 中提取插件依赖
 - [ ] 把 dynamic options、权限校验、README/asset/icon 等接口从兼容占位继续收敛到真实插件运行时行为
   当前 dynamic options 已经不再固定返回空数组，会从 Go 侧 trigger catalog、已创建的 trigger subscription/builder、tool provider/action 参数、以及 datasource credential 状态推导可选项；后续继续把这层替换为真实 plugin daemon 调用。
+  当前 install/debug 权限也已从纯前端按钮控制推进到 Go API 校验：`admins/everyone/noone` 会同时约束插件 upload/install/upgrade/uninstall/task cleanup 与 debugging-key，避免绕过页面直接调用管理接口。
 
 ## 阶段 4：知识库与 Dataset 主链路
 

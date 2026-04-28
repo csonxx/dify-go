@@ -85,6 +85,9 @@ func (s *server) handlePluginDebuggingKey(w http.ResponseWriter, r *http.Request
 		writeError(w, http.StatusNotFound, "workspace_not_found", "Workspace not found.")
 		return
 	}
+	if !s.requirePluginDebugPermission(w, workspace, currentUser(r)) {
+		return
+	}
 
 	host := strings.TrimSpace(r.Host)
 	if host == "" {
@@ -223,8 +226,12 @@ func (s *server) handlePluginAsset(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *server) handlePluginUploadPackage(w http.ResponseWriter, r *http.Request) {
-	if _, ok := s.currentUserWorkspace(r); !ok {
+	workspace, ok := s.currentUserWorkspace(r)
+	if !ok {
 		writeError(w, http.StatusNotFound, "workspace_not_found", "Workspace not found.")
+		return
+	}
+	if !s.requirePluginInstallPermission(w, workspace, currentUser(r)) {
 		return
 	}
 
@@ -242,8 +249,12 @@ func (s *server) handlePluginUploadPackage(w http.ResponseWriter, r *http.Reques
 }
 
 func (s *server) handlePluginUploadGitHub(w http.ResponseWriter, r *http.Request) {
-	if _, ok := s.currentUserWorkspace(r); !ok {
+	workspace, ok := s.currentUserWorkspace(r)
+	if !ok {
 		writeError(w, http.StatusNotFound, "workspace_not_found", "Workspace not found.")
+		return
+	}
+	if !s.requirePluginInstallPermission(w, workspace, currentUser(r)) {
 		return
 	}
 
@@ -265,8 +276,12 @@ func (s *server) handlePluginUploadGitHub(w http.ResponseWriter, r *http.Request
 }
 
 func (s *server) handlePluginUploadBundle(w http.ResponseWriter, r *http.Request) {
-	if _, ok := s.currentUserWorkspace(r); !ok {
+	workspace, ok := s.currentUserWorkspace(r)
+	if !ok {
 		writeError(w, http.StatusNotFound, "workspace_not_found", "Workspace not found.")
+		return
+	}
+	if !s.requirePluginInstallPermission(w, workspace, currentUser(r)) {
 		return
 	}
 
@@ -283,6 +298,9 @@ func (s *server) handlePluginInstallPackage(w http.ResponseWriter, r *http.Reque
 	workspace, ok := s.currentUserWorkspace(r)
 	if !ok {
 		writeError(w, http.StatusNotFound, "workspace_not_found", "Workspace not found.")
+		return
+	}
+	if !s.requirePluginInstallPermission(w, workspace, currentUser(r)) {
 		return
 	}
 
@@ -340,6 +358,9 @@ func (s *server) handlePluginInstallGitHub(w http.ResponseWriter, r *http.Reques
 		writeError(w, http.StatusNotFound, "workspace_not_found", "Workspace not found.")
 		return
 	}
+	if !s.requirePluginInstallPermission(w, workspace, currentUser(r)) {
+		return
+	}
 
 	var payload struct {
 		PluginUniqueIdentifier string `json:"plugin_unique_identifier"`
@@ -390,6 +411,9 @@ func (s *server) handlePluginInstallMarketplace(w http.ResponseWriter, r *http.R
 	workspace, ok := s.currentUserWorkspace(r)
 	if !ok {
 		writeError(w, http.StatusNotFound, "workspace_not_found", "Workspace not found.")
+		return
+	}
+	if !s.requirePluginInstallPermission(w, workspace, currentUser(r)) {
 		return
 	}
 
@@ -517,6 +541,9 @@ func (s *server) handlePluginTaskDelete(w http.ResponseWriter, r *http.Request) 
 		writeError(w, http.StatusNotFound, "workspace_not_found", "Workspace not found.")
 		return
 	}
+	if !s.requirePluginInstallPermission(w, workspace, currentUser(r)) {
+		return
+	}
 
 	if err := s.store.DeleteWorkspacePluginTask(workspace.ID, chi.URLParam(r, "taskID")); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid_request", err.Error())
@@ -529,6 +556,9 @@ func (s *server) handlePluginTaskDeleteAll(w http.ResponseWriter, r *http.Reques
 	workspace, ok := s.currentUserWorkspace(r)
 	if !ok {
 		writeError(w, http.StatusNotFound, "workspace_not_found", "Workspace not found.")
+		return
+	}
+	if !s.requirePluginInstallPermission(w, workspace, currentUser(r)) {
 		return
 	}
 
@@ -545,6 +575,9 @@ func (s *server) handlePluginTaskDeleteItem(w http.ResponseWriter, r *http.Reque
 		writeError(w, http.StatusNotFound, "workspace_not_found", "Workspace not found.")
 		return
 	}
+	if !s.requirePluginInstallPermission(w, workspace, currentUser(r)) {
+		return
+	}
 
 	if err := s.store.DeleteWorkspacePluginTaskItem(workspace.ID, chi.URLParam(r, "taskID"), chi.URLParam(r, "identifier")); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid_request", err.Error())
@@ -557,6 +590,9 @@ func (s *server) handlePluginUpgradeMarketplace(w http.ResponseWriter, r *http.R
 	workspace, ok := s.currentUserWorkspace(r)
 	if !ok {
 		writeError(w, http.StatusNotFound, "workspace_not_found", "Workspace not found.")
+		return
+	}
+	if !s.requirePluginInstallPermission(w, workspace, currentUser(r)) {
 		return
 	}
 
@@ -617,6 +653,9 @@ func (s *server) handlePluginUpgradeGitHub(w http.ResponseWriter, r *http.Reques
 		writeError(w, http.StatusNotFound, "workspace_not_found", "Workspace not found.")
 		return
 	}
+	if !s.requirePluginInstallPermission(w, workspace, currentUser(r)) {
+		return
+	}
 
 	var payload struct {
 		OriginalPluginUniqueIdentifier string `json:"original_plugin_unique_identifier"`
@@ -672,6 +711,9 @@ func (s *server) handlePluginUninstall(w http.ResponseWriter, r *http.Request) {
 	workspace, ok := s.currentUserWorkspace(r)
 	if !ok {
 		writeError(w, http.StatusNotFound, "workspace_not_found", "Workspace not found.")
+		return
+	}
+	if !s.requirePluginInstallPermission(w, workspace, currentUser(r)) {
 		return
 	}
 
@@ -2129,6 +2171,37 @@ func firstString(items []string) string {
 func isAdminOrOwner(user state.User) bool {
 	role := strings.ToLower(strings.TrimSpace(user.Role))
 	return role == "owner" || role == "admin"
+}
+
+func (s *server) requirePluginInstallPermission(w http.ResponseWriter, workspace state.Workspace, user state.User) bool {
+	preferences, _ := s.store.GetWorkspacePluginPreferences(workspace.ID)
+	if pluginPermissionAllowed(preferences.Permission.InstallPermission, user) {
+		return true
+	}
+	writeError(w, http.StatusForbidden, "forbidden", "You do not have permission to manage plugins.")
+	return false
+}
+
+func (s *server) requirePluginDebugPermission(w http.ResponseWriter, workspace state.Workspace, user state.User) bool {
+	preferences, _ := s.store.GetWorkspacePluginPreferences(workspace.ID)
+	if pluginPermissionAllowed(preferences.Permission.DebugPermission, user) {
+		return true
+	}
+	writeError(w, http.StatusForbidden, "forbidden", "You do not have permission to debug plugins.")
+	return false
+}
+
+func pluginPermissionAllowed(permission string, user state.User) bool {
+	switch strings.ToLower(strings.TrimSpace(permission)) {
+	case "", state.WorkspacePluginInstallPermissionEveryone:
+		return true
+	case state.WorkspacePluginInstallPermissionAdmins, "admin":
+		return isAdminOrOwner(user)
+	case state.WorkspacePluginInstallPermissionNoOne, "no_one", "no-one", "none":
+		return false
+	default:
+		return isAdminOrOwner(user)
+	}
 }
 
 func xmlEscape(value string) string {

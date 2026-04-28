@@ -1347,6 +1347,58 @@ func TestPluginDynamicOptionsUseRuntimeCatalogState(t *testing.T) {
 	assertDynamicOptionValues(t, credentialOptions.Options, firecrawlCredentials.Result[0].ID)
 }
 
+func TestPluginPermissionsGateManagementAndDebugging(t *testing.T) {
+	env := newServerTestEnv(t)
+	env.setupAndLogin()
+
+	postJSON[map[string]any](env, http.MethodPost, "/console/api/workspaces/current/plugin/permission/change", map[string]any{
+		"install_permission": "admins",
+		"debug_permission":   "admins",
+	}, true, http.StatusOK)
+
+	debugKey := getJSON[map[string]any](env, "/console/api/workspaces/current/plugin/debugging-key", true, http.StatusOK)
+	if stringFromAny(debugKey["key"]) == "" {
+		t.Fatalf("expected owner to fetch plugin debugging key, got %+v", debugKey)
+	}
+	ownerInstall := postJSON[map[string]any](env, http.MethodPost, "/console/api/workspaces/current/plugin/install/marketplace", map[string]any{
+		"plugin_unique_identifiers": []string{"langgenius/owner_tool@1.0.0"},
+	}, true, http.StatusOK)
+	if stringFromAny(ownerInstall["task_id"]) == "" {
+		t.Fatalf("expected owner plugin install to create task, got %+v", ownerInstall)
+	}
+
+	invite := postJSON[map[string]any](env, http.MethodPost, "/console/api/workspaces/current/members/invite-email", map[string]any{
+		"emails":   []string{"plugin-editor@example.com"},
+		"role":     "editor",
+		"language": "en-US",
+	}, true, http.StatusOK)
+	results := anySlice(invite["invitation_results"])
+	if len(results) != 1 {
+		t.Fatalf("expected one invitation result, got %+v", invite)
+	}
+	activationURL := stringFromAny(mapFromAny(results[0])["url"])
+	if activationURL == "" {
+		t.Fatalf("expected activation url, got %+v", invite)
+	}
+	postJSON[map[string]any](env, http.MethodPost, "/console/api/activate", map[string]any{
+		"token":              invitationToken(t, activationURL),
+		"name":               "Plugin Editor",
+		"interface_language": "en-US",
+		"timezone":           "UTC",
+	}, false, http.StatusOK)
+
+	forbiddenDebug := getJSON[errorResponse](env, "/console/api/workspaces/current/plugin/debugging-key", true, http.StatusForbidden)
+	if forbiddenDebug.Code != "forbidden" {
+		t.Fatalf("expected editor debug key request to be forbidden, got %+v", forbiddenDebug)
+	}
+	forbiddenInstall := postJSON[errorResponse](env, http.MethodPost, "/console/api/workspaces/current/plugin/install/marketplace", map[string]any{
+		"plugin_unique_identifiers": []string{"langgenius/member_tool@1.0.0"},
+	}, true, http.StatusForbidden)
+	if forbiddenInstall.Code != "forbidden" {
+		t.Fatalf("expected editor plugin install to be forbidden, got %+v", forbiddenInstall)
+	}
+}
+
 func TestRAGPipelineDatasourceNodeRunCompatibility(t *testing.T) {
 	env := newServerTestEnv(t)
 	env.setupAndLogin()
